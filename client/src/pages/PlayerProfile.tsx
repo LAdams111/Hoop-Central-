@@ -221,13 +221,13 @@ export default function PlayerProfile() {
                           </Button>
                         </Link>
                       </td>
-                      <td className="px-6 py-4 text-muted-foreground">{stat.gamesPlayed}</td>
-                      <td className="px-6 py-4 font-bold text-foreground">{stat.pointsPerGame}</td>
-                      <td className="px-6 py-4 text-muted-foreground">{stat.reboundsPerGame}</td>
-                      <td className="px-6 py-4 text-muted-foreground">{stat.assistsPerGame}</td>
-                      <td className="px-6 py-4 text-muted-foreground">{stat.blocksPerGame}</td>
-                      <td className="px-6 py-4 text-muted-foreground">{stat.stealsPerGame}</td>
-                      <td className="px-6 py-4 font-mono text-accent">{stat.fieldGoalPct}%</td>
+                      <td className="px-6 py-4 text-base text-muted-foreground">{stat.gamesPlayed}</td>
+                      <td className="px-6 py-4 text-base font-bold text-foreground">{stat.pointsPerGame}</td>
+                      <td className="px-6 py-4 text-base text-muted-foreground">{stat.reboundsPerGame}</td>
+                      <td className="px-6 py-4 text-base text-muted-foreground">{stat.assistsPerGame}</td>
+                      <td className="px-6 py-4 text-base text-muted-foreground">{stat.blocksPerGame}</td>
+                      <td className="px-6 py-4 text-base text-muted-foreground">{stat.stealsPerGame}</td>
+                      <td className="px-6 py-4 text-base font-mono text-accent">{stat.fieldGoalPct}%</td>
                     </tr>
                   ))}
                 </tbody>
