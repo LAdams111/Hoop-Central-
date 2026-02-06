@@ -22,6 +22,7 @@ export const api = {
       input: z.object({
         search: z.string().optional(),
         position: z.string().optional(),
+        sortBy: z.enum(["views", "name"]).optional(),
       }).optional(),
       responses: {
         200: z.array(z.custom<typeof players.$inferSelect>()),

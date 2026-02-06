@@ -12,7 +12,8 @@ export async function registerRoutes(
   app.get(api.players.list.path, async (req, res) => {
     const search = req.query.search as string | undefined;
     const position = req.query.position as string | undefined;
-    const players = await storage.getPlayers(search, position);
+    const sortBy = req.query.sortBy as "views" | "name" | undefined;
+    const players = await storage.getPlayers(search, position, sortBy);
     res.json(players);
   });
 

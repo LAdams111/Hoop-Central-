@@ -4,7 +4,7 @@ import { eq, ilike, or, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Players
-  getPlayers(search?: string, position?: string): Promise<Player[]>;
+  getPlayers(search?: string, position?: string, sortBy?: "views" | "name"): Promise<Player[]>;
   getPlayer(id: number): Promise<Player | undefined>;
   incrementPlayerViews(id: number): Promise<void>;
   createPlayer(player: InsertPlayer): Promise<Player>;
@@ -16,7 +16,7 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getPlayers(search?: string, position?: string): Promise<Player[]> {
+  async getPlayers(search?: string, position?: string, sortBy?: "views" | "name"): Promise<Player[]> {
     let query = db.select().from(players);
     
     if (search) {
@@ -24,13 +24,13 @@ export class DatabaseStorage implements IStorage {
     }
     
     if (position) {
-      // If we already have a where clause (from search), we need to handle it.
-      // But simple Drizzle chaining usually works as AND. 
-      // For simplicity in this basic implementation:
-      // We will filter in memory if both are present to avoid complex dynamic query building 
-      // in this quick setup, OR just chain .where() which appends AND.
-      // Let's try chaining.
       query = query.where(eq(players.position, position)) as any;
+    }
+
+    if (sortBy === "views") {
+      query = query.orderBy(sql`${players.profileViews} DESC`) as any;
+    } else {
+      query = query.orderBy(players.name) as any;
     }
     
     return await query;

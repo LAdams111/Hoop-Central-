@@ -9,6 +9,7 @@ import { useLocation } from "wouter";
 
 export default function Home() {
   const { data: players, isLoading } = usePlayers();
+  const { data: trendingPlayers, isLoading: isLoadingTrending } = usePlayers({ sortBy: "views" });
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
 
@@ -123,6 +124,40 @@ export default function Home() {
               <Button variant="outline" className="w-full">View Directory</Button>
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* TRENDING SECTION */}
+      <section className="py-24 bg-card/10 relative overflow-hidden border-t border-white/5">
+        <div className="container mx-auto px-4">
+          <div className="flex items-end justify-between mb-12">
+            <div>
+              <h2 className="text-4xl md:text-5xl text-foreground mb-2">Most <span className="text-primary text-glow">Viewed</span></h2>
+              <p className="text-muted-foreground">Trending athletes this week</p>
+            </div>
+            <Link href="/players">
+              <Button variant="ghost" className="hidden md:flex gap-2">
+                Explore Trends
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+
+          {isLoadingTrending ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="h-[500px] rounded-xl bg-card/50 animate-pulse border border-white/5" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {trendingPlayers?.slice(0, 3).map((player) => (
+                <div key={player.id} className="h-[500px]">
+                  <PlayerCard player={player} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>
