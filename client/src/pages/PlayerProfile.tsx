@@ -31,8 +31,8 @@ export default function PlayerProfile() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <h2 className="font-display text-4xl">Player Not Found</h2>
-        <Link href="/players">
-          <Button>Return to Directory</Button>
+        <Link href="/">
+          <Button>Return to Home</Button>
         </Link>
       </div>
     );
@@ -70,10 +70,10 @@ export default function PlayerProfile() {
         />
         
         <div className="container mx-auto px-4 h-full relative z-20 flex flex-col justify-between py-8">
-          <Link href="/players">
+          <Link href="/">
             <Button variant="ghost" className="text-foreground/60 hover:text-foreground w-fit -ml-4">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Directory
+              Back to Home
             </Button>
           </Link>
 
