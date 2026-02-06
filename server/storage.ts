@@ -1,11 +1,12 @@
 import { players, playerStats, type Player, type InsertPlayer, type PlayerStats, type InsertPlayerStats } from "@shared/schema";
 import { db } from "./db";
-import { eq, ilike, or } from "drizzle-orm";
+import { eq, ilike, or, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Players
   getPlayers(search?: string, position?: string): Promise<Player[]>;
   getPlayer(id: number): Promise<Player | undefined>;
+  incrementPlayerViews(id: number): Promise<void>;
   createPlayer(player: InsertPlayer): Promise<Player>;
   
   // Stats
@@ -37,6 +38,12 @@ export class DatabaseStorage implements IStorage {
   async getPlayer(id: number): Promise<Player | undefined> {
     const [player] = await db.select().from(players).where(eq(players.id, id));
     return player;
+  }
+
+  async incrementPlayerViews(id: number): Promise<void> {
+    await db.update(players)
+      .set({ profileViews: sql`${players.profileViews} + 1` })
+      .where(eq(players.id, id));
   }
 
   async createPlayer(insertPlayer: InsertPlayer): Promise<Player> {

@@ -13,6 +13,7 @@ export const players = pgTable("players", {
   jerseyNumber: integer("jersey_number").notNull(),
   headshotUrl: text("headshot_url").notNull(),
   bio: text("bio"),
+  profileViews: integer("profile_views").default(0).notNull(),
 });
 
 export const playerStats = pgTable("player_stats", {

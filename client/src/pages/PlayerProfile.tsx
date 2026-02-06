@@ -9,7 +9,8 @@ import {
   Target, 
   Activity, 
   TrendingUp, 
-  Share2
+  Share2,
+  Eye
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -159,6 +160,10 @@ export default function PlayerProfile() {
           <div className="lg:col-span-2 space-y-8">
             
             {/* Charts Grid */}
+            <div className="mb-4 flex items-center gap-2 text-muted-foreground bg-white/5 w-fit px-3 py-1 rounded-full border border-white/5">
+              <Eye className="w-4 h-4 text-primary" />
+              <span className="font-mono text-xs uppercase tracking-wider">{player.profileViews} Profile Views</span>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <StatsChart stats={player.stats} dataKey="pointsPerGame" label="Points" color="hsl(var(--primary))" />
               <StatsChart stats={player.stats} dataKey="assistsPerGame" label="Assists" color="hsl(var(--accent))" />

@@ -25,6 +25,9 @@ export async function registerRoutes(
       return res.status(404).json({ message: "Player not found" });
     }
 
+    // Increment views asynchronously
+    storage.incrementPlayerViews(id).catch(err => console.error("Error incrementing views:", err));
+
     const stats = await storage.getPlayerStats(id);
     res.json({ ...player, stats });
   });
