@@ -7,6 +7,7 @@ import { Navigation } from "@/components/Navigation";
 import Home from "@/pages/Home";
 import PlayerDirectory from "@/pages/PlayerDirectory";
 import PlayerProfile from "@/pages/PlayerProfile";
+import TeamRoster from "@/pages/TeamRoster";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -15,6 +16,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/players" component={PlayerDirectory} />
       <Route path="/players/:id" component={PlayerProfile} />
+      <Route path="/roster/:team/:season" component={TeamRoster} />
       <Route component={NotFound} />
     </Switch>
   );

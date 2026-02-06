@@ -11,6 +11,7 @@ export interface IStorage {
   
   // Stats
   getPlayerStats(playerId: number): Promise<PlayerStats[]>;
+  getRoster(team: string, season: string): Promise<Player[]>;
   createPlayerStats(stats: InsertPlayerStats): Promise<PlayerStats>;
 }
 
@@ -53,6 +54,17 @@ export class DatabaseStorage implements IStorage {
 
   async getPlayerStats(playerId: number): Promise<PlayerStats[]> {
     return await db.select().from(playerStats).where(eq(playerStats.playerId, playerId));
+  }
+
+  async getRoster(team: string, season: string): Promise<Player[]> {
+    const results = await db
+      .select({ player: players })
+      .from(players)
+      .innerJoin(playerStats, eq(players.id, playerStats.playerId))
+      .where(
+        sql`${playerStats.team} = ${team} AND ${playerStats.season} = ${season}`
+      );
+    return results.map(r => r.player);
   }
 
   async createPlayerStats(insertStats: InsertPlayerStats): Promise<PlayerStats> {

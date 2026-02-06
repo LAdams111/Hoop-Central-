@@ -94,7 +94,7 @@ export default function PlayerDirectory() {
           <div className="text-center py-24 bg-card/30 rounded-3xl border border-dashed border-white/10">
             <h3 className="font-display text-2xl text-muted-foreground mb-2">No players found</h3>
             <p className="text-sm text-muted-foreground/60">Try adjusting your search or filters</p>
-            <Button variant="link" onClick={clearFilters} className="mt-4 text-primary">Clear all filters</Button>
+            <Button variant="ghost" onClick={clearFilters} className="mt-4 text-primary">Clear all filters</Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

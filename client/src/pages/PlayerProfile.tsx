@@ -179,6 +179,7 @@ export default function PlayerProfile() {
                   <thead className="bg-white/5 text-xs uppercase font-mono text-muted-foreground">
                     <tr>
                       <th className="px-6 py-4 font-medium">Season</th>
+                      <th className="px-6 py-4 font-medium">Team</th>
                       <th className="px-6 py-4 font-medium">GP</th>
                       <th className="px-6 py-4 font-medium text-primary">PTS</th>
                       <th className="px-6 py-4 font-medium">REB</th>
@@ -192,6 +193,13 @@ export default function PlayerProfile() {
                     {[...player.stats].sort((a, b) => b.season.localeCompare(a.season)).map((stat) => (
                       <tr key={stat.id} className="hover:bg-white/5 transition-colors">
                         <td className="px-6 py-4 font-mono font-medium">{stat.season}</td>
+                        <td className="px-6 py-4 uppercase font-mono">
+                          <Link href={`/roster/${stat.team}/${stat.season}`}>
+                            <Button variant="ghost" className="p-0 h-auto text-primary hover:text-primary/80">
+                              {stat.team}
+                            </Button>
+                          </Link>
+                        </td>
                         <td className="px-6 py-4 text-muted-foreground">{stat.gamesPlayed}</td>
                         <td className="px-6 py-4 font-bold text-foreground">{stat.pointsPerGame}</td>
                         <td className="px-6 py-4 text-muted-foreground">{stat.reboundsPerGame}</td>

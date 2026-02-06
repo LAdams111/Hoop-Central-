@@ -35,9 +35,16 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
-    // Adding stats endpoint specifically if we want just stats later, 
-    // but the 'get' player endpoint will likely include them.
-  }
+  },
+  teams: {
+    roster: {
+      method: 'GET' as const,
+      path: '/api/teams/:team/roster/:season',
+      responses: {
+        200: z.array(z.custom<typeof players.$inferSelect>()),
+      },
+    },
+  },
 };
 
 export function buildUrl(path: string, params?: Record<string, string | number>): string {
