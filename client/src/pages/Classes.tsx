@@ -29,7 +29,7 @@ export default function Classes() {
     }
   });
 
-  const sortedYears = Array.from({ length: 9 }, (_, i) => (2002 + i).toString()).reverse();
+  const sortedYears = Array.from(yearsMap.keys()).sort((a, b) => b.localeCompare(a));
   const currentGradYear = "2007"; // Assuming birth year 2007 is graduating this year (age 18 in 2025)
 
   return (
@@ -55,7 +55,7 @@ export default function Classes() {
                 <CardHeader className="text-center pb-2 relative">
                   {isGraduating && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-[10px] text-white px-2 py-0.5 rounded-full font-bold tracking-tighter uppercase">
-                      Graduating
+                      Draft Year
                     </div>
                   )}
                   <Calendar className={`w-6 h-6 mx-auto mb-2 transition-colors ${isGraduating ? "text-primary" : "text-muted-foreground group-hover:text-primary"}`} />
