@@ -15,6 +15,7 @@ export const players = pgTable("players", {
   bio: text("bio"),
   profileViews: integer("profile_views").default(0).notNull(),
   hometown: text("hometown"),
+  birthDate: text("birth_date"),
 });
 
 export const playerStats = pgTable("player_stats", {

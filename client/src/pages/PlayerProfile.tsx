@@ -53,6 +53,17 @@ export default function PlayerProfile() {
     apg: (totalStats.apg / seasonCount).toFixed(1),
   };
 
+  const calculateAge = (dob: string) => {
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* HEADER SECTION */}
@@ -122,6 +133,16 @@ export default function PlayerProfile() {
                   <div className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-primary/20 ml-4">
                     <span className="text-primary">HOME</span> {player.hometown}
                   </div>
+                )}
+                {player.birthDate && (
+                  <>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5 ml-4">
+                      <span className="text-primary">AGE</span> {calculateAge(player.birthDate)}
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5 ml-4">
+                      <span className="text-primary">DOB</span> {new Date(player.birthDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </div>
+                  </>
                 )}
               </div>
             </div>
