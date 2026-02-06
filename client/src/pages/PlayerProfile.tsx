@@ -77,14 +77,14 @@ export default function PlayerProfile() {
             </Button>
           </Link>
 
-          <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+          <div className="flex flex-col md:flex-row items-end gap-8 md:gap-12">
             {/* Player Image */}
-            <div className="relative -mb-16 md:-mb-24 flex-shrink-0 z-30 translate-y-1/2">
-              <div className="w-48 h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden border-4 border-background shadow-2xl">
+            <div className="relative flex-shrink-0 z-30 mb-[-64px] md:mb-[-96px]">
+              <div className="w-48 h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden border-4 border-background shadow-2xl bg-muted">
                 <img 
                   src={player.headshotUrl} 
                   alt={player.name} 
-                  className="w-full h-full object-cover bg-muted"
+                  className="w-full h-full object-contain"
                 />
               </div>
               <div className="absolute -top-4 -right-4 bg-primary text-white w-16 h-16 flex items-center justify-center rounded-lg font-display text-3xl font-bold border-4 border-background shadow-lg">
