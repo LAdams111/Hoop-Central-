@@ -5,9 +5,9 @@ export function Navigation() {
   const [location] = useLocation();
 
   const navItems = [
+    { label: "Home", href: "/" },
     { label: "Leagues", href: "/leagues" },
     { label: "Classes", href: "/classes" },
-    { label: "Home", href: "/" },
     { label: "Directory", href: "/players" },
   ];
 
@@ -28,11 +28,14 @@ export function Navigation() {
             <Link
               key={item.href}
               href={item.href}
-              className={`text-sm font-medium tracking-wide uppercase transition-colors hover:text-primary ${
+              className={`text-sm font-medium tracking-wide uppercase transition-colors hover:text-primary relative py-1 ${
                 location === item.href ? "text-primary" : "text-muted-foreground"
               }`}
             >
               {item.label}
+              {item.label === "Home" && (
+                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />
+              )}
             </Link>
           ))}
         </nav>
