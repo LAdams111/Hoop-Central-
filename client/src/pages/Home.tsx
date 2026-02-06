@@ -40,8 +40,8 @@ export default function Home() {
             <span>REAL-TIME ANALYTICS</span>
           </div>
           
-          <h1 className="font-display text-7xl md:text-9xl font-bold tracking-tighter text-white mb-6 animate-fade-in-up delay-100">
-            HOOP<span className="text-primary text-glow">CENTRAL</span>
+          <h1 className="font-display text-7xl md:text-9xl font-bold tracking-tighter text-foreground mb-6 animate-fade-in-up delay-100">
+            <span style={{ WebkitTextStroke: '1px black', color: 'white' }}>HOOP</span><span className="text-primary text-glow">CENTRAL</span>
           </h1>
           
           <p className="font-body text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in-up delay-200">

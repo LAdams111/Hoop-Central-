@@ -17,7 +17,7 @@ export function Navigation() {
             <Trophy className="w-4 h-4 text-white" />
           </div>
           <span className="font-display text-2xl font-bold tracking-widest text-foreground group-hover:text-primary transition-colors">
-            COURT<span className="text-primary">VISION</span>
+            HOOP<span className="text-primary">CENTRAL</span>
           </span>
         </Link>
 
