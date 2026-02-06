@@ -211,7 +211,7 @@ export default function PlayerProfile() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {[...player.stats].sort((a, b) => a.season.localeCompare(b.season)).map((stat) => (
+                  {[...player.stats].sort((a, b) => b.season.localeCompare(a.season)).map((stat) => (
                     <tr key={stat.id} className="hover:bg-muted/50 transition-colors">
                       <td className="px-6 py-4 font-mono font-medium">{stat.season}</td>
                       <td className="px-6 py-4 uppercase font-mono">
