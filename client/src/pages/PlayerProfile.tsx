@@ -79,7 +79,7 @@ export default function PlayerProfile() {
 
           <div className="flex flex-col md:flex-row items-end gap-8 md:gap-12">
             {/* Player Image */}
-            <div className="relative flex-shrink-0 z-30 mb-[-64px] md:mb-[-96px]">
+            <div className="relative flex-shrink-0 z-30 mb-[-120px] md:mb-[-160px] -translate-y-[120px] md:-translate-y-[160px]">
               <div className="w-48 h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden border-4 border-background shadow-2xl bg-muted">
                 <img 
                   src={player.headshotUrl} 
