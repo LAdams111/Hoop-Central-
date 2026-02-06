@@ -29,8 +29,11 @@ export async function registerRoutes(
     // Increment views asynchronously
     storage.incrementPlayerViews(id).catch(err => console.error("Error incrementing views:", err));
 
-    const stats = await storage.getPlayerStats(id);
-    res.json({ ...player, stats });
+    const [stats, awards] = await Promise.all([
+      storage.getPlayerStats(id),
+      storage.getPlayerAwards(id)
+    ]);
+    res.json({ ...player, stats, awards });
   });
 
   // Team Roster
@@ -127,4 +130,24 @@ async function seedDatabase() {
   await storage.createPlayerStats({ playerId: mj.id, season: "1997-98", team: "CHI", gamesPlayed: 82, pointsPerGame: "28.7", reboundsPerGame: "5.8", assistsPerGame: "3.5", stealsPerGame: "1.7", blocksPerGame: "0.5", fieldGoalPct: "46.5" });
   await storage.createPlayerStats({ playerId: mj.id, season: "1995-96", team: "CHI", gamesPlayed: 82, pointsPerGame: "30.4", reboundsPerGame: "6.6", assistsPerGame: "4.3", stealsPerGame: "2.2", blocksPerGame: "0.5", fieldGoalPct: "49.5" });
   await storage.createPlayerStats({ playerId: mj.id, season: "1987-88", team: "CHI", gamesPlayed: 82, pointsPerGame: "35.0", reboundsPerGame: "5.5", assistsPerGame: "5.9", stealsPerGame: "3.2", blocksPerGame: "1.6", fieldGoalPct: "53.5" });
+
+  // Awards Seeding
+  await storage.createAward({ playerId: lebron.id, name: "NBA Champion", year: "2020" });
+  await storage.createAward({ playerId: lebron.id, name: "NBA Finals MVP", year: "2020" });
+  await storage.createAward({ playerId: lebron.id, name: "All-NBA First Team", year: "2020" });
+
+  await storage.createAward({ playerId: curry.id, name: "NBA Champion", year: "2022" });
+  await storage.createAward({ playerId: curry.id, name: "NBA Finals MVP", year: "2022" });
+  await storage.createAward({ playerId: curry.id, name: "All-NBA First Team", year: "2021" });
+
+  await storage.createAward({ playerId: jokic.id, name: "NBA MVP", year: "2024" });
+  await storage.createAward({ playerId: jokic.id, name: "NBA MVP", year: "2022" });
+  await storage.createAward({ playerId: jokic.id, name: "NBA MVP", year: "2021" });
+
+  await storage.createAward({ playerId: kd.id, name: "NBA Champion", year: "2018" });
+  await storage.createAward({ playerId: kd.id, name: "NBA Finals MVP", year: "2018" });
+
+  await storage.createAward({ playerId: mj.id, name: "NBA MVP", year: "1998" });
+  await storage.createAward({ playerId: mj.id, name: "NBA Champion", year: "1998" });
+  await storage.createAward({ playerId: mj.id, name: "NBA Finals MVP", year: "1998" });
 }

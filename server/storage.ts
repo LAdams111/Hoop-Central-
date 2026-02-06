@@ -1,4 +1,4 @@
-import { players, playerStats, type Player, type InsertPlayer, type PlayerStats, type InsertPlayerStats } from "@shared/schema";
+import { players, playerStats, awards, type Player, type InsertPlayer, type PlayerStats, type InsertPlayerStats, type Award, type InsertAward } from "@shared/schema";
 import { db } from "./db";
 import { eq, ilike, or, sql } from "drizzle-orm";
 
@@ -9,10 +9,9 @@ export interface IStorage {
   incrementPlayerViews(id: number): Promise<void>;
   createPlayer(player: InsertPlayer): Promise<Player>;
   
-  // Stats
-  getPlayerStats(playerId: number): Promise<PlayerStats[]>;
-  getRoster(team: string, season: string): Promise<Player[]>;
-  createPlayerStats(stats: InsertPlayerStats): Promise<PlayerStats>;
+  // Awards
+  getPlayerAwards(playerId: number): Promise<Award[]>;
+  createAward(award: InsertAward): Promise<Award>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -70,6 +69,15 @@ export class DatabaseStorage implements IStorage {
   async createPlayerStats(insertStats: InsertPlayerStats): Promise<PlayerStats> {
     const [stats] = await db.insert(playerStats).values(insertStats).returning();
     return stats;
+  }
+
+  async getPlayerAwards(playerId: number): Promise<Award[]> {
+    return await db.select().from(awards).where(eq(awards.playerId, playerId));
+  }
+
+  async createAward(insertAward: InsertAward): Promise<Award> {
+    const [award] = await db.insert(awards).values(insertAward).returning();
+    return award;
   }
 }
 
