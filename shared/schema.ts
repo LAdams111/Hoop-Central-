@@ -14,6 +14,7 @@ export const players = pgTable("players", {
   headshotUrl: text("headshot_url").notNull(),
   bio: text("bio"),
   profileViews: integer("profile_views").default(0).notNull(),
+  hometown: text("hometown"),
 });
 
 export const playerStats = pgTable("player_stats", {

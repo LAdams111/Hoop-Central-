@@ -118,6 +118,11 @@ export default function PlayerProfile() {
                 <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
                   <span className="text-primary">WT</span> {player.weight}
                 </div>
+                {player.hometown && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-primary/20 ml-4">
+                    <span className="text-primary">HOME</span> {player.hometown}
+                  </div>
+                )}
               </div>
             </div>
           </div>
