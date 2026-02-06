@@ -5,6 +5,7 @@ export function Navigation() {
   const [location] = useLocation();
 
   const navItems = [
+    { label: "Leagues", href: "/leagues" },
     { label: "Classes", href: "/classes" },
     { label: "Home", href: "/" },
     { label: "Directory", href: "/players" },
