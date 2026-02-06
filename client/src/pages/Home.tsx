@@ -37,7 +37,7 @@ export default function Home() {
         <div className="container relative z-10 px-4 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-primary mb-6 animate-fade-in-up">
             <Activity className="w-3 h-3" />
-            <span>REAL-TIME ANALYTICS</span>
+            <span>REAL-TIME STATS</span>
           </div>
           
           <h1 className="font-display text-7xl md:text-9xl font-bold tracking-tighter text-foreground mb-6 animate-fade-in-up delay-100">
@@ -48,7 +48,7 @@ export default function Home() {
           </h1>
           
           <p className="font-body text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in-up delay-200">
-            The ultimate database for modern basketball analytics. Track performance of the biggest stars and hottest prospects.
+            The ultimate database for modern basketball stats. Track performance of the biggest stars and hottest prospects.
           </p>
 
           <div className="max-w-md mx-auto relative group animate-fade-in-up delay-300">
