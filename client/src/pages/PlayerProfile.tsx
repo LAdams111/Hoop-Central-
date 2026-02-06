@@ -77,9 +77,9 @@ export default function PlayerProfile() {
             </Button>
           </Link>
 
-          <div className="flex flex-col md:flex-row items-end gap-8 md:gap-12">
+          <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
             {/* Player Image */}
-            <div className="relative -mb-16 md:-mb-24 flex-shrink-0 z-30">
+            <div className="relative -mb-16 md:-mb-24 flex-shrink-0 z-30 translate-y-1/2">
               <div className="w-48 h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden border-4 border-background shadow-2xl">
                 <img 
                   src={player.headshotUrl} 
@@ -87,7 +87,7 @@ export default function PlayerProfile() {
                   className="w-full h-full object-cover bg-muted"
                 />
               </div>
-              <div className="absolute -top-6 -right-6 bg-primary text-white w-16 h-16 flex items-center justify-center rounded-full font-display text-3xl font-bold border-4 border-background shadow-lg rotate-12">
+              <div className="absolute -top-4 -right-4 bg-primary text-white w-16 h-16 flex items-center justify-center rounded-lg font-display text-3xl font-bold border-4 border-background shadow-lg">
                 #{player.jerseyNumber}
               </div>
             </div>
