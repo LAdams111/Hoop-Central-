@@ -160,18 +160,18 @@ export default function PlayerProfile() {
                 <h3 className="font-display text-2xl mb-4 border-b border-border pb-2">Current Season ({currentStats.season})</h3>
                 <div className="grid grid-cols-2 gap-4">
                    <div className="bg-background rounded-xl p-4 border border-border text-center">
-                     <Target className="w-5 h-5 text-primary mx-auto mb-2 opacity-80" />
-                     <div className="font-display text-3xl">{currentStats.ppg}</div>
+                     <Target className="w-6 h-6 text-primary mx-auto mb-2 opacity-80" />
+                     <div className="font-display text-4xl">{currentStats.ppg}</div>
                      <div className="text-[10px] text-muted-foreground uppercase tracking-widest">PPG</div>
                    </div>
                    <div className="bg-background rounded-xl p-4 border border-border text-center">
-                     <Activity className="w-5 h-5 text-accent mx-auto mb-2 opacity-80" />
-                     <div className="font-display text-3xl">{currentStats.apg}</div>
+                     <Activity className="w-6 h-6 text-accent mx-auto mb-2 opacity-80" />
+                     <div className="font-display text-4xl">{currentStats.apg}</div>
                      <div className="text-[10px] text-muted-foreground uppercase tracking-widest">APG</div>
                    </div>
                    <div className="bg-background rounded-xl p-4 border border-border text-center col-span-2">
-                     <Trophy className="w-5 h-5 text-yellow-500 mx-auto mb-2 opacity-80" />
-                     <div className="font-display text-3xl">{currentStats.rpg}</div>
+                     <Trophy className="w-6 h-6 text-yellow-500 mx-auto mb-2 opacity-80" />
+                     <div className="font-display text-4xl">{currentStats.rpg}</div>
                      <div className="text-[10px] text-muted-foreground uppercase tracking-widest">RPG</div>
                    </div>
                 </div>
