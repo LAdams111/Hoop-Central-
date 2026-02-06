@@ -1,8 +1,8 @@
-# CourtVision - Basketball Analytics Platform
+# Hoop Central - Basketball Analytics Platform
 
 ## Overview
 
-CourtVision is a basketball player analytics web application that lets users browse NBA player profiles, view career statistics, and analyze performance trends through interactive charts. The app features a dark-themed sports analytics UI with a player directory, individual player profiles with season-by-season stats, and data visualization using area/line charts. The database is seeded with legendary NBA players on first run.
+Hoop Central is a basketball player analytics web application that lets users browse NBA player profiles, view career statistics, and analyze performance trends through interactive charts. The app features a dark-themed sports analytics UI with a player directory, individual player profiles with season-by-season stats, and data visualization using area/line charts. The database is seeded with legendary NBA players on first run.
 
 ## User Preferences
 
