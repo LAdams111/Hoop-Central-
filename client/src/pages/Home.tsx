@@ -151,11 +151,14 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {trendingPlayers?.slice(0, 3).map((player) => (
-                <div key={player.id} className="h-[500px]">
-                  <PlayerCard player={player} />
-                </div>
-              ))}
+              {trendingPlayers
+                ?.filter(p => !players?.slice(0, 3).some(fp => fp.id === p.id))
+                .slice(0, 3)
+                .map((player) => (
+                  <div key={player.id} className="h-[500px]">
+                    <PlayerCard player={player} />
+                  </div>
+                ))}
             </div>
           )}
         </div>

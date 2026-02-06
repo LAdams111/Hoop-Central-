@@ -5,7 +5,7 @@ import { api, buildUrl } from "@shared/routes";
 // READ HOOKS
 // ============================================
 
-export function usePlayers(filters?: { search?: string; position?: string }) {
+export function usePlayers(filters?: { search?: string; position?: string; sortBy?: "views" | "name" }) {
   return useQuery({
     queryKey: [api.players.list.path, filters],
     queryFn: async () => {
@@ -13,6 +13,7 @@ export function usePlayers(filters?: { search?: string; position?: string }) {
       const params = new URLSearchParams();
       if (filters?.search) params.append("search", filters.search);
       if (filters?.position && filters.position !== "ALL") params.append("position", filters.position);
+      if (filters?.sortBy) params.append("sortBy", filters.sortBy);
       
       const url = `${api.players.list.path}?${params.toString()}`;
       const res = await fetch(url);
