@@ -93,7 +93,7 @@ export default function PlayerProfile() {
             </div>
 
             {/* Player Info */}
-            <div className="flex-1 pb-4 md:pb-8 pt-8 md:pt-0">
+            <div className="flex-1 pb-4 md:pb-8 pt-8 md:pt-0 min-h-[160px] md:min-h-0 flex flex-col justify-end">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                 <div>
                   <h3 className="text-primary font-mono text-lg uppercase tracking-widest mb-1">{player.team}</h3>
