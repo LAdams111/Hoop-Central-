@@ -5,46 +5,46 @@
 @tailwind utilities;
 
 :root {
-  /* Sports Analytics Dark Theme Palette */
+  /* Sports Analytics Light Theme Palette */
   --font-display: 'Teko', sans-serif;
   --font-body: 'Outfit', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Base Colors - Deep, rich darks for background */
-  --background: 224 71% 4%;
-  --foreground: 213 31% 91%;
+  /* Base Colors - Clean white background */
+  --background: 0 0% 100%;
+  --foreground: 224 71% 4%;
 
-  /* Cards - Slightly lighter than background */
-  --card: 224 71% 7%;
-  --card-foreground: 213 31% 91%;
+  /* Cards - Subtle grey elevation */
+  --card: 0 0% 98%;
+  --card-foreground: 224 71% 4%;
 
   /* Popovers */
-  --popover: 224 71% 7%;
-  --popover-foreground: 213 31% 91%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 224 71% 4%;
 
-  /* Primary - Electric Orange for Basketball vibe */
+  /* Primary - Keep the Basketball Orange but adjust for light background */
   --primary: 24 95% 53%;
   --primary-foreground: 0 0% 100%;
 
-  /* Secondary - Cool Slate/Blue used for secondary elements */
-  --secondary: 215 25% 27%;
-  --secondary-foreground: 210 40% 98%;
+  /* Secondary - Soft slate */
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
 
-  /* Muted - For subdued text/borders */
-  --muted: 223 47% 11%;
-  --muted-foreground: 215 20% 65%;
+  /* Muted */
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
 
-  /* Accent - A vibrant teal for stats/charts contrast */
+  /* Accent - Keep Teal for contrast */
   --accent: 172 66% 50%;
   --accent-foreground: 224 71% 4%;
 
   /* Destructive */
-  --destructive: 0 84% 60%;
+  --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
 
   /* Borders & Inputs */
-  --border: 216 34% 17%;
-  --input: 216 34% 17%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
   --ring: 24 95% 53%;
 
   /* Radius */

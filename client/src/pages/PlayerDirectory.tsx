@@ -48,20 +48,20 @@ export default function PlayerDirectory() {
         </div>
 
         {/* Filters Bar */}
-        <div className="sticky top-20 z-40 bg-background/95 backdrop-blur-xl border border-white/5 rounded-2xl p-4 mb-12 shadow-2xl">
+        <div className="sticky top-20 z-40 bg-background/95 backdrop-blur-xl border border-border rounded-2xl p-4 mb-12 shadow-2xl">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
                 placeholder="Search player name..." 
-                className="pl-10 bg-card/50 border-white/10"
+                className="pl-10 bg-card/50 border-border"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             
             <Select value={position} onValueChange={setPosition}>
-              <SelectTrigger className="w-full md:w-[200px] bg-card/50 border-white/10">
+              <SelectTrigger className="w-full md:w-[200px] bg-card/50 border-border">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4 text-muted-foreground" />
                   <SelectValue placeholder="Position" />
@@ -87,11 +87,11 @@ export default function PlayerDirectory() {
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="aspect-[4/5] bg-card/50 rounded-xl animate-pulse border border-white/5" />
+              <div key={i} className="aspect-[4/5] bg-card/50 rounded-xl animate-pulse border border-border" />
             ))}
           </div>
         ) : players?.length === 0 ? (
-          <div className="text-center py-24 bg-card/30 rounded-3xl border border-dashed border-white/10">
+          <div className="text-center py-24 bg-card/30 rounded-3xl border border-dashed border-border">
             <h3 className="font-display text-2xl text-muted-foreground mb-2">No players found</h3>
             <p className="text-sm text-muted-foreground/60">Try adjusting your search or filters</p>
             <Button variant="ghost" onClick={clearFilters} className="mt-4 text-primary">Clear all filters</Button>

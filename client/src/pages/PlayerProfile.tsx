@@ -60,18 +60,18 @@ export default function PlayerProfile() {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* HEADER SECTION */}
-      <div className="relative h-[60vh] md:h-[50vh] overflow-hidden border-b border-white/10">
-        <div className="absolute inset-0 bg-background/90 z-10" />
+      <div className="relative h-[60vh] md:h-[50vh] overflow-hidden border-b border-border">
+        <div className="absolute inset-0 bg-background/60 z-10" />
         
         {/* Background Image (blurred) */}
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-30 z-0 grayscale"
+          className="absolute inset-0 bg-cover bg-center opacity-10 z-0 grayscale"
           style={{ backgroundImage: `url(${player.headshotUrl})` }}
         />
         
         <div className="container mx-auto px-4 h-full relative z-20 flex flex-col justify-between py-8">
           <Link href="/players">
-            <Button variant="ghost" className="text-white/60 hover:text-white w-fit -ml-4">
+            <Button variant="ghost" className="text-foreground/60 hover:text-foreground w-fit -ml-4">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Directory
             </Button>
@@ -97,7 +97,7 @@ export default function PlayerProfile() {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                 <div>
                   <h3 className="text-primary font-mono text-lg uppercase tracking-widest mb-1">{player.team}</h3>
-                  <h1 className="font-display text-6xl md:text-8xl font-bold leading-none text-white tracking-tighter">
+                  <h1 className="font-display text-6xl md:text-8xl font-bold leading-none text-foreground tracking-tighter">
                     {player.name}
                   </h1>
                 </div>
@@ -113,22 +113,22 @@ export default function PlayerProfile() {
               </div>
 
               <div className="flex flex-col gap-4">
-                <div className="flex flex-wrap items-center gap-4 text-sm text-white/60 font-mono">
-                  <Badge variant="outline" className="text-white border-white/20 px-4 py-1">
+                <div className="flex flex-wrap items-center gap-4 text-sm text-foreground/60 font-mono">
+                  <Badge variant="outline" className="text-foreground border-border px-4 py-1">
                     {player.position}
                   </Badge>
-                  <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
                     <span className="text-primary">HT</span> {player.height}
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
                     <span className="text-primary">WT</span> {player.weight}
                   </div>
                   {player.birthDate && (
                     <>
-                      <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
+                      <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
                         <span className="text-primary">AGE</span> {calculateAge(player.birthDate)}
                       </div>
-                      <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
+                      <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
                         <span className="text-primary">DOB</span> {new Date(player.birthDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </div>
                     </>
@@ -136,10 +136,10 @@ export default function PlayerProfile() {
                 </div>
 
                 {player.hometown && (
-                  <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-xl border border-primary/20 w-fit">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-primary/5 rounded-xl border border-primary/20 w-fit">
                     <div className="flex flex-col">
                       <span className="text-[10px] uppercase tracking-[0.2em] text-primary/70 font-bold leading-none mb-1">Hometown</span>
-                      <span className="text-sm text-white font-mono">{player.hometown}</span>
+                      <span className="text-sm text-foreground font-mono">{player.hometown}</span>
                     </div>
                   </div>
                 )}
@@ -151,98 +151,89 @@ export default function PlayerProfile() {
 
       {/* CONTENT GRID */}
       <div className="container mx-auto px-4 mt-24 md:mt-32">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-8">
           
-          {/* Left Column: Bio & Quick Stats */}
-          <div className="space-y-8">
-            <section className="bg-card rounded-2xl p-6 border border-white/5 shadow-xl">
-              <h3 className="font-display text-2xl mb-4 border-b border-white/5 pb-2">Current Season ({currentStats.season})</h3>
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="bg-background/50 rounded-xl p-4 border border-white/5 text-center">
-                   <Target className="w-5 h-5 text-primary mx-auto mb-2 opacity-80" />
-                   <div className="font-display text-3xl">{currentStats.ppg}</div>
-                   <div className="text-[10px] text-muted-foreground uppercase tracking-widest">PPG</div>
-                 </div>
-                 <div className="bg-background/50 rounded-xl p-4 border border-white/5 text-center">
-                   <Activity className="w-5 h-5 text-accent mx-auto mb-2 opacity-80" />
-                   <div className="font-display text-3xl">{currentStats.apg}</div>
-                   <div className="text-[10px] text-muted-foreground uppercase tracking-widest">APG</div>
-                 </div>
-                 <div className="bg-background/50 rounded-xl p-4 border border-white/5 text-center col-span-2">
-                   <Trophy className="w-5 h-5 text-yellow-500 mx-auto mb-2 opacity-80" />
-                   <div className="font-display text-3xl">{currentStats.rpg}</div>
-                   <div className="text-[10px] text-muted-foreground uppercase tracking-widest">RPG</div>
-                 </div>
-              </div>
-            </section>
+          {/* Top Row: Quick Stats & Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-1">
+              <section className="bg-card rounded-2xl p-6 border border-border shadow-xl h-full">
+                <h3 className="font-display text-2xl mb-4 border-b border-border pb-2">Current Season ({currentStats.season})</h3>
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="bg-background rounded-xl p-4 border border-border text-center">
+                     <Target className="w-5 h-5 text-primary mx-auto mb-2 opacity-80" />
+                     <div className="font-display text-3xl">{currentStats.ppg}</div>
+                     <div className="text-[10px] text-muted-foreground uppercase tracking-widest">PPG</div>
+                   </div>
+                   <div className="bg-background rounded-xl p-4 border border-border text-center">
+                     <Activity className="w-5 h-5 text-accent mx-auto mb-2 opacity-80" />
+                     <div className="font-display text-3xl">{currentStats.apg}</div>
+                     <div className="text-[10px] text-muted-foreground uppercase tracking-widest">APG</div>
+                   </div>
+                   <div className="bg-background rounded-xl p-4 border border-border text-center col-span-2">
+                     <Trophy className="w-5 h-5 text-yellow-500 mx-auto mb-2 opacity-80" />
+                     <div className="font-display text-3xl">{currentStats.rpg}</div>
+                     <div className="text-[10px] text-muted-foreground uppercase tracking-widest">RPG</div>
+                   </div>
+                </div>
+              </section>
+            </div>
 
-            <section className="bg-card rounded-2xl p-6 border border-white/5 shadow-xl">
-              <h3 className="font-display text-2xl mb-4 border-b border-white/5 pb-2">About</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                {player.bio || `${player.name} plays for the ${player.team} as a ${player.position}. Standing at ${player.height} and weighing ${player.weight}, they are a key contributor to the team's rotation.`}
-              </p>
-            </section>
+            <div className="lg:col-span-2">
+              <div className="mb-4 flex items-center gap-2 text-muted-foreground bg-muted w-fit px-3 py-1 rounded-full border border-border">
+                <Eye className="w-4 h-4 text-primary" />
+                <span className="font-mono text-xs uppercase tracking-wider">{player.profileViews} Profile Views</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <StatsChart stats={player.stats} dataKey="pointsPerGame" label="Points" color="hsl(var(--primary))" />
+                <StatsChart stats={player.stats} dataKey="assistsPerGame" label="Assists" color="hsl(var(--accent))" />
+              </div>
+            </div>
           </div>
 
-          {/* Right Column: Charts & History */}
-          <div className="lg:col-span-2 space-y-8">
-            
-            {/* Charts Grid */}
-            <div className="mb-4 flex items-center gap-2 text-muted-foreground bg-white/5 w-fit px-3 py-1 rounded-full border border-white/5">
-              <Eye className="w-4 h-4 text-primary" />
-              <span className="font-mono text-xs uppercase tracking-wider">{player.profileViews} Profile Views</span>
+          {/* Season History: Full Width */}
+          <section className="bg-card rounded-2xl border border-border overflow-hidden shadow-xl">
+            <div className="p-6 border-b border-border">
+              <h3 className="font-display text-2xl">Season History</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <StatsChart stats={player.stats} dataKey="pointsPerGame" label="Points" color="hsl(var(--primary))" />
-              <StatsChart stats={player.stats} dataKey="assistsPerGame" label="Assists" color="hsl(var(--accent))" />
-            </div>
-
-            {/* Season Table */}
-            <section className="bg-card rounded-2xl border border-white/5 overflow-hidden shadow-xl">
-              <div className="p-6 border-b border-white/5">
-                <h3 className="font-display text-2xl">Season History</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-white/5 text-xs uppercase font-mono text-muted-foreground">
-                    <tr>
-                      <th className="px-6 py-4 font-medium">Season</th>
-                      <th className="px-6 py-4 font-medium">Team</th>
-                      <th className="px-6 py-4 font-medium">GP</th>
-                      <th className="px-6 py-4 font-medium text-primary">PTS</th>
-                      <th className="px-6 py-4 font-medium">REB</th>
-                      <th className="px-6 py-4 font-medium">AST</th>
-                      <th className="px-6 py-4 font-medium">BLK</th>
-                      <th className="px-6 py-4 font-medium">STL</th>
-                      <th className="px-6 py-4 font-medium">FG%</th>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-muted text-xs uppercase font-mono text-muted-foreground">
+                  <tr>
+                    <th className="px-6 py-4 font-medium">Season</th>
+                    <th className="px-6 py-4 font-medium">Team</th>
+                    <th className="px-6 py-4 font-medium">GP</th>
+                    <th className="px-6 py-4 font-medium text-primary">PTS</th>
+                    <th className="px-6 py-4 font-medium">REB</th>
+                    <th className="px-6 py-4 font-medium text-accent">AST</th>
+                    <th className="px-6 py-4 font-medium">BLK</th>
+                    <th className="px-6 py-4 font-medium">STL</th>
+                    <th className="px-6 py-4 font-medium text-yellow-600">FG%</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {[...player.stats].sort((a, b) => b.season.localeCompare(a.season)).map((stat) => (
+                    <tr key={stat.id} className="hover:bg-muted/50 transition-colors">
+                      <td className="px-6 py-4 font-mono font-medium">{stat.season}</td>
+                      <td className="px-6 py-4 uppercase font-mono">
+                        <Link href={`/roster/${stat.team}/${stat.season}`}>
+                          <Button variant="ghost" className="p-0 h-auto text-primary hover:text-primary/80">
+                            {stat.team}
+                          </Button>
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 text-muted-foreground">{stat.gamesPlayed}</td>
+                      <td className="px-6 py-4 font-bold text-foreground">{stat.pointsPerGame}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{stat.reboundsPerGame}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{stat.assistsPerGame}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{stat.blocksPerGame}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{stat.stealsPerGame}</td>
+                      <td className="px-6 py-4 font-mono text-accent">{stat.fieldGoalPct}%</td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {[...player.stats].sort((a, b) => b.season.localeCompare(a.season)).map((stat) => (
-                      <tr key={stat.id} className="hover:bg-white/5 transition-colors">
-                        <td className="px-6 py-4 font-mono font-medium">{stat.season}</td>
-                        <td className="px-6 py-4 uppercase font-mono">
-                          <Link href={`/roster/${stat.team}/${stat.season}`}>
-                            <Button variant="ghost" className="p-0 h-auto text-primary hover:text-primary/80">
-                              {stat.team}
-                            </Button>
-                          </Link>
-                        </td>
-                        <td className="px-6 py-4 text-muted-foreground">{stat.gamesPlayed}</td>
-                        <td className="px-6 py-4 font-bold text-foreground">{stat.pointsPerGame}</td>
-                        <td className="px-6 py-4 text-muted-foreground">{stat.reboundsPerGame}</td>
-                        <td className="px-6 py-4 text-muted-foreground">{stat.assistsPerGame}</td>
-                        <td className="px-6 py-4 text-muted-foreground">{stat.blocksPerGame}</td>
-                        <td className="px-6 py-4 text-muted-foreground">{stat.stealsPerGame}</td>
-                        <td className="px-6 py-4 font-mono text-accent">{stat.fieldGoalPct}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </div>
-
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
       </div>
     </div>

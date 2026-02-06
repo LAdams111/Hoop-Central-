@@ -128,7 +128,7 @@ export default function Home() {
       </section>
 
       {/* TRENDING SECTION */}
-      <section className="py-24 bg-card/10 relative overflow-hidden border-t border-white/5">
+      <section className="py-24 bg-muted relative overflow-hidden border-t border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-end justify-between mb-12">
             <div>
@@ -146,7 +146,7 @@ export default function Home() {
           {isLoadingTrending ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="h-[500px] rounded-xl bg-card/50 animate-pulse border border-white/5" />
+                <div key={n} className="h-[500px] rounded-xl bg-card/50 animate-pulse border border-border" />
               ))}
             </div>
           ) : (
