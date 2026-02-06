@@ -38,19 +38,12 @@ export default function PlayerProfile() {
     );
   }
 
-  // Calculate career averages
-  const totalStats = player.stats.reduce((acc, curr) => ({
-    games: acc.games + curr.gamesPlayed,
-    ppg: acc.ppg + parseFloat(curr.pointsPerGame),
-    rpg: acc.rpg + parseFloat(curr.reboundsPerGame),
-    apg: acc.apg + parseFloat(curr.assistsPerGame)
-  }), { games: 0, ppg: 0, rpg: 0, apg: 0 });
-
-  const seasonCount = player.stats.length || 1;
-  const careerStats = {
-    ppg: (totalStats.ppg / seasonCount).toFixed(1),
-    rpg: (totalStats.rpg / seasonCount).toFixed(1),
-    apg: (totalStats.apg / seasonCount).toFixed(1),
+  const latestSeason = [...player.stats].sort((a, b) => b.season.localeCompare(a.season))[0];
+  const currentStats = {
+    ppg: latestSeason?.pointsPerGame || "0.0",
+    rpg: latestSeason?.reboundsPerGame || "0.0",
+    apg: latestSeason?.assistsPerGame || "0.0",
+    season: latestSeason?.season || "N/A"
   };
 
   const calculateAge = (dob: string) => {
@@ -163,28 +156,31 @@ export default function PlayerProfile() {
           {/* Left Column: Bio & Quick Stats */}
           <div className="space-y-8">
             <section className="bg-card rounded-2xl p-6 border border-white/5 shadow-xl">
+              <h3 className="font-display text-2xl mb-4 border-b border-white/5 pb-2">Current Season ({currentStats.season})</h3>
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="bg-background/50 rounded-xl p-4 border border-white/5 text-center">
+                   <Target className="w-5 h-5 text-primary mx-auto mb-2 opacity-80" />
+                   <div className="font-display text-3xl">{currentStats.ppg}</div>
+                   <div className="text-[10px] text-muted-foreground uppercase tracking-widest">PPG</div>
+                 </div>
+                 <div className="bg-background/50 rounded-xl p-4 border border-white/5 text-center">
+                   <Activity className="w-5 h-5 text-accent mx-auto mb-2 opacity-80" />
+                   <div className="font-display text-3xl">{currentStats.apg}</div>
+                   <div className="text-[10px] text-muted-foreground uppercase tracking-widest">APG</div>
+                 </div>
+                 <div className="bg-background/50 rounded-xl p-4 border border-white/5 text-center col-span-2">
+                   <Trophy className="w-5 h-5 text-yellow-500 mx-auto mb-2 opacity-80" />
+                   <div className="font-display text-3xl">{currentStats.rpg}</div>
+                   <div className="text-[10px] text-muted-foreground uppercase tracking-widest">RPG</div>
+                 </div>
+              </div>
+            </section>
+
+            <section className="bg-card rounded-2xl p-6 border border-white/5 shadow-xl">
               <h3 className="font-display text-2xl mb-4 border-b border-white/5 pb-2">About</h3>
               <p className="text-muted-foreground leading-relaxed">
                 {player.bio || `${player.name} plays for the ${player.team} as a ${player.position}. Standing at ${player.height} and weighing ${player.weight}, they are a key contributor to the team's rotation.`}
               </p>
-            </section>
-
-            <section className="grid grid-cols-2 gap-4">
-               <div className="bg-card rounded-2xl p-6 border border-white/5 shadow-xl text-center">
-                 <Target className="w-6 h-6 text-primary mx-auto mb-2 opacity-80" />
-                 <div className="font-display text-4xl">{careerStats.ppg}</div>
-                 <div className="text-xs text-muted-foreground uppercase tracking-widest">Career PPG</div>
-               </div>
-               <div className="bg-card rounded-2xl p-6 border border-white/5 shadow-xl text-center">
-                 <Activity className="w-6 h-6 text-accent mx-auto mb-2 opacity-80" />
-                 <div className="font-display text-4xl">{careerStats.apg}</div>
-                 <div className="text-xs text-muted-foreground uppercase tracking-widest">Career APG</div>
-               </div>
-               <div className="bg-card rounded-2xl p-6 border border-white/5 shadow-xl text-center col-span-2">
-                 <Trophy className="w-6 h-6 text-yellow-500 mx-auto mb-2 opacity-80" />
-                 <div className="font-display text-4xl">{careerStats.rpg}</div>
-                 <div className="text-xs text-muted-foreground uppercase tracking-widest">Career RPG</div>
-               </div>
             </section>
           </div>
 
