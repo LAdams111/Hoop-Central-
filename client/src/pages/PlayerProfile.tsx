@@ -119,30 +119,36 @@ export default function PlayerProfile() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-4 text-sm text-white/60 font-mono">
-                <Badge variant="outline" className="text-white border-white/20 px-4 py-1">
-                  {player.position}
-                </Badge>
-                <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
-                  <span className="text-primary">HT</span> {player.height}
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
-                  <span className="text-primary">WT</span> {player.weight}
-                </div>
-                {player.hometown && (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-primary/20 ml-4">
-                    <span className="text-primary">HOME</span> {player.hometown}
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap items-center gap-4 text-sm text-white/60 font-mono">
+                  <Badge variant="outline" className="text-white border-white/20 px-4 py-1">
+                    {player.position}
+                  </Badge>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
+                    <span className="text-primary">HT</span> {player.height}
                   </div>
-                )}
-                {player.birthDate && (
-                  <>
-                    <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5 ml-4">
-                      <span className="text-primary">AGE</span> {calculateAge(player.birthDate)}
+                  <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
+                    <span className="text-primary">WT</span> {player.weight}
+                  </div>
+                  {player.birthDate && (
+                    <>
+                      <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
+                        <span className="text-primary">AGE</span> {calculateAge(player.birthDate)}
+                      </div>
+                      <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
+                        <span className="text-primary">DOB</span> {new Date(player.birthDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {player.hometown && (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-xl border border-primary/20 w-fit">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-primary/70 font-bold leading-none mb-1">Hometown</span>
+                      <span className="text-sm text-white font-mono">{player.hometown}</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5 ml-4">
-                      <span className="text-primary">DOB</span> {new Date(player.birthDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </div>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
