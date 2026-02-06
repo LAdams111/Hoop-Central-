@@ -19,6 +19,11 @@ export default function Classes() {
 
   // Extract years from player birthDates
   const yearsMap = new Map<string, any[]>();
+  
+  // Create range 2002-2009
+  const requiredYears = Array.from({ length: 8 }, (_, i) => (2002 + i).toString());
+  requiredYears.forEach(year => yearsMap.set(year, []));
+
   players?.forEach(player => {
     if (player.birthDate) {
       const year = new Date(player.birthDate).getFullYear().toString();
