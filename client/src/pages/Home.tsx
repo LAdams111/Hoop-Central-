@@ -41,7 +41,10 @@ export default function Home() {
           </div>
           
           <h1 className="font-display text-7xl md:text-9xl font-bold tracking-tighter text-foreground mb-6 animate-fade-in-up delay-100">
-            <span style={{ WebkitTextStroke: '1px black', color: 'white' }}>HOOP</span><span className="text-primary text-glow">CENTRAL</span>
+            <span style={{ 
+              color: 'white',
+              textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
+            }}>HOOP</span><span className="text-primary text-glow">CENTRAL</span>
           </h1>
           
           <p className="font-body text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in-up delay-200">
