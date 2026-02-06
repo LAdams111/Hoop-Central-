@@ -203,6 +203,7 @@ export default function PlayerProfile() {
                 <thead className="bg-muted text-xs uppercase font-mono text-muted-foreground">
                   <tr>
                     <th className="px-6 py-4 font-medium">Season</th>
+                    <th className="px-6 py-4 font-medium">League</th>
                     <th className="px-6 py-4 font-medium">Team</th>
                     <th className="px-6 py-4 font-medium">GP</th>
                     <th className="px-6 py-4 font-medium text-primary">PTS</th>
@@ -217,9 +218,10 @@ export default function PlayerProfile() {
                   {[...player.stats].sort((a, b) => b.season.localeCompare(a.season)).map((stat) => (
                     <tr key={stat.id} className="hover:bg-muted/50 transition-colors">
                       <td className="px-6 py-4 font-mono font-medium">{stat.season}</td>
+                      <td className="px-6 py-4 font-mono text-muted-foreground whitespace-nowrap">{stat.league || "NBA"}</td>
                       <td className="px-6 py-4 uppercase font-mono">
                         <Link href={`/roster/${stat.team}/${stat.season}`}>
-                          <Button variant="ghost" className="p-0 h-auto text-primary hover:text-primary/80">
+                          <Button variant="ghost" className="p-0 h-auto text-primary hover:text-primary/80 whitespace-nowrap">
                             {stat.team}
                           </Button>
                         </Link>

@@ -22,7 +22,8 @@ export const playerStats = pgTable("player_stats", {
   id: serial("id").primaryKey(),
   playerId: integer("player_id").notNull(),
   season: text("season").notNull(), // e.g., "2023-24"
-  team: text("team").notNull().default("NBA"), // Added team field
+  team: text("team").notNull().default("NBA"), 
+  league: text("league").notNull().default("NBA"), // Added league field
   gamesPlayed: integer("games_played").notNull(),
   pointsPerGame: numeric("ppg").notNull(),
   reboundsPerGame: numeric("rpg").notNull(),
