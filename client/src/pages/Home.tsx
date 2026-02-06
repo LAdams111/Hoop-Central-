@@ -48,7 +48,7 @@ export default function Home() {
           </h1>
           
           <p className="font-body text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in-up delay-200">
-            The ultimate database for modern basketball analytics. Track performance of the biggest stars and hottest prospects and analyze trends.
+            The ultimate database for modern basketball analytics. Track performance of the biggest stars and hottest prospects.
           </p>
 
           <div className="max-w-md mx-auto relative group animate-fade-in-up delay-300">
