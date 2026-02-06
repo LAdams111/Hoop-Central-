@@ -153,6 +153,11 @@ export default function PlayerProfile() {
       <div className="container mx-auto px-4 mt-24 md:mt-32">
         <div className="grid grid-cols-1 gap-8">
           
+          <div className="flex items-center gap-3 text-muted-foreground bg-card w-fit px-6 py-3 rounded-2xl border border-border shadow-sm">
+            <Eye className="w-6 h-6 text-primary" />
+            <span className="font-display text-2xl uppercase tracking-wider font-bold">{player.profileViews} Profile Views</span>
+          </div>
+
           {/* Top Row: Quick Stats & Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1">
@@ -179,10 +184,6 @@ export default function PlayerProfile() {
             </div>
 
             <div className="lg:col-span-2">
-              <div className="mb-4 flex items-center gap-2 text-muted-foreground bg-muted w-fit px-3 py-1 rounded-full border border-border">
-                <Eye className="w-4 h-4 text-primary" />
-                <span className="font-mono text-xs uppercase tracking-wider">{player.profileViews} Profile Views</span>
-              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <StatsChart stats={player.stats} dataKey="pointsPerGame" label="Points" color="hsl(var(--primary))" />
                 <StatsChart stats={player.stats} dataKey="assistsPerGame" label="Assists" color="hsl(var(--accent))" />
