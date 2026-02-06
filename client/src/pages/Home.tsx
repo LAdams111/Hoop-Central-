@@ -55,7 +55,7 @@ export default function Home() {
             <form onSubmit={handleSearch} className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input 
-                className="pl-12 py-7 rounded-full bg-white/5 border-white/10 text-lg focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50" 
+                className="pl-12 py-7 rounded-full bg-white/5 border-black text-lg focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50 border-2" 
                 placeholder="Search player name..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
