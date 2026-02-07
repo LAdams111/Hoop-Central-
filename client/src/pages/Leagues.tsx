@@ -4,36 +4,36 @@ import { useState } from "react";
 import { Link } from "wouter";
 
 const NBA_TEAMS = [
-  { name: "Atlanta Hawks", id: "ATL" },
-  { name: "Boston Celtics", id: "BOS" },
-  { name: "Brooklyn Nets", id: "BKN" },
-  { name: "Charlotte Hornets", id: "CHA" },
-  { name: "Chicago Bulls", id: "CHI" },
-  { name: "Cleveland Cavaliers", id: "CLE" },
-  { name: "Dallas Mavericks", id: "DAL" },
-  { name: "Denver Nuggets", id: "DEN" },
-  { name: "Detroit Pistons", id: "DET" },
-  { name: "Golden State Warriors", id: "GSW" },
-  { name: "Houston Rockets", id: "HOU" },
-  { name: "Indiana Pacers", id: "IND" },
-  { name: "LA Clippers", id: "LAC" },
-  { name: "Los Angeles Lakers", id: "LAL" },
-  { name: "Memphis Grizzlies", id: "MEM" },
-  { name: "Miami Heat", id: "MIA" },
-  { name: "Milwaukee Bucks", id: "MIL" },
-  { name: "Minnesota Timberwolves", id: "MIN" },
-  { name: "New Orleans Pelicans", id: "NOP" },
-  { name: "New York Knicks", id: "NYK" },
-  { name: "Oklahoma City Thunder", id: "OKC" },
-  { name: "Orlando Magic", id: "ORL" },
-  { name: "Philadelphia 76ers", id: "PHI" },
-  { name: "Phoenix Suns", id: "PHX" },
-  { name: "Portland Trail Blazers", id: "POR" },
-  { name: "Sacramento Kings", id: "SAC" },
-  { name: "San Antonio Spurs", id: "SAS" },
-  { name: "Toronto Raptors", id: "TOR" },
-  { name: "Utah Jazz", id: "UTA" },
-  { name: "Washington Wizards", id: "WAS" },
+  { name: "Atlanta Hawks", id: "Atlanta Hawks" },
+  { name: "Boston Celtics", id: "Boston Celtics" },
+  { name: "Brooklyn Nets", id: "Brooklyn Nets" },
+  { name: "Charlotte Hornets", id: "Charlotte Hornets" },
+  { name: "Chicago Bulls", id: "Chicago Bulls" },
+  { name: "Cleveland Cavaliers", id: "Cleveland Cavaliers" },
+  { name: "Dallas Mavericks", id: "Dallas Mavericks" },
+  { name: "Denver Nuggets", id: "Denver Nuggets" },
+  { name: "Detroit Pistons", id: "Detroit Pistons" },
+  { name: "Golden State Warriors", id: "Golden State Warriors" },
+  { name: "Houston Rockets", id: "Houston Rockets" },
+  { name: "Indiana Pacers", id: "Indiana Pacers" },
+  { name: "LA Clippers", id: "LA Clippers" },
+  { name: "Los Angeles Lakers", id: "Los Angeles Lakers" },
+  { name: "Memphis Grizzlies", id: "Memphis Grizzlies" },
+  { name: "Miami Heat", id: "Miami Heat" },
+  { name: "Milwaukee Bucks", id: "Milwaukee Bucks" },
+  { name: "Minnesota Timberwolves", id: "Minnesota Timberwolves" },
+  { name: "New Orleans Pelicans", id: "New Orleans Pelicans" },
+  { name: "New York Knicks", id: "New York Knicks" },
+  { name: "Oklahoma City Thunder", id: "Oklahoma City Thunder" },
+  { name: "Orlando Magic", id: "Orlando Magic" },
+  { name: "Philadelphia 76ers", id: "Philadelphia 76ers" },
+  { name: "Phoenix Suns", id: "Phoenix Suns" },
+  { name: "Portland Trail Blazers", id: "Portland Trail Blazers" },
+  { name: "Sacramento Kings", id: "Sacramento Kings" },
+  { name: "San Antonio Spurs", id: "San Antonio Spurs" },
+  { name: "Toronto Raptors", id: "Toronto Raptors" },
+  { name: "Utah Jazz", id: "Utah Jazz" },
+  { name: "Washington Wizards", id: "Washington Wizards" },
 ];
 
 const LEAGUES = [
@@ -141,9 +141,9 @@ export default function Leagues() {
             {expandedLeague === "NBA" && league.name === "NBA" && (
               <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 animate-in fade-in slide-in-from-top-4 duration-300 px-2">
                 {NBA_TEAMS.map((team) => (
-                  <Link key={team.id} href={`/roster/${team.id}/2023-24`}>
+                  <Link key={team.id} href={`/roster/${encodeURIComponent(team.name)}/2023-24`}>
                     <Card className="p-3 hover-elevate border-border hover:border-primary/40 cursor-pointer bg-card/50 backdrop-blur-sm">
-                      <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-1">{team.id}</div>
+                      <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-1 truncate">{team.name}</div>
                       <div className="text-sm font-bold truncate">{team.name}</div>
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-[9px] text-muted-foreground font-mono">View Roster</span>
