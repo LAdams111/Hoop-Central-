@@ -65,6 +65,8 @@ async function seedDatabase() {
     jerseyNumber: 23,
     headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/2544.png",
     bio: "LeBron Raymone James Sr. is an American professional basketball player for the Los Angeles Lakers. widely considered one of the greatest players in NBA history.",
+    hometown: "Akron, OH",
+    birthDate: "1984-12-30",
   });
 
   await storage.createPlayerStats({ playerId: lebron.id, season: "2023-24", team: "Los Angeles Lakers", gamesPlayed: 71, pointsPerGame: "25.7", reboundsPerGame: "7.3", assistsPerGame: "8.3", stealsPerGame: "1.3", blocksPerGame: "0.5", fieldGoalPct: "54.0" });
@@ -81,6 +83,8 @@ async function seedDatabase() {
     jerseyNumber: 30,
     headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/201939.png",
     bio: "Wardell Stephen Curry II is an American professional basketball player for the Golden State Warriors. Widely regarded as the greatest shooter of all time.",
+    hometown: "Akron, OH",
+    birthDate: "1988-03-14",
   });
 
   await storage.createPlayerStats({ playerId: curry.id, season: "2023-24", team: "Golden State Warriors", gamesPlayed: 74, pointsPerGame: "26.4", reboundsPerGame: "4.5", assistsPerGame: "5.1", stealsPerGame: "0.7", blocksPerGame: "0.4", fieldGoalPct: "45.0" });
@@ -96,6 +100,8 @@ async function seedDatabase() {
     jerseyNumber: 11,
     headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/202691.png",
     bio: "Klay Alexander Thompson is an American professional basketball player for the Golden State Warriors. He is a four-time NBA champion.",
+    hometown: "Los Angeles, CA",
+    birthDate: "1990-02-08",
   });
 
   await storage.createPlayerStats({ playerId: klay.id, season: "2023-24", team: "Golden State Warriors", gamesPlayed: 77, pointsPerGame: "17.9", reboundsPerGame: "3.3", assistsPerGame: "2.3", stealsPerGame: "0.6", blocksPerGame: "0.5", fieldGoalPct: "43.2" });
@@ -111,12 +117,14 @@ async function seedDatabase() {
     jerseyNumber: 15,
     headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/203999.png",
     bio: "Nikola Jokić is a Serbian professional basketball player for the Denver Nuggets. He is a multi-time NBA MVP and NBA Champion.",
+    hometown: "Sombor, Serbia",
+    birthDate: "1995-02-19",
   });
 
   await storage.createPlayerStats({ playerId: jokic.id, season: "2023-24", team: "Denver Nuggets", gamesPlayed: 79, pointsPerGame: "26.4", reboundsPerGame: "12.4", assistsPerGame: "9.0", stealsPerGame: "1.4", blocksPerGame: "0.9", fieldGoalPct: "58.3" });
   await storage.createPlayerStats({ playerId: jokic.id, season: "2022-23", team: "Denver Nuggets", gamesPlayed: 69, pointsPerGame: "24.5", reboundsPerGame: "11.8", assistsPerGame: "9.8", stealsPerGame: "1.3", blocksPerGame: "0.7", fieldGoalPct: "63.2" });
 
-  // 4. Kevin Durant
+  // 5. Kevin Durant
   const kd = await storage.createPlayer({
     name: "Kevin Durant",
     position: "PF",
@@ -126,11 +134,13 @@ async function seedDatabase() {
     jerseyNumber: 35,
     headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/201142.png",
     bio: "Kevin Wayne Durant is an American professional basketball player for the Phoenix Suns. He is a two-time NBA champion and MVP.",
+    hometown: "Washington, D.C.",
+    birthDate: "1988-09-29",
   });
 
   await storage.createPlayerStats({ playerId: kd.id, season: "2023-24", team: "Phoenix Suns", gamesPlayed: 75, pointsPerGame: "27.1", reboundsPerGame: "6.6", assistsPerGame: "5.0", stealsPerGame: "0.9", blocksPerGame: "1.2", fieldGoalPct: "52.3" });
 
-  // 5. Michael Jordan (Historical)
+  // 6. Michael Jordan (Historical)
   const mj = await storage.createPlayer({
     name: "Michael Jordan",
     position: "SG",
@@ -140,6 +150,8 @@ async function seedDatabase() {
     jerseyNumber: 23,
     headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/893.png",
     bio: "Michael Jeffrey Jordan is an American businessman and former professional basketball player. He is widely considered the greatest basketball player of all time.",
+    hometown: "Brooklyn, NY",
+    birthDate: "1963-02-17",
   });
 
   await storage.createPlayerStats({ playerId: mj.id, season: "1997-98", team: "Chicago Bulls", gamesPlayed: 82, pointsPerGame: "28.7", reboundsPerGame: "5.8", assistsPerGame: "3.5", stealsPerGame: "1.7", blocksPerGame: "0.5", fieldGoalPct: "46.5" });
