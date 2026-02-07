@@ -107,17 +107,15 @@ export default function Home() {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="h-[500px] rounded-xl bg-card/50 animate-pulse border border-white/5" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+              {[1, 2, 3, 4].map((n) => (
+                <div key={n} className="aspect-[3/4] rounded-xl bg-card/50 animate-pulse border border-white/5" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
               {featuredPlayers.map((player) => (
-                <div key={player.id} className="h-[500px]">
-                  <PlayerCard player={player} />
-                </div>
+                <PlayerCard key={player.id} player={player} />
               ))}
             </div>
           )}
@@ -147,20 +145,18 @@ export default function Home() {
           </div>
 
           {isLoadingTrending ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="h-[500px] rounded-xl bg-card/50 animate-pulse border border-border" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+              {[1, 2, 3, 4].map((n) => (
+                <div key={n} className="aspect-[3/4] rounded-xl bg-card/50 animate-pulse border border-border" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
               {trendingPlayers
                 ?.filter(p => !players?.slice(0, 3).some(fp => fp.id === p.id))
-                .slice(0, 3)
+                .slice(0, 4)
                 .map((player) => (
-                  <div key={player.id} className="h-[500px]">
-                    <PlayerCard player={player} />
-                  </div>
+                  <PlayerCard key={player.id} player={player} />
                 ))}
             </div>
           )}

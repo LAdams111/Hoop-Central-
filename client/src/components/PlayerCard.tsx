@@ -11,10 +11,10 @@ interface PlayerCardProps {
 export function PlayerCard({ player }: PlayerCardProps) {
   return (
     <Link href={`/players/${player.id}`} className="block group h-full">
-      <Card className="h-full bg-card border-border hover:border-primary/50 hover:bg-card/80 transition-all duration-300 overflow-hidden relative cursor-pointer group-hover:-translate-y-1 group-hover:shadow-lg group-hover:shadow-primary/5">
+      <Card className="min-h-full bg-card border-border hover:border-primary/50 hover:bg-card/80 transition-all duration-300 overflow-hidden relative cursor-pointer group-hover:-translate-y-1 group-hover:shadow-lg group-hover:shadow-primary/5 flex flex-col">
         
         {/* Image Container with Gradient Overlay */}
-        <div className="relative aspect-[4/5] overflow-hidden bg-muted">
+        <div className="relative aspect-[4/5] overflow-hidden bg-muted flex-shrink-0">
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10 opacity-60" />
           <img 
             src={player.headshotUrl} 
@@ -36,23 +36,23 @@ export function PlayerCard({ player }: PlayerCardProps) {
           </div>
         </div>
 
-        <CardContent className="p-5 space-y-3 relative z-20">
-          <div>
-            <div className="text-xs font-mono text-primary uppercase tracking-widest mb-1">
+        <CardContent className="p-5 flex flex-col flex-1 justify-between gap-3 relative z-20">
+          <div className="min-h-0">
+            <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-1 truncate">
               {player.team}
             </div>
-            <h3 className="font-display text-2xl font-bold leading-none text-foreground group-hover:text-primary transition-colors">
+            <h3 className="font-display text-2xl font-bold leading-tight text-foreground group-hover:text-primary transition-colors line-clamp-2">
               {player.name}
             </h3>
           </div>
           
-          <div className="flex items-center gap-4 text-xs text-muted-foreground border-t border-border pt-3">
-            <div className="flex items-center gap-1.5">
-              <Ruler className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-3 text-[10px] font-mono text-muted-foreground border-t border-border pt-3 mt-auto whitespace-nowrap overflow-hidden">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <Ruler className="w-3 h-3 text-primary" />
               <span>{player.height}</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Weight className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <Weight className="w-3 h-3 text-primary" />
               <span>{player.weight}</span>
             </div>
           </div>
