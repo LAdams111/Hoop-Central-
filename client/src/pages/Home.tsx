@@ -20,8 +20,8 @@ export default function Home() {
     }
   };
 
-  // Get featured players (first 3 for now, ideally strictly featured ones)
-  const featuredPlayers = players?.slice(0, 3) || [];
+  // Get featured players (excluding Jalen Green)
+  const featuredPlayers = players?.filter(p => p.name !== "Jalen Green").slice(0, 3) || [];
 
   return (
     <div className="flex flex-col min-h-screen">
