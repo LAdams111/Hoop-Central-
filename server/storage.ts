@@ -61,7 +61,7 @@ export class DatabaseStorage implements IStorage {
       .from(players)
       .innerJoin(playerStats, eq(players.id, playerStats.playerId))
       .where(
-        sql`${playerStats.team} = ${team} AND ${playerStats.season} = ${season}`
+        sql`LOWER(${playerStats.team}) = LOWER(${team}) AND ${playerStats.season} = ${season}`
       );
     return results.map(r => r.player);
   }
