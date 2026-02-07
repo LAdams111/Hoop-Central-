@@ -77,7 +77,7 @@ export default function Home() {
             { label: "Seasons Tracked", value: "75", icon: Trophy },
             { label: "Teams", value: "30", icon: Users },
           ].map((stat, i) => (
-            <div key={i} className="flex items-center gap-4 justify-center md:justify-start group">
+            <div key={i} className="flex items-center gap-4 justify-center group">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                 <stat.icon className="w-6 h-6" />
               </div>
