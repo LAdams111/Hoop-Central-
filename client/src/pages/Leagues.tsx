@@ -135,8 +135,8 @@ export default function Leagues() {
               onClick={() => league.hasTeams && toggleLeague(league.name)}
             >
               <div className="flex flex-col md:flex-row items-center p-6 gap-6">
-                <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center flex-shrink-0 shadow-sm border border-border/50 p-2">
-                  <img src={league.logoUrl} alt={league.name} className="w-full h-full object-contain" />
+                <div className="w-20 h-20 flex items-center justify-center flex-shrink-0">
+                  <img src={league.logoUrl} alt={league.name} className="max-w-full max-h-full object-contain" />
                 </div>
                 <div className="flex-1 text-center md:text-left">
                   <div className="text-xs font-mono text-primary uppercase tracking-widest mb-1">{league.tier}</div>
