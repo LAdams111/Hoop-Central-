@@ -173,6 +173,77 @@ async function seedDatabase() {
   await storage.createPlayerStats({ playerId: mj.id, season: "1992-93", team: "Chicago Bulls", gamesPlayed: 78, pointsPerGame: "32.6", reboundsPerGame: "6.7", assistsPerGame: "5.5", stealsPerGame: "2.8", blocksPerGame: "0.8", fieldGoalPct: "49.5" });
   await storage.createPlayerStats({ playerId: mj.id, season: "1987-88", team: "Chicago Bulls", gamesPlayed: 82, pointsPerGame: "35.0", reboundsPerGame: "5.5", assistsPerGame: "5.9", stealsPerGame: "3.2", blocksPerGame: "1.6", fieldGoalPct: "53.5" });
 
+  // 2020-21 Warriors Roster Additions
+  const wiggins = await storage.createPlayer({
+    name: "Andrew Wiggins",
+    position: "SF",
+    team: "Golden State Warriors",
+    height: "6'7\"",
+    weight: "197 lbs",
+    jerseyNumber: 22,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/203952.png",
+    bio: "Andrew Wiggins is a Canadian professional basketball player for the Golden State Warriors. He was the first overall pick in the 2014 NBA draft.",
+    hometown: "Toronto, Canada",
+    birthDate: "1995-02-23",
+  });
+  await storage.createPlayerStats({ playerId: wiggins.id, season: "2020-21", team: "Golden State Warriors", gamesPlayed: 71, pointsPerGame: "18.6", reboundsPerGame: "4.9", assistsPerGame: "2.4", stealsPerGame: "0.9", blocksPerGame: "1.0", fieldGoalPct: "47.7" });
+
+  const draymond = await storage.createPlayer({
+    name: "Draymond Green",
+    position: "PF",
+    team: "Golden State Warriors",
+    height: "6'6\"",
+    weight: "230 lbs",
+    jerseyNumber: 23,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/203110.png",
+    bio: "Draymond Green is an American professional basketball player for the Golden State Warriors. He is a multi-time NBA champion and Defensive Player of the Year.",
+    hometown: "Saginaw, MI",
+    birthDate: "1990-03-04",
+  });
+  await storage.createPlayerStats({ playerId: draymond.id, season: "2020-21", team: "Golden State Warriors", gamesPlayed: 63, pointsPerGame: "7.0", reboundsPerGame: "7.1", assistsPerGame: "8.9", stealsPerGame: "1.7", blocksPerGame: "0.8", fieldGoalPct: "44.7" });
+
+  const looney = await storage.createPlayer({
+    name: "Kevon Looney",
+    position: "C",
+    team: "Golden State Warriors",
+    height: "6'9\"",
+    weight: "222 lbs",
+    jerseyNumber: 5,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/1626172.png",
+    bio: "Kevon Looney is an American professional basketball player for the Golden State Warriors. He has won multiple NBA championships with the team.",
+    hometown: "Milwaukee, WI",
+    birthDate: "1996-02-06",
+  });
+  await storage.createPlayerStats({ playerId: looney.id, season: "2020-21", team: "Golden State Warriors", gamesPlayed: 61, pointsPerGame: "4.1", reboundsPerGame: "5.3", assistsPerGame: "2.0", stealsPerGame: "0.3", blocksPerGame: "0.4", fieldGoalPct: "54.8" });
+
+  const poole = await storage.createPlayer({
+    name: "Jordan Poole",
+    position: "SG",
+    team: "Golden State Warriors",
+    height: "6'4\"",
+    weight: "194 lbs",
+    jerseyNumber: 3,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/1629673.png",
+    bio: "Jordan Poole is an American professional basketball player. He was a key contributor to the Warriors' 2022 championship run.",
+    hometown: "Milwaukee, WI",
+    birthDate: "1999-06-19",
+  });
+  await storage.createPlayerStats({ playerId: poole.id, season: "2020-21", team: "Golden State Warriors", gamesPlayed: 51, pointsPerGame: "12.0", reboundsPerGame: "1.8", assistsPerGame: "1.9", stealsPerGame: "0.5", blocksPerGame: "0.2", fieldGoalPct: "43.2" });
+
+  const wiseman = await storage.createPlayer({
+    name: "James Wiseman",
+    position: "C",
+    team: "Golden State Warriors",
+    height: "7'0\"",
+    weight: "240 lbs",
+    jerseyNumber: 33,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/1630164.png",
+    bio: "James Wiseman is an American professional basketball player. He was selected second overall by the Warriors in the 2020 NBA draft.",
+    hometown: "Nashville, TN",
+    birthDate: "2001-03-31",
+  });
+  await storage.createPlayerStats({ playerId: wiseman.id, season: "2020-21", team: "Golden State Warriors", gamesPlayed: 39, pointsPerGame: "11.5", reboundsPerGame: "5.8", assistsPerGame: "0.7", stealsPerGame: "0.3", blocksPerGame: "0.9", fieldGoalPct: "51.9" });
+
   // Awards Seeding
   await storage.createAward({ playerId: lebron.id, name: "NBA Champion", year: "2020" });
   await storage.createAward({ playerId: lebron.id, name: "NBA Finals MVP", year: "2020" });
