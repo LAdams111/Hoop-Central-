@@ -1,5 +1,5 @@
 import { useRoute } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePlayer } from "@/hooks/use-players";
 import { StatsChart } from "@/components/StatsChart";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,8 @@ import {
   Activity, 
   TrendingUp, 
   Share2,
-  Eye
+  Eye,
+  Flag
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -20,9 +21,14 @@ export default function PlayerProfile() {
   const [, params] = useRoute("/players/:id");
   const id = parseInt(params?.id || "0");
   const { data: player, isLoading } = usePlayer(id);
+  const [isFavorited, setIsFavorited] = useState(false);
 
   useEffect(() => {
     if (!id) return;
+    
+    // Check if favorited
+    const favorites = JSON.parse(localStorage.getItem('player_favorites') || '[]');
+    setIsFavorited(favorites.includes(id));
 
     const lastViewKey = `last_view_player_${id}`;
     const lastView = localStorage.getItem(lastViewKey);
@@ -35,6 +41,18 @@ export default function PlayerProfile() {
       localStorage.setItem(lastViewKey, now.toString());
     }
   }, [id]);
+
+  const toggleFavorite = () => {
+    const favorites = JSON.parse(localStorage.getItem('player_favorites') || '[]');
+    let newFavorites;
+    if (favorites.includes(id)) {
+      newFavorites = favorites.filter((favId: number) => favId !== id);
+    } else {
+      newFavorites = [...favorites, id];
+    }
+    localStorage.setItem('player_favorites', JSON.stringify(newFavorites));
+    setIsFavorited(!isFavorited);
+  };
 
   if (isLoading) {
     return (
@@ -122,14 +140,24 @@ export default function PlayerProfile() {
                     {player.name}
                   </h1>
                 </div>
-                <div className="flex gap-3">
-                  <Button variant="secondary" size="icon" className="rounded-full">
-                    <Share2 className="w-4 h-4" />
+                <div className="flex flex-col gap-3">
+                  <Button 
+                    variant={isFavorited ? "default" : "secondary"} 
+                    className={`w-full h-12 flex items-center justify-center gap-2 border-2 ${isFavorited ? 'border-primary' : 'border-border'} rounded-xl transition-all`}
+                    onClick={toggleFavorite}
+                  >
+                    <Flag className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />
+                    <span className="font-display font-bold uppercase tracking-tight">Favorite</span>
                   </Button>
-                  <Button className="rounded-full">
-                    <TrendingUp className="w-4 h-4 mr-2" />
-                    Compare
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button variant="secondary" size="icon" className="rounded-xl h-12 w-12 flex-shrink-0">
+                      <Share2 className="w-4 h-4" />
+                    </Button>
+                    <Button className="rounded-xl h-12 flex-1">
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Compare
+                    </Button>
+                  </div>
                 </div>
               </div>
 
