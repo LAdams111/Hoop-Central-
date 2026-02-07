@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Users, Star, School, Medal, ArrowRight, ChevronRight, ChevronDown, Globe, Activity } from "lucide-react";
+import { ArrowRight, ChevronRight, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
 
@@ -73,9 +73,7 @@ const LEAGUES = [
     name: "NBA",
     tier: "Tier 1: Professional",
     description: "The National Basketball Association - the premier professional basketball league in the world.",
-    icon: Trophy,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
+    logoUrl: "https://cdn.nba.com/logos/leagues/logo-nba.svg",
     hasTeams: true,
     regions: ["US", "CA"]
   },
@@ -83,9 +81,7 @@ const LEAGUES = [
     name: "NBA G League",
     tier: "Tier 2: Professional",
     description: "The official minor league organization of the NBA.",
-    icon: Activity,
-    color: "text-accent",
-    bgColor: "bg-accent/10",
+    logoUrl: "https://cdn.nba.com/logos/leagues/logo-gleague.svg",
     hasTeams: true,
     regions: ["US", "CA", "MX"]
   },
@@ -93,27 +89,21 @@ const LEAGUES = [
     name: "NCAA Division I",
     tier: "Tier 3: Collegiate",
     description: "The highest level of intercollegiate athletics sanctioned by the NCAA.",
-    icon: School,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
+    logoUrl: "https://upload.wikimedia.org/wikipedia/commons/d/dd/NCAA_logo.svg",
     regions: ["US"]
   },
   {
     name: "Overtime Elite (OTE)",
     tier: "Tier 4: Professional",
     description: "A professional basketball league for late-stage high school and early college-level players.",
-    icon: Star,
-    color: "text-yellow-600",
-    bgColor: "bg-yellow-50",
+    logoUrl: "https://upload.wikimedia.org/wikipedia/en/b/b4/Overtime_Elite_logo.png",
     regions: ["US"]
   },
   {
     name: "High School / AAU",
     tier: "Tier 5: Amateur",
     description: "Premier competitive circuit for high school athletes and independent club teams.",
-    icon: Users,
-    color: "text-muted-foreground",
-    bgColor: "bg-muted",
+    logoUrl: "https://upload.wikimedia.org/wikipedia/en/f/f6/Amateur_Athletic_Union_%28logo%29.png",
     regions: ["US", "CA"]
   }
 ];
@@ -145,8 +135,8 @@ export default function Leagues() {
               onClick={() => league.hasTeams && toggleLeague(league.name)}
             >
               <div className="flex flex-col md:flex-row items-center p-6 gap-6">
-                <div className={`w-16 h-16 rounded-2xl ${league.bgColor} flex items-center justify-center ${league.color} flex-shrink-0 shadow-sm border border-border/50`}>
-                  <league.icon className="w-8 h-8" />
+                <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center flex-shrink-0 shadow-sm border border-border/50 p-2">
+                  <img src={league.logoUrl} alt={league.name} className="w-full h-full object-contain" />
                 </div>
                 <div className="flex-1 text-center md:text-left">
                   <div className="text-xs font-mono text-primary uppercase tracking-widest mb-1">{league.tier}</div>
