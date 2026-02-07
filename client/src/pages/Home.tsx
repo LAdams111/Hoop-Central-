@@ -171,10 +171,13 @@ export default function Home() {
 
 function FavoritesBar({ players }: { players: any[] | undefined }) {
   const [favIds, setFavIds] = useState<number[]>([]);
+  const [favTeams, setFavTeams] = useState<string[]>([]);
 
   useEffect(() => {
     const favorites = JSON.parse(localStorage.getItem('player_favorites') || '[]');
+    const teamFavorites = JSON.parse(localStorage.getItem('team_favorites') || '[]');
     setFavIds(favorites);
+    setFavTeams(teamFavorites);
   }, []);
 
   const favoritePlayers = players?.filter(p => favIds.includes(p.id)) || [];
@@ -188,7 +191,19 @@ function FavoritesBar({ players }: { players: any[] | undefined }) {
             <span className="font-display text-xl font-bold uppercase tracking-tight">Favorites</span>
           </div>
           <div className="flex items-center gap-4">
-            {favoritePlayers.length > 0 ? (
+            {favTeams.map((teamName) => (
+              <Link key={teamName} href={`/players?team=${encodeURIComponent(teamName)}`} className="group relative">
+                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-110 shadow-sm bg-white flex items-center justify-center p-1">
+                  <img 
+                    src={`https://cdn.nba.com/logos/nba/${TEAM_LOGOS[teamName] || '1610612737'}/global/L/logo.svg`}
+                    alt={teamName}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Link>
+            ))}
+            {favoritePlayers.length > 0 || favTeams.length > 0 ? (
               favoritePlayers.map((player) => (
                 <Link key={player.id} href={`/players/${player.id}`} className="group relative">
                   <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-110 shadow-sm">
@@ -219,3 +234,36 @@ function FavoritesBar({ players }: { players: any[] | undefined }) {
     </section>
   );
 }
+
+const TEAM_LOGOS: Record<string, string> = {
+  "Atlanta Hawks": "1610612737",
+  "Boston Celtics": "1610612738",
+  "Brooklyn Nets": "1610612751",
+  "Charlotte Hornets": "1610612766",
+  "Chicago Bulls": "1610612741",
+  "Cleveland Cavaliers": "1610612739",
+  "Dallas Mavericks": "1610612742",
+  "Denver Nuggets": "1610612743",
+  "Detroit Pistons": "1610612765",
+  "Golden State Warriors": "1610612744",
+  "Houston Rockets": "1610612745",
+  "Indiana Pacers": "1610612754",
+  "LA Clippers": "1610612746",
+  "Los Angeles Lakers": "1610612747",
+  "Memphis Grizzlies": "1610612763",
+  "Miami Heat": "1610612748",
+  "Milwaukee Bucks": "1610612749",
+  "Minnesota Timberwolves": "1610612750",
+  "New Orleans Pelicans": "1610612740",
+  "New York Knicks": "1610612752",
+  "Oklahoma City Thunder": "1610612760",
+  "Orlando Magic": "1610612753",
+  "Philadelphia 76ers": "1610612755",
+  "Phoenix Suns": "1610612756",
+  "Portland Trail Blazers": "1610612757",
+  "Sacramento Kings": "1610612758",
+  "San Antonio Spurs": "1610612759",
+  "Toronto Raptors": "1610612761",
+  "Utah Jazz": "1610612762",
+  "Washington Wizards": "1610612764"
+};

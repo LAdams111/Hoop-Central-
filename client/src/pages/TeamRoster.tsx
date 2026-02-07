@@ -2,14 +2,34 @@ import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users } from "lucide-react";
+import { ArrowLeft, Users, Flag } from "lucide-react";
 import { Link } from "wouter";
 import { Player } from "@shared/schema";
+import { useState, useEffect } from "react";
 
 export default function TeamRoster() {
   const [, params] = useRoute("/roster/:team/:season");
   const team = params?.team || "";
   const season = params?.season || "";
+  const [isFavorited, setIsFavorited] = useState(false);
+
+  useEffect(() => {
+    if (!team) return;
+    const favorites = JSON.parse(localStorage.getItem('team_favorites') || '[]');
+    setIsFavorited(favorites.includes(team));
+  }, [team]);
+
+  const toggleFavorite = () => {
+    const favorites = JSON.parse(localStorage.getItem('team_favorites') || '[]');
+    let newFavorites;
+    if (favorites.includes(team)) {
+      newFavorites = favorites.filter((favName: string) => favName !== team);
+    } else {
+      newFavorites = [...favorites, team];
+    }
+    localStorage.setItem('team_favorites', JSON.stringify(newFavorites));
+    setIsFavorited(!isFavorited);
+  };
 
   const { data: players, isLoading } = useQuery<Player[]>({
     queryKey: [`/api/teams/${team}/roster/${season}`],
@@ -33,16 +53,26 @@ export default function TeamRoster() {
               Back to Directory
             </Button>
           </Link>
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-              <Users className="w-8 h-8" />
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                <Users className="w-8 h-8" />
+              </div>
+              <div>
+                <h1 className="text-4xl md:text-6xl font-display text-foreground uppercase tracking-tighter">
+                  {team} <span className="text-primary">Roster</span>
+                </h1>
+                <p className="text-muted-foreground font-mono">{season} Season</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-4xl md:text-6xl font-display text-foreground uppercase tracking-tighter">
-                {team} <span className="text-primary">Roster</span>
-              </h1>
-              <p className="text-muted-foreground font-mono">{season} Season</p>
-            </div>
+            <Button 
+              variant={isFavorited ? "default" : "secondary"}
+              className={`h-12 px-6 flex items-center gap-2 rounded-xl border-2 ${isFavorited ? 'border-primary' : 'border-border'} transition-all`}
+              onClick={toggleFavorite}
+            >
+              <Flag className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />
+              <span className="font-display font-bold uppercase tracking-tight">Favorite Team</span>
+            </Button>
           </div>
         </div>
 
