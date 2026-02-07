@@ -26,42 +26,43 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* HERO SECTION */}
-      <section className="relative h-[80vh] flex items-center justify-center overflow-hidden border-b border-border/40">
+      <section className="relative h-[85vh] flex items-center justify-center overflow-hidden border-b border-border/20">
         {/* Background Overlay */}
         <div className="absolute inset-0 bg-background z-0">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
           {/* Subtle grid pattern */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,black_70%,transparent_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,black_70%,transparent_100%)]" />
         </div>
 
         <div className="container relative z-10 px-4 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-primary mb-6 animate-fade-in-up">
-            <Activity className="w-3 h-3" />
-            <span>REAL-TIME STATS</span>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 border border-primary/10 text-[10px] font-mono font-bold text-primary mb-8 animate-fade-in-up shadow-sm">
+            <Activity className="w-3.5 h-3.5" />
+            <span className="tracking-[0.2em] uppercase">Advanced Analytics Platform</span>
           </div>
           
-          <h1 className="font-display text-7xl md:text-9xl font-bold tracking-tighter text-foreground mb-6 animate-fade-in-up delay-100">
-            <span style={{ 
-              color: 'black',
-              textShadow: '-2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 2px 2px 0 #fff, -2px 0 0 #fff, 2px 0 0 #fff, 0 -2px 0 #fff, 0 2px 0 #fff'
-            }}>HOOP</span><span className="text-primary text-glow">CENTRAL</span>
+          <h1 className="font-display text-8xl md:text-[10rem] font-bold tracking-tighter text-foreground mb-8 animate-fade-in-up delay-100 leading-[0.85]">
+            <span className="relative inline-block mr-2">
+              HOOP
+              <span className="absolute -inset-1 blur-2xl bg-primary/20 -z-10 rounded-full"></span>
+            </span>
+            <span className="text-primary text-glow italic">CENTRAL</span>
           </h1>
           
-          <p className="font-body text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in-up delay-200">
-            The ultimate database for modern basketball stats. Track performance of the biggest stars and hottest prospects.
+          <p className="font-body text-xl md:text-2xl text-muted-foreground/80 max-w-2xl mx-auto mb-12 animate-fade-in-up delay-200 leading-relaxed">
+            The premium database for elite basketball statistics. Track global performance with precision-engineered analytics.
           </p>
 
-          <div className="max-w-md mx-auto relative group animate-fade-in-up delay-300">
+          <div className="max-w-xl mx-auto relative group animate-fade-in-up delay-300">
             <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground group-focus-within:text-primary transition-all duration-300" />
               <Input 
-                className="pl-12 py-7 rounded-full bg-white/5 border-black text-lg focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50 border-2" 
-                placeholder="Search player name..." 
+                className="pl-16 pr-20 py-8 rounded-2xl bg-white/50 backdrop-blur-md border-border/50 text-xl focus:border-primary/50 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/40 border-2 shadow-2xl shadow-primary/5" 
+                placeholder="Search athlete by name..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <Button type="submit" className="absolute right-2 top-2 rounded-full h-10 w-10 p-0" variant="default">
-                <ArrowRight className="w-4 h-4" />
+              <Button type="submit" className="absolute right-3 top-3 rounded-xl h-10 w-10 p-0 shadow-lg shadow-primary/20" variant="default">
+                <ArrowRight className="w-5 h-5" />
               </Button>
             </form>
           </div>
@@ -69,8 +70,8 @@ export default function Home() {
       </section>
 
       {/* STATS STRIP */}
-      <section className="border-b border-border/40 bg-card/30 backdrop-blur-sm py-8">
-        <div className="container mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8">
+      <section className="border-b border-border/20 bg-white/30 backdrop-blur-xl py-12">
+        <div className="container mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-12">
           {[
             { label: "Active Players", value: "450+", icon: Users },
             { label: "Seasons Tracked", value: "75", icon: Trophy },

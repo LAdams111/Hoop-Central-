@@ -60,90 +60,94 @@ export default function PlayerProfile() {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* HEADER SECTION */}
-      <div className="relative min-h-[70vh] md:min-h-[60vh] overflow-hidden border-b border-border pb-12">
-        <div className="absolute inset-0 bg-background/60 z-10" />
+      <div className="relative min-h-[60vh] md:min-h-[55vh] overflow-hidden border-b border-border/40 pb-16 bg-muted/20">
+        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/20 to-background z-10" />
         
-        {/* Background Image (blurred) */}
+        {/* Background Image (subtle movement/texture) */}
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-10 z-0 grayscale"
+          className="absolute inset-0 bg-cover bg-center opacity-5 z-0 grayscale scale-110 blur-sm"
           style={{ backgroundImage: `url(${player.headshotUrl})` }}
         />
         
-        <div className="container mx-auto px-4 h-full relative z-20 flex flex-col justify-between py-8">
+        <div className="container mx-auto px-4 h-full relative z-20 flex flex-col justify-between py-10">
           <Link href="/">
-            <Button variant="ghost" className="text-foreground/60 hover:text-foreground w-fit -ml-4 mb-4">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
+            <Button variant="ghost" className="text-foreground/40 hover:text-primary w-fit -ml-4 mb-8 font-mono text-xs tracking-widest uppercase">
+              <ArrowLeft className="w-3.5 h-3.5 mr-2" />
+              Directory
             </Button>
           </Link>
 
-          <div className="flex flex-col md:flex-row items-end gap-8 md:gap-12">
+          <div className="flex flex-col md:flex-row items-end gap-10 md:gap-16">
             {/* Player Image */}
-            <div className="relative flex-shrink-0 z-30 mb-[-120px] md:mb-[-160px] -translate-y-[100px] md:-translate-y-[120px]">
-              <div className="w-48 h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden border-4 border-background shadow-2xl bg-muted">
+            <div className="relative flex-shrink-0 z-30 mb-[-120px] md:mb-[-140px]">
+              <div className="w-56 h-56 md:w-72 md:h-72 rounded-[2rem] overflow-hidden border-8 border-background shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] bg-white">
                 <img 
                   src={player.headshotUrl} 
                   alt={player.name} 
-                  className="w-full h-full object-cover object-top"
+                  className="w-full h-full object-cover object-top transition-transform duration-700 hover:scale-110"
                 />
               </div>
-              <div className="absolute -top-4 -right-4 bg-primary text-white w-16 h-16 flex items-center justify-center rounded-lg font-display text-3xl font-bold border-4 border-background shadow-lg">
+              <div className="absolute -top-6 -right-6 bg-primary text-white w-20 h-20 flex items-center justify-center rounded-2xl font-display text-4xl font-bold border-8 border-background shadow-2xl transform rotate-3">
                 #{player.jerseyNumber}
               </div>
             </div>
 
             {/* Player Info */}
-            <div className="flex-1 pb-4 md:pb-8 pt-8 md:pt-0 min-h-[200px] md:min-h-0 flex flex-col justify-end">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="flex-1 pb-4 md:pb-6 flex flex-col justify-end">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <div>
                   <Link href={`/roster/${encodeURIComponent(player.team)}/2023-24`}>
-                    <Button variant="ghost" className="p-0 h-auto">
-                      <h3 className="text-primary font-mono text-lg uppercase tracking-widest mb-1 hover:text-primary/80 transition-colors cursor-pointer">{player.team}</h3>
+                    <Button variant="ghost" className="p-0 h-auto group">
+                      <h3 className="text-primary font-mono text-xl uppercase tracking-[0.3em] mb-3 group-hover:tracking-[0.4em] transition-all duration-300 font-bold">{player.team}</h3>
                     </Button>
                   </Link>
-                  <h1 className="font-display text-6xl md:text-8xl font-bold leading-none text-foreground tracking-tighter">
+                  <h1 className="font-display text-7xl md:text-9xl font-bold leading-none text-foreground tracking-tighter uppercase">
                     {player.name}
                   </h1>
                 </div>
-                <div className="flex gap-3">
-                  <Button variant="secondary" size="icon" className="rounded-full">
+                <div className="flex gap-4">
+                  <Button variant="outline" size="icon" className="rounded-2xl border-border/60 hover:border-primary hover:bg-primary/5 transition-all">
                     <Share2 className="w-4 h-4" />
                   </Button>
-                  <Button className="rounded-full">
+                  <Button className="rounded-2xl shadow-xl shadow-primary/20 h-12 px-8">
                     <TrendingUp className="w-4 h-4 mr-2" />
-                    Compare
+                    Compare Analytics
                   </Button>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-6">
-                <div className="flex flex-wrap items-center gap-4 text-sm text-foreground/60 font-mono">
-                  <Badge variant="outline" className="text-foreground border-border px-4 py-1">
+              <div className="flex flex-col gap-8">
+                <div className="flex flex-wrap items-center gap-6 text-sm text-foreground/60 font-mono">
+                  <Badge variant="outline" className="text-foreground border-primary/20 bg-primary/5 px-6 py-2 rounded-xl font-bold tracking-widest">
                     {player.position}
                   </Badge>
-                  <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
-                    <span className="text-primary font-bold">HT</span> {player.height}
+                  <div className="flex items-center gap-3 px-5 py-2 bg-white/50 backdrop-blur-sm rounded-xl border border-border/40 shadow-sm">
+                    <span className="text-primary/60 font-bold tracking-tighter">HT</span> 
+                    <span className="font-bold text-foreground">{player.height}</span>
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
-                    <span className="text-primary font-bold">WT</span> {player.weight}
+                  <div className="flex items-center gap-3 px-5 py-2 bg-white/50 backdrop-blur-sm rounded-xl border border-border/40 shadow-sm">
+                    <span className="text-primary/60 font-bold tracking-tighter">WT</span> 
+                    <span className="font-bold text-foreground">{player.weight}</span>
                   </div>
                   {player.birthDate && (
                     <>
-                      <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
-                        <span className="text-primary font-bold">AGE</span> {calculateAge(player.birthDate)}
+                      <div className="flex items-center gap-3 px-5 py-2 bg-white/50 backdrop-blur-sm rounded-xl border border-border/40 shadow-sm">
+                        <span className="text-primary/60 font-bold tracking-tighter">AGE</span> 
+                        <span className="font-bold text-foreground">{calculateAge(player.birthDate)}</span>
                       </div>
-                      <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
-                        <span className="text-primary font-bold">DOB</span> {new Date(player.birthDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      <div className="flex items-center gap-3 px-5 py-2 bg-white/50 backdrop-blur-sm rounded-xl border border-border/40 shadow-sm">
+                        <span className="text-primary/60 font-bold tracking-tighter">DOB</span> 
+                        <span className="font-bold text-foreground">{new Date(player.birthDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                       </div>
                     </>
                   )}
                 </div>
 
                 {player.hometown && (
-                  <div className="flex items-center gap-2 px-4 py-3 bg-primary/5 rounded-xl border border-primary/20 w-fit">
+                  <div className="flex items-center gap-4 px-6 py-4 bg-white/80 backdrop-blur-md rounded-[1.25rem] border border-border/40 w-fit shadow-sm">
                     <div className="flex flex-col">
-                      <span className="text-[10px] uppercase tracking-[0.2em] text-primary/70 font-bold leading-none mb-2">Hometown</span>
-                      <span className="text-lg text-foreground font-mono font-bold">{player.hometown}</span>
+                      <span className="text-[10px] uppercase tracking-[0.3em] text-primary font-black leading-none mb-3">Origin</span>
+                      <span className="text-xl text-foreground font-display font-bold uppercase tracking-tight">{player.hometown}</span>
                     </div>
                   </div>
                 )}
