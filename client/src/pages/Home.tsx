@@ -23,7 +23,7 @@ export default function Home() {
   };
 
   const suggestions = players
-    ?.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) && search.length > 0)
+    ?.filter(p => p.name.toLowerCase().startsWith(search.toLowerCase()) && search.length > 0)
     .slice(0, 5) || [];
 
   // Get featured players (excluding Jalen Green)
