@@ -117,8 +117,8 @@ export default function PlayerProfile() {
             <div className="flex-1 pb-4 md:pb-8 pt-8 md:pt-0 min-h-[200px] md:min-h-0 flex flex-col justify-end">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div className="flex flex-col md:flex-row md:items-center gap-6">
-                  {/* Small Profile Pic next to name */}
-                  <div className="hidden md:block w-24 h-24 rounded-2xl overflow-hidden border-2 border-border shadow-lg bg-muted flex-shrink-0">
+                  {/* Profile Pic next to name */}
+                  <div className="hidden md:block w-48 h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden border-2 border-border shadow-lg bg-muted flex-shrink-0">
                     <img 
                       src={player.headshotUrl} 
                       alt={player.name} 
