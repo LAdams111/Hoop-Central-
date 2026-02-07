@@ -14,7 +14,7 @@ export default function Roster() {
 
   // Filter players who played for this team in this season
   const rosterPlayers = players?.filter(player => 
-    (player as any).stats.some((stat: any) => stat.team === team && stat.season === season)
+    (player as any).stats?.some((stat: any) => stat && stat.team === team && stat.season === season)
   ) || [];
 
   if (isLoading) {
