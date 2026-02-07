@@ -124,7 +124,7 @@ export default function Leagues() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-12">
         <h1 className="font-display text-5xl font-bold mb-4">Leagues</h1>
-        <p className="text-muted-foreground text-lg">North American basketball hierarchy from professional to youth levels.</p>
+        <p className="text-muted-foreground text-lg">Browse leagues and explore team rosters.</p>
       </div>
 
       <div className="space-y-6">
