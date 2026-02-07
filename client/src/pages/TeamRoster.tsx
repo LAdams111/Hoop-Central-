@@ -32,7 +32,7 @@ export default function TeamRoster() {
   };
 
   const { data: players, isLoading } = useQuery<Player[]>({
-    queryKey: [`/api/teams/${team}/roster/${season}`],
+    queryKey: [`/api/teams/${encodeURIComponent(team)}/roster/${season}`],
   });
 
   if (isLoading) {
