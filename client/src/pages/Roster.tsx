@@ -1,21 +1,41 @@
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { usePlayers } from "@/hooks/use-players";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users } from "lucide-react";
+import { ArrowLeft, Users, Calendar } from "lucide-react";
 import { Link } from "wouter";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function Roster() {
   const [, params] = useRoute("/roster/:team/:season");
+  const [, setLocation] = useLocation();
   const team = decodeURIComponent(params?.team || "");
   const season = decodeURIComponent(params?.season || "");
   
   const { data: players, isLoading } = usePlayers();
 
+  // Get unique seasons available for this team across all players
+  const availableSeasons = Array.from(new Set(
+    players?.flatMap(p => (p as any).stats
+      ?.filter((s: any) => s.team === team)
+      .map((s: any) => s.season)
+    ).filter(Boolean) || []
+  )).sort((a: any, b: any) => b.localeCompare(a));
+
   // Filter players who played for this team in this season
   const rosterPlayers = players?.filter(player => 
     (player as any).stats?.some((stat: any) => stat && stat.team === team && stat.season === season)
   ) || [];
+
+  const handleSeasonChange = (newSeason: string) => {
+    setLocation(`/roster/${encodeURIComponent(team)}/${encodeURIComponent(newSeason)}`);
+  };
 
   if (isLoading) {
     return (
@@ -36,17 +56,38 @@ export default function Roster() {
             </Button>
           </Link>
           
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-              <Users className="w-10 h-10" />
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                <Users className="w-10 h-10" />
+              </div>
+              <div>
+                <h1 className="font-display text-5xl md:text-7xl font-bold tracking-tighter uppercase">
+                  {team}
+                </h1>
+                <p className="font-mono text-xl text-muted-foreground uppercase tracking-widest">
+                  Team Roster
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="font-display text-5xl md:text-7xl font-bold tracking-tighter uppercase">
-                {team}
-              </h1>
-              <p className="font-mono text-xl text-muted-foreground uppercase tracking-widest">
-                {season} Season Roster
-              </p>
+
+            <div className="flex flex-col gap-3 min-w-[200px]">
+              <div className="flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-widest">
+                <Calendar className="w-3 h-3" />
+                <span>Select Season</span>
+              </div>
+              <Select value={season} onValueChange={handleSeasonChange}>
+                <SelectTrigger className="w-full bg-background border-2 border-border h-12 rounded-xl text-lg font-mono">
+                  <SelectValue placeholder="Choose Season" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSeasons.map((s) => (
+                    <SelectItem key={s as string} value={s as string} className="font-mono">
+                      {s as string} Season
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
