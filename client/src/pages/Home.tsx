@@ -69,12 +69,12 @@ export default function Home() {
       </section>
 
       {/* STATS STRIP */}
-      <section className="border-b border-border/40 bg-card/30 backdrop-blur-sm py-8">
+    <section className="border-b border-border/40 bg-card/30 backdrop-blur-sm py-8">
         <div className="container mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
             { label: "Active Players", value: "450+", icon: Users },
+            { label: "Active Scouts", value: "1.2k", icon: Search },
             { label: "Seasons Tracked", value: "75", icon: Trophy },
-            { label: "Data Points", value: "1.2M", icon: Activity },
             { label: "Teams", value: "30", icon: Users },
           ].map((stat, i) => (
             <div key={i} className="flex items-center gap-4 justify-center md:justify-start group">
