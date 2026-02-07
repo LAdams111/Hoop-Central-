@@ -113,29 +113,32 @@ export default function PlayerProfile() {
           </Link>
 
           <div className="flex flex-col md:flex-row items-end gap-8 md:gap-12">
+            {/* Player Image */}
+            <div className="relative flex-shrink-0 z-30 mb-[-120px] md:mb-[-160px] -translate-y-[100px] md:-translate-y-[120px]">
+              <div className="w-48 h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden border-4 border-background shadow-2xl bg-muted">
+                <img 
+                  src={player.headshotUrl} 
+                  alt={player.name} 
+                  className="w-full h-full object-cover object-top"
+                />
+              </div>
+              <div className="absolute -top-4 -right-4 bg-primary text-white w-16 h-16 flex items-center justify-center rounded-lg font-display text-3xl font-bold border-4 border-background shadow-lg">
+                #{player.jerseyNumber}
+              </div>
+            </div>
+
             {/* Player Info */}
             <div className="flex-1 pb-4 md:pb-8 pt-8 md:pt-0 min-h-[200px] md:min-h-0 flex flex-col justify-end">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <div className="flex flex-col md:flex-row md:items-center gap-6">
-                  {/* Profile Pic next to name */}
-                  <div className="hidden md:block w-48 h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden border-2 border-border shadow-lg bg-muted flex-shrink-0">
-                    <img 
-                      src={player.headshotUrl} 
-                      alt={player.name} 
-                      className="w-full h-full object-cover object-top"
-                    />
-                  </div>
-                  <div>
-                    <Link href={`/roster/${encodeURIComponent(player.team)}/2023-24`}>
-                      <Button variant="ghost" className="p-0 h-auto">
-                        <h3 className="text-primary font-mono text-lg uppercase tracking-widest mb-1 hover:text-primary/80 transition-colors cursor-pointer">{player.team}</h3>
-                      </Button>
-                    </Link>
-                    <h1 className="font-display text-6xl md:text-8xl font-bold leading-none text-foreground tracking-tighter flex items-center gap-4">
-                      {player.name}
-                      <span className="text-primary text-2xl md:text-4xl">#{player.jerseyNumber}</span>
-                    </h1>
-                  </div>
+                <div>
+                  <Link href={`/roster/${encodeURIComponent(player.team)}/2023-24`}>
+                    <Button variant="ghost" className="p-0 h-auto">
+                      <h3 className="text-primary font-mono text-lg uppercase tracking-widest mb-1 hover:text-primary/80 transition-colors cursor-pointer">{player.team}</h3>
+                    </Button>
+                  </Link>
+                  <h1 className="font-display text-6xl md:text-8xl font-bold leading-none text-foreground tracking-tighter">
+                    {player.name}
+                  </h1>
                 </div>
                 <div className="flex flex-col gap-3">
                   <Button 
