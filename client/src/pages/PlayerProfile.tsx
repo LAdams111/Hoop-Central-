@@ -84,7 +84,7 @@ export default function PlayerProfile() {
                 <img 
                   src={player.headshotUrl} 
                   alt={player.name} 
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover object-top"
                 />
               </div>
               <div className="absolute -top-4 -right-4 bg-primary text-white w-16 h-16 flex items-center justify-center rounded-lg font-display text-3xl font-bold border-4 border-background shadow-lg">
@@ -241,13 +241,13 @@ export default function PlayerProfile() {
           </section>
 
           {/* Awards & Achievements Section */}
-          {player.awards && player.awards.length > 0 && (
+          {(player as any).awards && (player as any).awards.length > 0 && (
             <section className="bg-card rounded-2xl border border-border overflow-hidden shadow-xl">
               <div className="p-6 border-b border-border">
                 <h3 className="font-display text-2xl">Awards & Achievements</h3>
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {player.awards.map((award: any) => (
+                {(player as any).awards.map((award: any) => (
                   <div key={award.id} className="flex items-center gap-4 p-4 bg-muted rounded-xl border border-border">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                       <Trophy className="w-5 h-5" />
