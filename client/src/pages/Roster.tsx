@@ -20,13 +20,15 @@ export default function Roster() {
   
   const { data: players, isLoading } = usePlayers();
 
-  // Get unique seasons available for this team across all players
-  const availableSeasons = Array.from(new Set(
-    players?.flatMap(p => (p as any).stats
+  // Get unique seasons available for this team across all players, with fallback to 2020-2025
+  const baseSeasons = ["2024-25", "2023-24", "2022-23", "2021-22", "2020-21"];
+  const playerSeasons = players?.flatMap(p => (p as any).stats
       ?.filter((s: any) => s.team === team)
       .map((s: any) => s.season)
-    ).filter(Boolean) || []
-  )).sort((a: any, b: any) => b.localeCompare(a));
+    ).filter(Boolean) || [];
+  
+  const availableSeasons = Array.from(new Set([...baseSeasons, ...playerSeasons]))
+    .sort((a, b) => b.localeCompare(a));
 
   // Filter players who played for this team in this season
   const rosterPlayers = players?.filter(player => 
