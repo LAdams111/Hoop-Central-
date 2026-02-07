@@ -60,7 +60,7 @@ export default function PlayerProfile() {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* HEADER SECTION */}
-      <div className="relative h-[60vh] md:h-[50vh] overflow-hidden border-b border-border">
+      <div className="relative min-h-[70vh] md:min-h-[60vh] overflow-hidden border-b border-border pb-12">
         <div className="absolute inset-0 bg-background/60 z-10" />
         
         {/* Background Image (blurred) */}
@@ -71,7 +71,7 @@ export default function PlayerProfile() {
         
         <div className="container mx-auto px-4 h-full relative z-20 flex flex-col justify-between py-8">
           <Link href="/">
-            <Button variant="ghost" className="text-foreground/60 hover:text-foreground w-fit -ml-4">
+            <Button variant="ghost" className="text-foreground/60 hover:text-foreground w-fit -ml-4 mb-4">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Home
             </Button>
@@ -79,7 +79,7 @@ export default function PlayerProfile() {
 
           <div className="flex flex-col md:flex-row items-end gap-8 md:gap-12">
             {/* Player Image */}
-            <div className="relative flex-shrink-0 z-30 mb-[-120px] md:mb-[-160px] -translate-y-[120px] md:-translate-y-[160px]">
+            <div className="relative flex-shrink-0 z-30 mb-[-120px] md:mb-[-160px] translate-y-0">
               <div className="w-48 h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden border-4 border-background shadow-2xl bg-muted">
                 <img 
                   src={player.headshotUrl} 
@@ -93,7 +93,7 @@ export default function PlayerProfile() {
             </div>
 
             {/* Player Info */}
-            <div className="flex-1 pb-4 md:pb-8 pt-8 md:pt-0 min-h-[160px] md:min-h-0 flex flex-col justify-end">
+            <div className="flex-1 pb-4 md:pb-8 pt-8 md:pt-0 min-h-[200px] md:min-h-0 flex flex-col justify-end">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
                   <h3 className="text-primary font-mono text-lg uppercase tracking-widest mb-1">{player.team}</h3>
