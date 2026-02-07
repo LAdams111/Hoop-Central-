@@ -139,38 +139,19 @@ export default function Leagues() {
 
             {/* NBA Teams Sub-list */}
             {expandedLeague === "NBA" && league.name === "NBA" && (
-              <div className="mt-4 space-y-6 animate-in fade-in slide-in-from-top-4 duration-300 px-2">
-                <div className="flex items-center justify-between border-b border-border pb-2">
-                  <h3 className="font-display text-xl font-bold uppercase tracking-tight text-foreground">Select Team & Season</h3>
-                  <div className="flex gap-2">
-                    {["2023-24", "2020-21"].map((s) => (
-                      <span key={s} className="text-[10px] font-mono bg-primary/10 text-primary px-2 py-0.5 rounded">
-                        {s} Available
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                  {NBA_TEAMS.map((team) => (
-                    <div key={team.id} className="space-y-2">
-                      <div className="text-[10px] font-mono text-primary uppercase tracking-widest px-1 truncate">{team.name}</div>
-                      <div className="flex flex-col gap-1.5">
-                        <Link href={`/roster/${encodeURIComponent(team.name)}/2023-24`}>
-                          <Card className="p-2 hover-elevate border-border hover:border-primary/40 cursor-pointer bg-card/50 backdrop-blur-sm flex items-center justify-between group">
-                            <span className="text-[11px] font-bold">2023-24</span>
-                            <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
-                          </Card>
-                        </Link>
-                        <Link href={`/roster/${encodeURIComponent(team.name)}/2020-21`}>
-                          <Card className="p-2 hover-elevate border-border hover:border-primary/40 cursor-pointer bg-card/50 backdrop-blur-sm flex items-center justify-between group border-dashed">
-                            <span className="text-[11px] font-bold text-muted-foreground group-hover:text-foreground">2020-21</span>
-                            <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
-                          </Card>
-                        </Link>
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 animate-in fade-in slide-in-from-top-4 duration-300 px-2">
+                {NBA_TEAMS.map((team) => (
+                  <Link key={team.id} href={`/roster/${encodeURIComponent(team.name)}/2023-24`}>
+                    <Card className="p-3 hover-elevate border-border hover:border-primary/40 cursor-pointer bg-card/50 backdrop-blur-sm">
+                      <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-1 truncate">{team.name}</div>
+                      <div className="text-sm font-bold truncate">{team.name}</div>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-[9px] text-muted-foreground font-mono">View Roster</span>
+                        <ArrowRight className="w-3 h-3 text-primary" />
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    </Card>
+                  </Link>
+                ))}
               </div>
             )}
           </div>
