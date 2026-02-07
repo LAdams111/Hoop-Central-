@@ -12,13 +12,19 @@ export default function Home() {
   const { data: trendingPlayers, isLoading: isLoadingTrending } = usePlayers({ sortBy: "views" });
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (search.trim()) {
       setLocation(`/players?search=${encodeURIComponent(search)}`);
+      setShowSuggestions(false);
     }
   };
+
+  const suggestions = players
+    ?.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) && search.length > 0)
+    .slice(0, 5) || [];
 
   // Get featured players (excluding Jalen Green)
   const featuredPlayers = players?.filter(p => p.name !== "Jalen Green").slice(0, 3) || [];
@@ -58,12 +64,58 @@ export default function Home() {
                 className="pl-12 py-7 rounded-full bg-white/5 border-black text-lg focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50 border-2" 
                 placeholder="Search player name..." 
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
               />
               <Button type="submit" className="absolute right-2 top-2 rounded-full h-10 w-10 p-0" variant="default">
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </form>
+
+            {/* Suggestions Pop-up */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-2xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="py-2">
+                  {suggestions.map((player) => (
+                    <button
+                      key={player.id}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-left transition-colors group"
+                      onClick={() => {
+                        setLocation(`/players/${player.id}`);
+                        setShowSuggestions(false);
+                      }}
+                    >
+                      <div className="w-8 h-8 rounded-full overflow-hidden border border-border">
+                        <img 
+                          src={player.headshotUrl} 
+                          alt={player.name}
+                          className="w-full h-full object-cover object-top"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-display font-bold text-foreground group-hover:text-primary transition-colors">
+                          {player.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground font-mono uppercase">
+                          {player.team} • #{player.jerseyNumber}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Click away listener */}
+            {showSuggestions && (
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setShowSuggestions(false)}
+              />
+            )}
           </div>
         </div>
       </section>
