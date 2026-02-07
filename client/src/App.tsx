@@ -9,7 +9,7 @@ import Leagues from "@/pages/Leagues";
 import Classes from "@/pages/Classes";
 import PlayerDirectory from "@/pages/PlayerDirectory";
 import PlayerProfile from "@/pages/PlayerProfile";
-import TeamRoster from "@/pages/TeamRoster";
+import TeamRoster from "@/pages/Roster";
 import NotFound from "@/pages/not-found";
 
 function Router() {
