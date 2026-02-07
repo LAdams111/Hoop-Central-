@@ -150,10 +150,10 @@ export default function PlayerProfile() {
       </div>
 
       {/* CONTENT GRID */}
-      <div className="container mx-auto px-4 mt-32 md:mt-40">
+      <div className="container mx-auto px-4 mt-16">
         <div className="grid grid-cols-1 gap-8">
           
-          <div className="flex justify-center">
+          <div className="flex justify-center -mb-4">
             <div className="flex items-center gap-3 text-muted-foreground bg-card w-fit px-6 py-3 rounded-2xl border border-border shadow-sm">
               <Eye className="w-6 h-6 text-primary" />
               <span className="font-display text-2xl uppercase tracking-wider font-bold">{player.profileViews} Profile Views</span>
