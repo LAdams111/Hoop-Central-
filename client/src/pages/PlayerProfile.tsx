@@ -118,18 +118,18 @@ export default function PlayerProfile() {
                     {player.position}
                   </Badge>
                   <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
-                    <span className="text-primary">HT</span> {player.height}
+                    <span className="text-primary font-bold">HT</span> {player.height}
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
-                    <span className="text-primary">WT</span> {player.weight}
+                    <span className="text-primary font-bold">WT</span> {player.weight}
                   </div>
                   {player.birthDate && (
                     <>
                       <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
-                        <span className="text-primary">AGE</span> {calculateAge(player.birthDate)}
+                        <span className="text-primary font-bold">AGE</span> {calculateAge(player.birthDate)}
                       </div>
                       <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
-                        <span className="text-primary">DOB</span> {new Date(player.birthDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        <span className="text-primary font-bold">DOB</span> {new Date(player.birthDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </div>
                     </>
                   )}
