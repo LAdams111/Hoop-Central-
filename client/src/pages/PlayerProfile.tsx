@@ -128,15 +128,15 @@ export default function PlayerProfile() {
             </div>
 
             {/* Player Info */}
-            <div className="flex-1 pb-4 md:pb-8 pt-8 md:pt-0 min-h-[200px] md:min-h-0 flex flex-col justify-end">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="flex-1 pb-4 md:pb-8 pt-8 md:pt-0 flex flex-col justify-end">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
                 <div>
                   <Link href={`/roster/${encodeURIComponent(player.team)}/2023-24`}>
-                    <Button variant="ghost" className="p-0 h-auto">
+                    <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
                       <h3 className="text-primary font-mono text-lg uppercase tracking-widest mb-1 hover:text-primary/80 transition-colors cursor-pointer">{player.team}</h3>
                     </Button>
                   </Link>
-                  <h1 className="font-display text-6xl md:text-8xl font-bold leading-none text-foreground tracking-tighter">
+                  <h1 className="font-display text-6xl md:text-8xl font-bold leading-[0.8] text-foreground tracking-tighter">
                     {player.name}
                   </h1>
                 </div>
