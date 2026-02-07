@@ -179,8 +179,6 @@ function FavoritesBar({ players }: { players: any[] | undefined }) {
 
   const favoritePlayers = players?.filter(p => favIds.includes(p.id)) || [];
 
-  if (favoritePlayers.length === 0) return null;
-
   return (
     <section className="py-4 bg-background border-y border-border overflow-hidden">
       <div className="container mx-auto px-4">
@@ -190,18 +188,28 @@ function FavoritesBar({ players }: { players: any[] | undefined }) {
             <span className="font-display text-xl font-bold uppercase tracking-tight">Favorites</span>
           </div>
           <div className="flex items-center gap-4">
-            {favoritePlayers.map((player) => (
-              <Link key={player.id} href={`/players/${player.id}`} className="group relative">
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-110 shadow-sm">
-                  <img 
-                    src={player.headshotUrl} 
-                    alt={player.name}
-                    className="w-full h-full object-cover object-top"
-                  />
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity" />
-              </Link>
-            ))}
+            {favoritePlayers.length > 0 ? (
+              favoritePlayers.map((player) => (
+                <Link key={player.id} href={`/players/${player.id}`} className="group relative">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-110 shadow-sm">
+                    <img 
+                      src={player.headshotUrl} 
+                      alt={player.name}
+                      className="w-full h-full object-cover object-top"
+                    />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity" />
+                </Link>
+              ))
+            ) : (
+              <div className="flex items-center -space-x-4 opacity-40">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="w-10 h-10 rounded-full border-2 border-border bg-muted/50 flex items-center justify-center">
+                    <Users className="w-4 h-4" />
+                  </div>
+                ))}
+              </div>
+            )}
             <Link href="/players" className="w-10 h-10 rounded-full border-2 border-dashed border-border flex items-center justify-center hover:border-primary hover:text-primary transition-all group">
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </Link>
