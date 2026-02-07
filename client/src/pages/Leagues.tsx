@@ -77,7 +77,7 @@ const LEAGUES = [
     color: "text-primary",
     bgColor: "bg-primary/10",
     hasTeams: true,
-    regions: ["US", "CAN"]
+    regions: ["US", "CA"]
   },
   {
     name: "NBA G League",
@@ -87,7 +87,7 @@ const LEAGUES = [
     color: "text-accent",
     bgColor: "bg-accent/10",
     hasTeams: true,
-    regions: ["US", "CAN", "MEX"]
+    regions: ["US", "CA", "MX"]
   },
   {
     name: "NCAA Division I",
@@ -114,7 +114,7 @@ const LEAGUES = [
     icon: Users,
     color: "text-muted-foreground",
     bgColor: "bg-muted",
-    regions: ["US", "CAN"]
+    regions: ["US", "CA"]
   }
 ];
 
@@ -160,9 +160,15 @@ export default function Leagues() {
                 </div>
                 <div className="flex-shrink-0 bg-muted px-4 py-2 rounded-xl border border-border">
                   <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Region</div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {(league as any).regions?.map((region: string) => (
-                      <span key={region} className="text-[10px] font-mono font-bold text-muted-foreground bg-background px-2 py-0.5 rounded border border-border">{region}</span>
+                      <img
+                        key={region}
+                        src={`https://purecatamphetamine.github.io/country-flag-icons/3x2/${region}.svg`}
+                        alt={region}
+                        title={region}
+                        className="w-7 h-5 rounded-sm border border-border/50 object-cover"
+                      />
                     ))}
                   </div>
                 </div>
