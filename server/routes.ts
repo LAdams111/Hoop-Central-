@@ -26,14 +26,18 @@ export async function registerRoutes(
       return res.status(404).json({ message: "Player not found" });
     }
 
-    // Increment views asynchronously
-    storage.incrementPlayerViews(id).catch(err => console.error("Error incrementing views:", err));
-
     const [stats, awards] = await Promise.all([
       storage.getPlayerStats(id),
       storage.getPlayerAwards(id)
     ]);
     res.json({ ...player, stats, awards });
+  });
+
+  // Increment Player Views
+  app.post("/api/players/:id/view", async (req, res) => {
+    const id = Number(req.params.id);
+    await storage.incrementPlayerViews(id);
+    res.json({ success: true });
   });
 
   // Team Roster

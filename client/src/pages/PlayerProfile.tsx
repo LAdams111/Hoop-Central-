@@ -1,8 +1,10 @@
 import { useRoute } from "wouter";
+import { useEffect } from "react";
 import { usePlayer } from "@/hooks/use-players";
 import { StatsChart } from "@/components/StatsChart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   ArrowLeft, 
   Trophy, 
@@ -18,6 +20,21 @@ export default function PlayerProfile() {
   const [, params] = useRoute("/players/:id");
   const id = parseInt(params?.id || "0");
   const { data: player, isLoading } = usePlayer(id);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const lastViewKey = `last_view_player_${id}`;
+    const lastView = localStorage.getItem(lastViewKey);
+    const now = Date.now();
+    const cooldown = 10 * 60 * 1000; // 10 minutes
+
+    if (!lastView || now - parseInt(lastView) > cooldown) {
+      // Increment view count via API
+      apiRequest("POST", `/api/players/${id}/view`).catch(console.error);
+      localStorage.setItem(lastViewKey, now.toString());
+    }
+  }, [id]);
 
   if (isLoading) {
     return (
