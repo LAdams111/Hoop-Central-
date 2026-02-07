@@ -162,6 +162,35 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      {/* FAVORITES SECTION */}
+      <section className="py-4 bg-background border-y border-border overflow-hidden">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center gap-6 overflow-x-auto pb-2 no-scrollbar">
+            <div className="flex-shrink-0 flex items-center gap-2 pr-6 border-r border-border">
+              <Trophy className="w-4 h-4 text-primary" />
+              <span className="font-display text-xl font-bold uppercase tracking-tight">Favorites</span>
+            </div>
+            <div className="flex items-center gap-4">
+              {players?.slice(0, 8).map((player) => (
+                <Link key={player.id} href={`/players/${player.id}`} className="group relative">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-110 shadow-sm">
+                    <img 
+                      src={player.headshotUrl} 
+                      alt={player.name}
+                      className="w-full h-full object-cover object-top"
+                    />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity" />
+                </Link>
+              ))}
+              <Link href="/players" className="w-10 h-10 rounded-full border-2 border-dashed border-border flex items-center justify-center hover:border-primary hover:text-primary transition-all group">
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
