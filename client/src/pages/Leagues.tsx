@@ -96,7 +96,7 @@ const LEAGUES = [
     name: "Overtime Elite (OTE)",
     tier: "Tier 4: Professional",
     description: "A professional basketball league for late-stage high school and early college-level players.",
-    logoUrl: "https://upload.wikimedia.org/wikipedia/en/b/b4/Overtime_Elite_logo.png",
+    logoUrl: "/images/ote-logo.png",
     regions: ["US"]
   },
   {
