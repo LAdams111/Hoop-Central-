@@ -48,12 +48,12 @@
   --ring: 24 95% 53%;
 
   /* Radius */
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 }
 
 @layer base {
   * {
-    @apply border-border/60;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground antialiased font-body selection:bg-primary/30 selection:text-primary-foreground;
@@ -61,21 +61,17 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
-    @apply font-bold tracking-tight uppercase;
+    @apply font-bold tracking-wide uppercase;
   }
 }
 
 @layer utilities {
   .text-glow {
-    text-shadow: 0 0 30px rgba(255, 87, 34, 0.4);
+    text-shadow: 0 0 20px rgba(255, 87, 34, 0.5);
   }
   
   .glass-card {
-    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.04)];
-  }
-
-  .premium-gradient {
-    @apply bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background;
+    @apply bg-card/60 backdrop-blur-md border border-white/5 shadow-xl;
   }
 
   .stat-value {
