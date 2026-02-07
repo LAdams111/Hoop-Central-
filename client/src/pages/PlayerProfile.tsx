@@ -241,26 +241,43 @@ export default function PlayerProfile() {
           </section>
 
           {/* Awards & Achievements Section */}
-          {(player as any).awards && (player as any).awards.length > 0 && (
-            <section className="bg-card rounded-2xl border border-border overflow-hidden shadow-xl">
-              <div className="p-6 border-b border-border">
-                <h3 className="font-display text-2xl">Awards & Achievements</h3>
-              </div>
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {(player as any).awards.map((award: any) => (
-                  <div key={award.id} className="flex items-center gap-4 p-4 bg-muted rounded-xl border border-border">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      <Trophy className="w-5 h-5" />
+          <section className="bg-card rounded-2xl border border-border overflow-hidden shadow-xl">
+            <div className="p-6 border-b border-border">
+              <h3 className="font-display text-2xl">Awards & Achievements</h3>
+            </div>
+            <div className="p-6">
+              {(player as any).awards && (player as any).awards.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.entries(
+                    (player as any).awards.reduce((acc: any, award: any) => {
+                      if (!acc[award.name]) {
+                        acc[award.name] = [];
+                      }
+                      acc[award.name].push(award.year);
+                      return acc;
+                    }, {})
+                  ).map(([name, years]: [string, any]) => (
+                    <div key={name} className="flex items-center gap-4 p-4 bg-muted rounded-xl border border-border">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <Trophy className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-foreground">{name}</div>
+                        <div className="text-sm font-mono text-muted-foreground">
+                          {years.sort().join(', ')}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-bold text-foreground">{award.name}</div>
-                      <div className="text-sm font-mono text-muted-foreground">{award.year}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
+                  <Trophy className="w-12 h-12 mb-4 opacity-20" />
+                  <p className="font-display text-xl uppercase tracking-wider">No awards recorded yet</p>
+                </div>
+              )}
+            </div>
+          </section>
         </div>
       </div>
     </div>
