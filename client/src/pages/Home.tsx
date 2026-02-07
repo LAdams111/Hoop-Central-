@@ -32,7 +32,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* HERO SECTION */}
-      <section className="relative h-[80vh] flex items-center justify-center overflow-hidden border-b border-border/40">
+      <section className="relative h-[80vh] flex items-center justify-center overflow-hidden border-b border-border/40 z-20">
         {/* Background Overlay */}
         <div className="absolute inset-0 bg-background z-0">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
@@ -77,7 +77,7 @@ export default function Home() {
 
             {/* Suggestions Pop-up */}
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-2xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-2xl shadow-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="py-2">
                   {suggestions.map((player) => (
                     <button
