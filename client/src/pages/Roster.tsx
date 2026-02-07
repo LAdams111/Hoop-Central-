@@ -112,8 +112,30 @@ export default function Roster() {
               </div>
             ))
           ) : (
-            <div className="col-span-full py-20 text-center border-2 border-dashed border-border rounded-2xl">
+            <div className="col-span-full py-20 text-center border-2 border-dashed border-border rounded-2xl flex flex-col items-center gap-6">
               <p className="text-muted-foreground font-display text-2xl uppercase">No players found for this roster</p>
+              
+              {/* Profile Pics/Links Gateway */}
+              <div className="w-full max-w-4xl px-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {players?.map((player) => (
+                    <Link key={player.id} href={`/players/${player.id}`} className="group">
+                      <div className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-colors">
+                        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-colors">
+                          <img 
+                            src={player.headshotUrl} 
+                            alt={player.name}
+                            className="w-full h-full object-cover object-top"
+                          />
+                        </div>
+                        <span className="text-xs font-mono text-center uppercase tracking-tighter truncate w-full">
+                          {player.name}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
