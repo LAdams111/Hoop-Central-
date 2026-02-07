@@ -94,7 +94,7 @@ export default function PlayerProfile() {
 
             {/* Player Info */}
             <div className="flex-1 pb-4 md:pb-8 pt-8 md:pt-0 min-h-[160px] md:min-h-0 flex flex-col justify-end">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
                   <h3 className="text-primary font-mono text-lg uppercase tracking-widest mb-1">{player.team}</h3>
                   <h1 className="font-display text-6xl md:text-8xl font-bold leading-none text-foreground tracking-tighter">
@@ -112,7 +112,7 @@ export default function PlayerProfile() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-6">
                 <div className="flex flex-wrap items-center gap-4 text-sm text-foreground/60 font-mono">
                   <Badge variant="outline" className="text-foreground border-border px-4 py-1">
                     {player.position}
@@ -136,10 +136,10 @@ export default function PlayerProfile() {
                 </div>
 
                 {player.hometown && (
-                  <div className="flex items-center gap-2 px-4 py-2 bg-primary/5 rounded-xl border border-primary/20 w-fit">
+                  <div className="flex items-center gap-2 px-4 py-3 bg-primary/5 rounded-xl border border-primary/20 w-fit">
                     <div className="flex flex-col">
-                      <span className="text-[10px] uppercase tracking-[0.2em] text-primary/70 font-bold leading-none mb-1">Hometown</span>
-                      <span className="text-sm text-foreground font-mono">{player.hometown}</span>
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-primary/70 font-bold leading-none mb-2">Hometown</span>
+                      <span className="text-lg text-foreground font-mono font-bold">{player.hometown}</span>
                     </div>
                   </div>
                 )}
@@ -150,7 +150,7 @@ export default function PlayerProfile() {
       </div>
 
       {/* CONTENT GRID */}
-      <div className="container mx-auto px-4 mt-24 md:mt-32">
+      <div className="container mx-auto px-4 mt-32 md:mt-40">
         <div className="grid grid-cols-1 gap-8">
           
           <div className="flex justify-center">
