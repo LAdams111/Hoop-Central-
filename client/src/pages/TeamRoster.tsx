@@ -2,7 +2,7 @@ import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users, Flag } from "lucide-react";
+import { ArrowLeft, Users, Flag, Trophy } from "lucide-react";
 import { Link } from "wouter";
 import { Player } from "@shared/schema";
 import { useState, useEffect } from "react";
@@ -53,6 +53,22 @@ export default function TeamRoster() {
               Back to Directory
             </Button>
           </Link>
+          <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-primary" />
+              <span className="font-display text-xl font-bold uppercase tracking-tight text-foreground">Favorite Team</span>
+            </div>
+            <Button 
+              variant={isFavorited ? "default" : "secondary"}
+              size="sm"
+              className={`flex items-center gap-2 rounded-lg border ${isFavorited ? 'border-primary' : 'border-border'} transition-all`}
+              onClick={toggleFavorite}
+              data-testid="button-favorite-team"
+            >
+              <Flag className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
+              <span className="font-display font-bold uppercase tracking-tight">{isFavorited ? 'Favorited' : 'Favorite'}</span>
+            </Button>
+          </div>
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
@@ -65,14 +81,6 @@ export default function TeamRoster() {
                 <p className="text-muted-foreground font-mono">{season} Season</p>
               </div>
             </div>
-            <Button 
-              variant={isFavorited ? "default" : "secondary"}
-              className={`h-12 px-6 flex items-center gap-2 rounded-xl border-2 ${isFavorited ? 'border-primary' : 'border-border'} transition-all`}
-              onClick={toggleFavorite}
-            >
-              <Flag className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />
-              <span className="font-display font-bold uppercase tracking-tight">Favorite Team</span>
-            </Button>
           </div>
         </div>
 

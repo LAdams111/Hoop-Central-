@@ -193,7 +193,7 @@ function FavoritesBar({ players }: { players: any[] | undefined }) {
           <div className="flex items-center gap-4">
             {favTeams.map((teamName) => (
               <Link key={teamName} href={`/players?team=${encodeURIComponent(teamName)}`} className="group relative">
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-110 shadow-sm bg-white flex items-center justify-center p-1">
+                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-110 shadow-sm bg-white flex items-center justify-center p-1.5">
                   <img 
                     src={`https://cdn.nba.com/logos/nba/${TEAM_LOGOS[teamName] || '1610612737'}/global/L/logo.svg`}
                     alt={teamName}
