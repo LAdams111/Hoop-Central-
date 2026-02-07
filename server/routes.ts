@@ -114,6 +114,7 @@ async function seedDatabase() {
   await storage.createPlayerStats({ playerId: klay.id, season: "2023-24", team: "Golden State Warriors", gamesPlayed: 77, pointsPerGame: "17.9", reboundsPerGame: "3.3", assistsPerGame: "2.3", stealsPerGame: "0.6", blocksPerGame: "0.5", fieldGoalPct: "43.2" });
   await storage.createPlayerStats({ playerId: klay.id, season: "2022-23", team: "Golden State Warriors", gamesPlayed: 69, pointsPerGame: "21.9", reboundsPerGame: "4.1", assistsPerGame: "2.4", stealsPerGame: "0.7", blocksPerGame: "0.4", fieldGoalPct: "43.6" });
   await storage.createPlayerStats({ playerId: klay.id, season: "2021-22", team: "Golden State Warriors", gamesPlayed: 32, pointsPerGame: "20.4", reboundsPerGame: "3.9", assistsPerGame: "2.8", stealsPerGame: "0.5", blocksPerGame: "0.5", fieldGoalPct: "42.9" });
+  await storage.createPlayerStats({ playerId: klay.id, season: "2020-21", team: "Golden State Warriors", gamesPlayed: 0, pointsPerGame: "0.0", reboundsPerGame: "0.0", assistsPerGame: "0.0", stealsPerGame: "0.0", blocksPerGame: "0.0", fieldGoalPct: "0.0" });
   await storage.createPlayerStats({ playerId: klay.id, season: "2018-19", team: "Golden State Warriors", gamesPlayed: 78, pointsPerGame: "21.5", reboundsPerGame: "3.8", assistsPerGame: "2.4", stealsPerGame: "1.1", blocksPerGame: "0.6", fieldGoalPct: "46.7" });
 
   // 4. Nikola Jokic
