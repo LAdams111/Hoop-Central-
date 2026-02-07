@@ -71,7 +71,7 @@ const G_LEAGUE_TEAMS = [
 const LEAGUES = [
   {
     name: "NBA",
-    tier: "Tier 1: Professional (Top)",
+    tier: "Tier 1: Professional",
     description: "The National Basketball Association - the premier professional basketball league in the world.",
     icon: Trophy,
     color: "text-primary",
@@ -81,7 +81,7 @@ const LEAGUES = [
   },
   {
     name: "NBA G League",
-    tier: "Tier 2: Professional (Developmental)",
+    tier: "Tier 2: Professional",
     description: "The official minor league organization of the NBA.",
     icon: Activity,
     color: "text-accent",
@@ -100,7 +100,7 @@ const LEAGUES = [
   },
   {
     name: "Overtime Elite (OTE)",
-    tier: "Tier 4: Professional / Youth",
+    tier: "Tier 4: Professional",
     description: "A professional basketball league for late-stage high school and early college-level players.",
     icon: Star,
     color: "text-yellow-600",
@@ -109,7 +109,7 @@ const LEAGUES = [
   },
   {
     name: "High School / AAU",
-    tier: "Tier 5: Amateur / Youth",
+    tier: "Tier 5: Amateur",
     description: "Premier competitive circuit for high school athletes and independent club teams.",
     icon: Users,
     color: "text-muted-foreground",
