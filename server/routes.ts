@@ -86,7 +86,22 @@ async function seedDatabase() {
   await storage.createPlayerStats({ playerId: curry.id, season: "2023-24", team: "Golden State Warriors", gamesPlayed: 74, pointsPerGame: "26.4", reboundsPerGame: "4.5", assistsPerGame: "5.1", stealsPerGame: "0.7", blocksPerGame: "0.4", fieldGoalPct: "45.0" });
   await storage.createPlayerStats({ playerId: curry.id, season: "2022-23", team: "Golden State Warriors", gamesPlayed: 56, pointsPerGame: "29.4", reboundsPerGame: "6.1", assistsPerGame: "6.3", stealsPerGame: "0.9", blocksPerGame: "0.4", fieldGoalPct: "49.3" });
 
-  // 3. Nikola Jokic
+  // 3. Klay Thompson
+  const klay = await storage.createPlayer({
+    name: "Klay Thompson",
+    position: "SG",
+    team: "Golden State Warriors",
+    height: "6'6\"",
+    weight: "215 lbs",
+    jerseyNumber: 11,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/202691.png",
+    bio: "Klay Alexander Thompson is an American professional basketball player for the Golden State Warriors. He is a four-time NBA champion.",
+  });
+
+  await storage.createPlayerStats({ playerId: klay.id, season: "2023-24", team: "Golden State Warriors", gamesPlayed: 77, pointsPerGame: "17.9", reboundsPerGame: "3.3", assistsPerGame: "2.3", stealsPerGame: "0.6", blocksPerGame: "0.5", fieldGoalPct: "43.2" });
+  await storage.createPlayerStats({ playerId: klay.id, season: "2022-23", team: "Golden State Warriors", gamesPlayed: 69, pointsPerGame: "21.9", reboundsPerGame: "4.1", assistsPerGame: "2.4", stealsPerGame: "0.7", blocksPerGame: "0.4", fieldGoalPct: "43.6" });
+
+  // 4. Nikola Jokic
   const jokic = await storage.createPlayer({
     name: "Nikola Jokić",
     position: "C",
