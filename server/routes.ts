@@ -245,6 +245,92 @@ async function seedDatabase() {
   });
   await storage.createPlayerStats({ playerId: wiseman.id, season: "2020-21", team: "Warriors", gamesPlayed: 39, pointsPerGame: "11.5", reboundsPerGame: "5.8", assistsPerGame: "0.7", stealsPerGame: "0.3", blocksPerGame: "0.9", fieldGoalPct: "51.9" });
 
+  // === G League Players (Santa Cruz Warriors) ===
+  const scw1 = await storage.createPlayer({
+    name: "Mac McClung",
+    position: "PG",
+    team: "South Bay Lakers",
+    height: "6'2\"",
+    weight: "185 lbs",
+    jerseyNumber: 0,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/1630644.png",
+    bio: "Mac McClung is an American professional basketball player known for winning back-to-back NBA Slam Dunk Contests. He has played in the G League for multiple teams.",
+    hometown: "Gate City, VA",
+    birthDate: "1999-01-06",
+  });
+  await storage.createPlayerStats({ playerId: scw1.id, season: "2023-24", team: "South Bay Lakers", league: "G League", gamesPlayed: 30, pointsPerGame: "22.1", reboundsPerGame: "5.2", assistsPerGame: "5.0", stealsPerGame: "1.5", blocksPerGame: "0.3", fieldGoalPct: "46.8" });
+  await storage.createPlayerStats({ playerId: scw1.id, season: "2022-23", team: "Delaware Blue Coats", league: "G League", gamesPlayed: 34, pointsPerGame: "21.6", reboundsPerGame: "4.8", assistsPerGame: "7.6", stealsPerGame: "1.8", blocksPerGame: "0.2", fieldGoalPct: "44.2" });
+  await storage.createPlayerStats({ playerId: scw1.id, season: "2021-22", team: "South Bay Lakers", league: "G League", gamesPlayed: 28, pointsPerGame: "19.4", reboundsPerGame: "4.1", assistsPerGame: "6.2", stealsPerGame: "1.4", blocksPerGame: "0.1", fieldGoalPct: "43.5" });
+  await storage.createPlayerStats({ playerId: scw1.id, season: "2020-21", team: "South Bay Lakers", league: "G League", gamesPlayed: 15, pointsPerGame: "16.8", reboundsPerGame: "3.3", assistsPerGame: "4.5", stealsPerGame: "1.2", blocksPerGame: "0.2", fieldGoalPct: "42.1" });
+
+  const scw2 = await storage.createPlayer({
+    name: "Quinndary Weatherspoon",
+    position: "SG",
+    team: "Santa Cruz Warriors",
+    height: "6'3\"",
+    weight: "205 lbs",
+    jerseyNumber: 15,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/1629683.png",
+    bio: "Quinndary Weatherspoon is an American professional basketball player for the Santa Cruz Warriors, the G League affiliate of the Golden State Warriors.",
+    hometown: "Canton, MS",
+    birthDate: "1996-09-10",
+  });
+  await storage.createPlayerStats({ playerId: scw2.id, season: "2023-24", team: "Santa Cruz Warriors", league: "G League", gamesPlayed: 36, pointsPerGame: "18.4", reboundsPerGame: "5.1", assistsPerGame: "3.8", stealsPerGame: "1.6", blocksPerGame: "0.4", fieldGoalPct: "47.2" });
+  await storage.createPlayerStats({ playerId: scw2.id, season: "2022-23", team: "Santa Cruz Warriors", league: "G League", gamesPlayed: 40, pointsPerGame: "16.2", reboundsPerGame: "4.6", assistsPerGame: "3.2", stealsPerGame: "1.3", blocksPerGame: "0.3", fieldGoalPct: "45.1" });
+  await storage.createPlayerStats({ playerId: scw2.id, season: "2021-22", team: "Santa Cruz Warriors", league: "G League", gamesPlayed: 32, pointsPerGame: "14.8", reboundsPerGame: "4.3", assistsPerGame: "2.9", stealsPerGame: "1.1", blocksPerGame: "0.2", fieldGoalPct: "44.6" });
+  await storage.createPlayerStats({ playerId: scw2.id, season: "2020-21", team: "Santa Cruz Warriors", league: "G League", gamesPlayed: 15, pointsPerGame: "12.5", reboundsPerGame: "3.8", assistsPerGame: "2.1", stealsPerGame: "0.9", blocksPerGame: "0.1", fieldGoalPct: "43.0" });
+
+  const scw3 = await storage.createPlayer({
+    name: "Lester Quinones",
+    position: "SG",
+    team: "Santa Cruz Warriors",
+    height: "6'5\"",
+    weight: "208 lbs",
+    jerseyNumber: 25,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/1631244.png",
+    bio: "Lester Quinones is an American professional basketball player for the Santa Cruz Warriors. He played college basketball at Memphis.",
+    hometown: "Houston, TX",
+    birthDate: "2000-08-18",
+  });
+  await storage.createPlayerStats({ playerId: scw3.id, season: "2023-24", team: "Santa Cruz Warriors", league: "G League", gamesPlayed: 38, pointsPerGame: "15.3", reboundsPerGame: "4.2", assistsPerGame: "2.1", stealsPerGame: "0.8", blocksPerGame: "0.3", fieldGoalPct: "44.5" });
+  await storage.createPlayerStats({ playerId: scw3.id, season: "2022-23", team: "Santa Cruz Warriors", league: "G League", gamesPlayed: 42, pointsPerGame: "13.1", reboundsPerGame: "3.9", assistsPerGame: "1.8", stealsPerGame: "0.7", blocksPerGame: "0.2", fieldGoalPct: "42.8" });
+  await storage.createPlayerStats({ playerId: scw3.id, season: "2021-22", team: "Santa Cruz Warriors", league: "G League", gamesPlayed: 20, pointsPerGame: "10.2", reboundsPerGame: "3.0", assistsPerGame: "1.4", stealsPerGame: "0.5", blocksPerGame: "0.1", fieldGoalPct: "40.3" });
+  await storage.createPlayerStats({ playerId: scw3.id, season: "2020-21", team: "Santa Cruz Warriors", league: "G League", gamesPlayed: 15, pointsPerGame: "8.7", reboundsPerGame: "2.5", assistsPerGame: "1.0", stealsPerGame: "0.4", blocksPerGame: "0.1", fieldGoalPct: "38.9" });
+
+  const scw4 = await storage.createPlayer({
+    name: "Jerome Robinson",
+    position: "SG",
+    team: "Windy City Bulls",
+    height: "6'5\"",
+    weight: "190 lbs",
+    jerseyNumber: 10,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/1628973.png",
+    bio: "Jerome Robinson is an American professional basketball player. He was the 13th overall pick in the 2018 NBA Draft by the LA Clippers.",
+    hometown: "Raleigh, NC",
+    birthDate: "1997-02-03",
+  });
+  await storage.createPlayerStats({ playerId: scw4.id, season: "2023-24", team: "Windy City Bulls", league: "G League", gamesPlayed: 35, pointsPerGame: "20.5", reboundsPerGame: "4.0", assistsPerGame: "4.3", stealsPerGame: "1.2", blocksPerGame: "0.3", fieldGoalPct: "45.6" });
+  await storage.createPlayerStats({ playerId: scw4.id, season: "2022-23", team: "Windy City Bulls", league: "G League", gamesPlayed: 38, pointsPerGame: "18.9", reboundsPerGame: "3.7", assistsPerGame: "3.8", stealsPerGame: "1.0", blocksPerGame: "0.2", fieldGoalPct: "44.1" });
+  await storage.createPlayerStats({ playerId: scw4.id, season: "2021-22", team: "Stockton Kings", league: "G League", gamesPlayed: 30, pointsPerGame: "17.2", reboundsPerGame: "3.5", assistsPerGame: "3.4", stealsPerGame: "0.9", blocksPerGame: "0.2", fieldGoalPct: "43.5" });
+  await storage.createPlayerStats({ playerId: scw4.id, season: "2020-21", team: "Agua Caliente Clippers", league: "G League", gamesPlayed: 15, pointsPerGame: "14.6", reboundsPerGame: "3.1", assistsPerGame: "2.8", stealsPerGame: "0.7", blocksPerGame: "0.1", fieldGoalPct: "41.2" });
+
+  const scw5 = await storage.createPlayer({
+    name: "Jalen Lecque",
+    position: "PG",
+    team: "Maine Celtics",
+    height: "6'4\"",
+    weight: "190 lbs",
+    jerseyNumber: 2,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/1629665.png",
+    bio: "Jalen Lecque is an American professional basketball player in the G League. Known for his explosive athleticism and dunking ability.",
+    hometown: "Bronx, NY",
+    birthDate: "2000-06-13",
+  });
+  await storage.createPlayerStats({ playerId: scw5.id, season: "2023-24", team: "Maine Celtics", league: "G League", gamesPlayed: 32, pointsPerGame: "16.8", reboundsPerGame: "4.5", assistsPerGame: "5.2", stealsPerGame: "1.4", blocksPerGame: "0.5", fieldGoalPct: "43.2" });
+  await storage.createPlayerStats({ playerId: scw5.id, season: "2022-23", team: "Maine Celtics", league: "G League", gamesPlayed: 36, pointsPerGame: "14.5", reboundsPerGame: "3.9", assistsPerGame: "4.8", stealsPerGame: "1.2", blocksPerGame: "0.4", fieldGoalPct: "41.8" });
+  await storage.createPlayerStats({ playerId: scw5.id, season: "2021-22", team: "College Park Skyhawks", league: "G League", gamesPlayed: 28, pointsPerGame: "12.1", reboundsPerGame: "3.2", assistsPerGame: "3.9", stealsPerGame: "1.0", blocksPerGame: "0.3", fieldGoalPct: "40.5" });
+  await storage.createPlayerStats({ playerId: scw5.id, season: "2020-21", team: "Fort Wayne Mad Ants", league: "G League", gamesPlayed: 15, pointsPerGame: "9.8", reboundsPerGame: "2.7", assistsPerGame: "3.1", stealsPerGame: "0.8", blocksPerGame: "0.2", fieldGoalPct: "38.7" });
+
   // Awards Seeding
   await storage.createAward({ playerId: lebron.id, name: "NBA Champion", year: "2020" });
   await storage.createAward({ playerId: lebron.id, name: "NBA Finals MVP", year: "2020" });

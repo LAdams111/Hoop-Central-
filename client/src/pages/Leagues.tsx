@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Users, Star, School, Medal, ArrowRight, ChevronRight, ChevronDown } from "lucide-react";
+import { Trophy, Users, Star, School, Medal, ArrowRight, ChevronRight, ChevronDown, Globe, Activity } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
 
@@ -36,6 +36,38 @@ const NBA_TEAMS = [
   { name: "Washington Wizards", id: "Washington Wizards" },
 ];
 
+const G_LEAGUE_TEAMS = [
+  { name: "Austin Spurs", id: "Austin Spurs" },
+  { name: "Birmingham Squadron", id: "Birmingham Squadron" },
+  { name: "Capital City Go-Go", id: "Capital City Go-Go" },
+  { name: "Cleveland Charge", id: "Cleveland Charge" },
+  { name: "College Park Skyhawks", id: "College Park Skyhawks" },
+  { name: "Delaware Blue Coats", id: "Delaware Blue Coats" },
+  { name: "Fort Wayne Mad Ants", id: "Fort Wayne Mad Ants" },
+  { name: "Grand Rapids Gold", id: "Grand Rapids Gold" },
+  { name: "Greensboro Swarm", id: "Greensboro Swarm" },
+  { name: "Iowa Wolves", id: "Iowa Wolves" },
+  { name: "Lakeland Magic", id: "Lakeland Magic" },
+  { name: "Long Island Nets", id: "Long Island Nets" },
+  { name: "Maine Celtics", id: "Maine Celtics" },
+  { name: "Memphis Hustle", id: "Memphis Hustle" },
+  { name: "Mexico City Capitanes", id: "Mexico City Capitanes" },
+  { name: "Motor City Cruise", id: "Motor City Cruise" },
+  { name: "Oklahoma City Blue", id: "Oklahoma City Blue" },
+  { name: "Osceola Magic", id: "Osceola Magic" },
+  { name: "Raptors 905", id: "Raptors 905" },
+  { name: "Rio Grande Valley Vipers", id: "Rio Grande Valley Vipers" },
+  { name: "Salt Lake City Stars", id: "Salt Lake City Stars" },
+  { name: "Santa Cruz Warriors", id: "Santa Cruz Warriors" },
+  { name: "Sioux Falls Skyforce", id: "Sioux Falls Skyforce" },
+  { name: "South Bay Lakers", id: "South Bay Lakers" },
+  { name: "Stockton Kings", id: "Stockton Kings" },
+  { name: "Texas Legends", id: "Texas Legends" },
+  { name: "Westchester Knicks", id: "Westchester Knicks" },
+  { name: "Windy City Bulls", id: "Windy City Bulls" },
+  { name: "Wisconsin Herd", id: "Wisconsin Herd" },
+];
+
 const LEAGUES = [
   {
     name: "NBA",
@@ -45,7 +77,7 @@ const LEAGUES = [
     color: "text-primary",
     bgColor: "bg-primary/10",
     hasTeams: true,
-    countries: ["🇺🇸", "🇨🇦"]
+    regions: ["US", "CAN"]
   },
   {
     name: "NBA G League",
@@ -54,7 +86,8 @@ const LEAGUES = [
     icon: Activity,
     color: "text-accent",
     bgColor: "bg-accent/10",
-    countries: ["🇺🇸", "🇨🇦", "🇲🇽"]
+    hasTeams: true,
+    regions: ["US", "CAN", "MEX"]
   },
   {
     name: "NCAA Division I",
@@ -63,7 +96,7 @@ const LEAGUES = [
     icon: School,
     color: "text-blue-600",
     bgColor: "bg-blue-50",
-    countries: ["🇺🇸"]
+    regions: ["US"]
   },
   {
     name: "Overtime Elite (OTE)",
@@ -72,7 +105,7 @@ const LEAGUES = [
     icon: Star,
     color: "text-yellow-600",
     bgColor: "bg-yellow-50",
-    countries: ["🇺🇸"]
+    regions: ["US"]
   },
   {
     name: "High School / AAU",
@@ -81,11 +114,10 @@ const LEAGUES = [
     icon: Users,
     color: "text-muted-foreground",
     bgColor: "bg-muted",
-    countries: ["🇺🇸", "🇨🇦"]
+    regions: ["US", "CAN"]
   }
 ];
 
-import { Activity } from "lucide-react";
 
 export default function Leagues() {
   const [expandedLeague, setExpandedLeague] = useState<string | null>(null);
@@ -128,9 +160,9 @@ export default function Leagues() {
                 </div>
                 <div className="flex-shrink-0 bg-muted px-4 py-2 rounded-xl border border-border">
                   <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Region</div>
-                  <div className="text-xl flex gap-1">
-                    {(league as any).countries?.map((flag: string) => (
-                      <span key={flag}>{flag}</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {(league as any).regions?.map((region: string) => (
+                      <span key={region} className="text-[10px] font-mono font-bold text-muted-foreground bg-background px-2 py-0.5 rounded border border-border">{region}</span>
                     ))}
                   </div>
                 </div>
@@ -141,13 +173,31 @@ export default function Leagues() {
             {expandedLeague === "NBA" && league.name === "NBA" && (
               <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 animate-in fade-in slide-in-from-top-4 duration-300 px-2">
                 {NBA_TEAMS.map((team) => (
-                  <Link key={team.id} href={`/roster/${encodeURIComponent(team.name)}/2023-24`}>
+                  <Link key={team.id} href={`/roster/${encodeURIComponent(team.name)}/2023-24`} data-testid={`link-nba-team-${team.id.replace(/\s+/g, '-').toLowerCase()}`}>
                     <Card className="p-3 hover-elevate border-border hover:border-primary/40 cursor-pointer bg-card/50 backdrop-blur-sm">
                       <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-1 truncate">{team.name}</div>
                       <div className="text-sm font-bold truncate">{team.name}</div>
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-[9px] text-muted-foreground font-mono">View Roster</span>
                         <ArrowRight className="w-3 h-3 text-primary" />
+                      </div>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* G League Teams Sub-list */}
+            {expandedLeague === "NBA G League" && league.name === "NBA G League" && (
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 animate-in fade-in slide-in-from-top-4 duration-300 px-2">
+                {G_LEAGUE_TEAMS.map((team) => (
+                  <Link key={team.id} href={`/roster/${encodeURIComponent(team.name)}/2023-24`} data-testid={`link-gleague-team-${team.id.replace(/\s+/g, '-').toLowerCase()}`}>
+                    <Card className="p-3 hover-elevate border-border hover:border-primary/40 cursor-pointer bg-card/50 backdrop-blur-sm">
+                      <div className="text-[10px] font-mono text-accent uppercase tracking-widest mb-1 truncate">G League</div>
+                      <div className="text-sm font-bold truncate">{team.name}</div>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-[9px] text-muted-foreground font-mono">View Roster</span>
+                        <ArrowRight className="w-3 h-3 text-accent" />
                       </div>
                     </Card>
                   </Link>

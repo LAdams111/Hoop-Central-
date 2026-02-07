@@ -2,7 +2,7 @@
 
 ## Overview
 
-Hoop Central is a basketball player analytics web application that lets users browse NBA player profiles, view career statistics, and analyze performance trends through interactive charts. The app features a dark-themed sports analytics UI with a player directory, individual player profiles with season-by-season stats, and data visualization using area/line charts. The database is seeded with legendary NBA players on first run.
+Hoop Central is a basketball player analytics web application that lets users browse NBA and G League player profiles, view career statistics, and analyze performance trends through interactive charts. The app features a dark-themed sports analytics UI with a player directory, individual player profiles with season-by-season stats, and data visualization using area/line charts. The database is seeded with legendary NBA players and G League players on first run.
 
 ## User Preferences
 
@@ -18,7 +18,7 @@ The project follows a monorepo pattern with three main directories:
 
 ### Frontend (`client/src/`)
 - **Framework**: React with TypeScript, bundled by Vite
-- **Routing**: `wouter` (lightweight client-side router) with routes for Home (`/`), Player Directory (`/players`), and Player Profile (`/players/:id`)
+- **Routing**: `wouter` (lightweight client-side router) with routes for Home (`/`), Player Directory (`/players`), Player Profile (`/players/:id`), Leagues (`/leagues`), and Team Roster (`/roster/:team/:season`)
 - **State/Data Fetching**: TanStack React Query for server state management. Custom hooks in `client/src/hooks/use-players.ts` wrap API calls
 - **UI Components**: shadcn/ui component library (new-york style) with Radix UI primitives. Components live in `client/src/components/ui/`
 - **Styling**: Tailwind CSS with CSS variables for theming (dark sports analytics theme). Custom fonts: Teko (display), Outfit (body), JetBrains Mono (monospace)
@@ -30,13 +30,13 @@ The project follows a monorepo pattern with three main directories:
 - **API Pattern**: RESTful JSON API under `/api/` prefix. Routes defined in `server/routes.ts`, with route metadata shared via `shared/routes.ts`
 - **Storage Layer**: `server/storage.ts` implements `IStorage` interface using `DatabaseStorage` class backed by Drizzle ORM. This abstraction makes swapping storage implementations straightforward
 - **Dev Server**: Vite dev server is integrated as middleware during development (`server/vite.ts`), providing HMR. In production, static files are served from `dist/public`
-- **Database Seeding**: The server auto-seeds the database with legendary NBA player data if the players table is empty
+- **Database Seeding**: The server auto-seeds the database with legendary NBA players and G League players if the players table is empty
 
 ### Database
 - **ORM**: Drizzle ORM with PostgreSQL dialect
 - **Schema**: Defined in `shared/schema.ts` with two tables:
   - `players` — id, name, position, team, height, weight, jerseyNumber, headshotUrl, bio, profileViews
-  - `player_stats` — id, playerId, season, gamesPlayed, ppg, rpg, apg, spg, bpg, fg_pct
+  - `player_stats` — id, playerId, season, team, league, gamesPlayed, ppg, rpg, apg, spg, bpg, fg_pct
 - **Relations**: One-to-many relationship from players to player_stats
 - **Validation**: `drizzle-zod` generates Zod schemas from table definitions for type-safe validation
 - **Migrations**: Use `drizzle-kit push` (`npm run db:push`) to sync schema to database. Config in `drizzle.config.ts`
@@ -54,6 +54,8 @@ The project follows a monorepo pattern with three main directories:
 ### Key API Endpoints
 - `GET /api/players` — List players, optional `?search=` and `?position=` query params
 - `GET /api/players/:id` — Get player details with all season stats, increments profile view count
+- `GET /api/teams/:team/roster/:season` — Get players who played for a team in a specific season
+- `POST /api/players/:id/view` — Increment player profile view count
 
 ## External Dependencies
 
