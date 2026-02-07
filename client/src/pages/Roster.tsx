@@ -112,38 +112,6 @@ export default function Roster() {
       </div>
 
       <div className="container mx-auto px-4 mt-12">
-        {/* All-Time Team Players Section */}
-        <div className="mb-16">
-          <div className="flex items-center gap-3 mb-8 border-b border-border pb-4">
-            <h2 className="font-display text-3xl font-bold uppercase tracking-tight">All-Time {team} Players</h2>
-            <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-widest">{allTimeTeamPlayers.length} Players</Badge>
-          </div>
-          
-          <div className="flex flex-wrap justify-center gap-6">
-            {allTimeTeamPlayers.map((player) => (
-              <Link key={player.id} href={`/players/${player.id}`} className="group">
-                <div className="flex flex-col items-center gap-3 p-4 rounded-2xl hover:bg-muted transition-all duration-300 border border-transparent hover:border-border">
-                  <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-105 shadow-sm">
-                    <img 
-                      src={player.headshotUrl} 
-                      alt={player.name}
-                      className="w-full h-full object-cover object-top"
-                    />
-                  </div>
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-sm font-display font-bold text-center uppercase leading-none group-hover:text-primary transition-colors">
-                      {player.name}
-                    </span>
-                    <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">
-                      View Profile
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-
         {/* Seasonal Roster Section */}
         <div className="flex items-center gap-3 mb-8 border-b border-border pb-4">
           <h2 className="font-display text-3xl font-bold uppercase tracking-tight">{season} Season Roster</h2>
