@@ -2,6 +2,7 @@ import { useRoute, useLocation } from "wouter";
 import { usePlayers } from "@/hooks/use-players";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Users, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import {
