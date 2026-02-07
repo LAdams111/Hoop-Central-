@@ -44,7 +44,8 @@ const LEAGUES = [
     icon: Trophy,
     color: "text-primary",
     bgColor: "bg-primary/10",
-    hasTeams: true
+    hasTeams: true,
+    countries: ["🇺🇸", "🇨🇦"]
   },
   {
     name: "NBA G League",
@@ -52,7 +53,8 @@ const LEAGUES = [
     description: "The official minor league organization of the NBA.",
     icon: Activity,
     color: "text-accent",
-    bgColor: "bg-accent/10"
+    bgColor: "bg-accent/10",
+    countries: ["🇺🇸", "🇨🇦", "🇲🇽"]
   },
   {
     name: "NCAA Division I",
@@ -60,7 +62,8 @@ const LEAGUES = [
     description: "The highest level of intercollegiate athletics sanctioned by the NCAA.",
     icon: School,
     color: "text-blue-600",
-    bgColor: "bg-blue-50"
+    bgColor: "bg-blue-50",
+    countries: ["🇺🇸"]
   },
   {
     name: "Overtime Elite (OTE)",
@@ -68,7 +71,8 @@ const LEAGUES = [
     description: "A professional basketball league for late-stage high school and early college-level players.",
     icon: Star,
     color: "text-yellow-600",
-    bgColor: "bg-yellow-50"
+    bgColor: "bg-yellow-50",
+    countries: ["🇺🇸"]
   },
   {
     name: "High School / AAU",
@@ -76,7 +80,8 @@ const LEAGUES = [
     description: "Premier competitive circuit for high school athletes and independent club teams.",
     icon: Users,
     color: "text-muted-foreground",
-    bgColor: "bg-muted"
+    bgColor: "bg-muted",
+    countries: ["🇺🇸", "🇨🇦"]
   }
 ];
 
@@ -122,8 +127,12 @@ export default function Leagues() {
                   <p className="text-muted-foreground text-sm max-w-2xl mt-2">{league.description}</p>
                 </div>
                 <div className="flex-shrink-0 bg-muted px-4 py-2 rounded-xl border border-border">
-                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Status</div>
-                  <div className="text-sm font-mono text-foreground">Active Circuit</div>
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Region</div>
+                  <div className="text-xl flex gap-1">
+                    {(league as any).countries?.map((flag: string) => (
+                      <span key={flag}>{flag}</span>
+                    ))}
+                  </div>
                 </div>
               </div>
             </Card>
