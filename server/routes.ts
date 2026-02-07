@@ -76,6 +76,7 @@ async function seedDatabase() {
   await storage.createPlayerStats({ playerId: lebron.id, season: "2023-24", team: "Los Angeles Lakers", gamesPlayed: 71, pointsPerGame: "25.7", reboundsPerGame: "7.3", assistsPerGame: "8.3", stealsPerGame: "1.3", blocksPerGame: "0.5", fieldGoalPct: "54.0" });
   await storage.createPlayerStats({ playerId: lebron.id, season: "2022-23", team: "Los Angeles Lakers", gamesPlayed: 55, pointsPerGame: "28.9", reboundsPerGame: "8.3", assistsPerGame: "6.8", stealsPerGame: "0.9", blocksPerGame: "0.6", fieldGoalPct: "50.0" });
   await storage.createPlayerStats({ playerId: lebron.id, season: "2021-22", team: "Los Angeles Lakers", gamesPlayed: 56, pointsPerGame: "30.3", reboundsPerGame: "8.2", assistsPerGame: "6.2", stealsPerGame: "1.3", blocksPerGame: "1.1", fieldGoalPct: "52.4" });
+  await storage.createPlayerStats({ playerId: lebron.id, season: "2020-21", team: "Los Angeles Lakers", gamesPlayed: 45, pointsPerGame: "25.0", reboundsPerGame: "7.7", assistsPerGame: "7.8", stealsPerGame: "1.1", blocksPerGame: "0.6", fieldGoalPct: "51.3" });
 
   // 2. Stephen Curry
   const curry = await storage.createPlayer({
@@ -93,6 +94,8 @@ async function seedDatabase() {
 
   await storage.createPlayerStats({ playerId: curry.id, season: "2023-24", team: "Golden State Warriors", gamesPlayed: 74, pointsPerGame: "26.4", reboundsPerGame: "4.5", assistsPerGame: "5.1", stealsPerGame: "0.7", blocksPerGame: "0.4", fieldGoalPct: "45.0" });
   await storage.createPlayerStats({ playerId: curry.id, season: "2022-23", team: "Golden State Warriors", gamesPlayed: 56, pointsPerGame: "29.4", reboundsPerGame: "6.1", assistsPerGame: "6.3", stealsPerGame: "0.9", blocksPerGame: "0.4", fieldGoalPct: "49.3" });
+  await storage.createPlayerStats({ playerId: curry.id, season: "2021-22", team: "Golden State Warriors", gamesPlayed: 64, pointsPerGame: "25.5", reboundsPerGame: "5.2", assistsPerGame: "6.3", stealsPerGame: "1.3", blocksPerGame: "0.3", fieldGoalPct: "43.7" });
+  await storage.createPlayerStats({ playerId: curry.id, season: "2020-21", team: "Golden State Warriors", gamesPlayed: 63, pointsPerGame: "32.0", reboundsPerGame: "5.5", assistsPerGame: "5.8", stealsPerGame: "1.2", blocksPerGame: "0.1", fieldGoalPct: "48.2" });
 
   // 3. Klay Thompson
   const klay = await storage.createPlayer({
@@ -110,6 +113,8 @@ async function seedDatabase() {
 
   await storage.createPlayerStats({ playerId: klay.id, season: "2023-24", team: "Golden State Warriors", gamesPlayed: 77, pointsPerGame: "17.9", reboundsPerGame: "3.3", assistsPerGame: "2.3", stealsPerGame: "0.6", blocksPerGame: "0.5", fieldGoalPct: "43.2" });
   await storage.createPlayerStats({ playerId: klay.id, season: "2022-23", team: "Golden State Warriors", gamesPlayed: 69, pointsPerGame: "21.9", reboundsPerGame: "4.1", assistsPerGame: "2.4", stealsPerGame: "0.7", blocksPerGame: "0.4", fieldGoalPct: "43.6" });
+  await storage.createPlayerStats({ playerId: klay.id, season: "2021-22", team: "Golden State Warriors", gamesPlayed: 32, pointsPerGame: "20.4", reboundsPerGame: "3.9", assistsPerGame: "2.8", stealsPerGame: "0.5", blocksPerGame: "0.5", fieldGoalPct: "42.9" });
+  await storage.createPlayerStats({ playerId: klay.id, season: "2018-19", team: "Golden State Warriors", gamesPlayed: 78, pointsPerGame: "21.5", reboundsPerGame: "3.8", assistsPerGame: "2.4", stealsPerGame: "1.1", blocksPerGame: "0.6", fieldGoalPct: "46.7" });
 
   // 4. Nikola Jokic
   const jokic = await storage.createPlayer({
@@ -127,6 +132,8 @@ async function seedDatabase() {
 
   await storage.createPlayerStats({ playerId: jokic.id, season: "2023-24", team: "Denver Nuggets", gamesPlayed: 79, pointsPerGame: "26.4", reboundsPerGame: "12.4", assistsPerGame: "9.0", stealsPerGame: "1.4", blocksPerGame: "0.9", fieldGoalPct: "58.3" });
   await storage.createPlayerStats({ playerId: jokic.id, season: "2022-23", team: "Denver Nuggets", gamesPlayed: 69, pointsPerGame: "24.5", reboundsPerGame: "11.8", assistsPerGame: "9.8", stealsPerGame: "1.3", blocksPerGame: "0.7", fieldGoalPct: "63.2" });
+  await storage.createPlayerStats({ playerId: jokic.id, season: "2021-22", team: "Denver Nuggets", gamesPlayed: 74, pointsPerGame: "27.1", reboundsPerGame: "13.8", assistsPerGame: "7.9", stealsPerGame: "1.5", blocksPerGame: "0.9", fieldGoalPct: "58.3" });
+  await storage.createPlayerStats({ playerId: jokic.id, season: "2020-21", team: "Denver Nuggets", gamesPlayed: 72, pointsPerGame: "26.4", reboundsPerGame: "10.8", assistsPerGame: "8.3", stealsPerGame: "1.3", blocksPerGame: "0.7", fieldGoalPct: "56.6" });
 
   // 5. Kevin Durant
   const kd = await storage.createPlayer({
@@ -143,6 +150,9 @@ async function seedDatabase() {
   });
 
   await storage.createPlayerStats({ playerId: kd.id, season: "2023-24", team: "Phoenix Suns", gamesPlayed: 75, pointsPerGame: "27.1", reboundsPerGame: "6.6", assistsPerGame: "5.0", stealsPerGame: "0.9", blocksPerGame: "1.2", fieldGoalPct: "52.3" });
+  await storage.createPlayerStats({ playerId: kd.id, season: "2022-23", team: "Phoenix Suns", gamesPlayed: 47, pointsPerGame: "29.1", reboundsPerGame: "6.7", assistsPerGame: "5.0", stealsPerGame: "0.7", blocksPerGame: "1.4", fieldGoalPct: "56.0" });
+  await storage.createPlayerStats({ playerId: kd.id, season: "2021-22", team: "Brooklyn Nets", gamesPlayed: 55, pointsPerGame: "29.9", reboundsPerGame: "7.4", assistsPerGame: "6.4", stealsPerGame: "0.9", blocksPerGame: "0.9", fieldGoalPct: "51.8" });
+  await storage.createPlayerStats({ playerId: kd.id, season: "2020-21", team: "Brooklyn Nets", gamesPlayed: 35, pointsPerGame: "26.9", reboundsPerGame: "7.1", assistsPerGame: "5.6", stealsPerGame: "0.7", blocksPerGame: "1.3", fieldGoalPct: "53.7" });
 
   // 6. Michael Jordan (Historical)
   const mj = await storage.createPlayer({
@@ -160,6 +170,7 @@ async function seedDatabase() {
 
   await storage.createPlayerStats({ playerId: mj.id, season: "1997-98", team: "Chicago Bulls", gamesPlayed: 82, pointsPerGame: "28.7", reboundsPerGame: "5.8", assistsPerGame: "3.5", stealsPerGame: "1.7", blocksPerGame: "0.5", fieldGoalPct: "46.5" });
   await storage.createPlayerStats({ playerId: mj.id, season: "1995-96", team: "Chicago Bulls", gamesPlayed: 82, pointsPerGame: "30.4", reboundsPerGame: "6.6", assistsPerGame: "4.3", stealsPerGame: "2.2", blocksPerGame: "0.5", fieldGoalPct: "49.5" });
+  await storage.createPlayerStats({ playerId: mj.id, season: "1992-93", team: "Chicago Bulls", gamesPlayed: 78, pointsPerGame: "32.6", reboundsPerGame: "6.7", assistsPerGame: "5.5", stealsPerGame: "2.8", blocksPerGame: "0.8", fieldGoalPct: "49.5" });
   await storage.createPlayerStats({ playerId: mj.id, season: "1987-88", team: "Chicago Bulls", gamesPlayed: 82, pointsPerGame: "35.0", reboundsPerGame: "5.5", assistsPerGame: "5.9", stealsPerGame: "3.2", blocksPerGame: "1.6", fieldGoalPct: "53.5" });
 
   // Awards Seeding
