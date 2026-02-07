@@ -73,7 +73,7 @@ const LEAGUES = [
     name: "NBA",
     tier: "Tier 1: Professional",
     description: "The National Basketball Association - the premier professional basketball league in the world.",
-    logoUrl: "https://cdn.nba.com/logos/leagues/logo-nba.svg",
+    logoUrl: "https://upload.wikimedia.org/wikipedia/en/0/03/National_Basketball_Association_logo.svg",
     hasTeams: true,
     regions: ["US", "CA"]
   },
