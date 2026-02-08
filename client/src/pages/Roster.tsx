@@ -142,6 +142,9 @@ export default function Roster() {
                     <span className="text-xl font-display font-bold text-center uppercase leading-none group-hover:text-primary transition-colors" data-testid={`text-player-name-${player.id}`}>
                       {player.name}
                     </span>
+                    <span className="text-2xl font-display font-bold text-primary" data-testid={`text-player-jersey-${player.id}`}>
+                      #{player.jerseyNumber}
+                    </span>
                     <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest mt-1">
                       View Profile
                     </span>
