@@ -40,6 +40,15 @@ export const awards = pgTable("awards", {
   year: text("year").notNull(),
 });
 
+export const teamRecords = pgTable("team_records", {
+  id: serial("id").primaryKey(),
+  team: text("team").notNull(),
+  season: text("season").notNull(),
+  wins: integer("wins").notNull(),
+  losses: integer("losses").notNull(),
+  league: text("league").notNull().default("NBA"),
+});
+
 export const playersRelations = relations(players, ({ many }) => ({
   stats: many(playerStats),
   awards: many(awards),
@@ -62,6 +71,7 @@ export const awardsRelations = relations(awards, ({ one }) => ({
 export const insertPlayerSchema = createInsertSchema(players).omit({ id: true });
 export const insertPlayerStatsSchema = createInsertSchema(playerStats).omit({ id: true });
 export const insertAwardSchema = createInsertSchema(awards).omit({ id: true });
+export const insertTeamRecordSchema = createInsertSchema(teamRecords).omit({ id: true });
 
 export type Player = typeof players.$inferSelect;
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
@@ -69,3 +79,5 @@ export type PlayerStats = typeof playerStats.$inferSelect;
 export type InsertPlayerStats = z.infer<typeof insertPlayerStatsSchema>;
 export type Award = typeof awards.$inferSelect;
 export type InsertAward = z.infer<typeof insertAwardSchema>;
+export type TeamRecord = typeof teamRecords.$inferSelect;
+export type InsertTeamRecord = z.infer<typeof insertTeamRecordSchema>;
