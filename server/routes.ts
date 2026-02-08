@@ -472,6 +472,24 @@ async function seedDatabase() {
   await storage.createPlayerStats({ playerId: knueppel.id, season: "2023-24", team: "Wisconsin Lutheran", league: "HS", gamesPlayed: 30, pointsPerGame: "26.4", reboundsPerGame: "8.8", assistsPerGame: "5.1", stealsPerGame: "1.5", blocksPerGame: "0.5", fieldGoalPct: "52.0" });
   await storage.createPlayerStats({ playerId: knueppel.id, season: "2022-23", team: "Wisconsin Lutheran", league: "HS", gamesPlayed: 28, pointsPerGame: "19.7", reboundsPerGame: "9.2", assistsPerGame: "3.8", stealsPerGame: "1.3", blocksPerGame: "0.4", fieldGoalPct: "49.0" });
 
+  // AJ Dybantsa
+  const dybantsa = await storage.createPlayer({
+    name: "AJ Dybantsa",
+    position: "SF",
+    team: "BYU Cougars",
+    height: "6'9\"",
+    weight: "210 lbs",
+    jerseyNumber: 5,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/fallback.png",
+    bio: "AJ Dybantsa is an American college basketball player for the BYU Cougars. The #1 ranked recruit in the 2025 class, Dybantsa is known for his elite scoring ability, two-way versatility, and advanced mid-range game. He won gold medals with USA Basketball at the FIBA U16 Americas, U17 World Cup, and U19 World Cup, earning tournament MVP honors at the U19 World Cup.",
+    hometown: "Brockton, MA",
+    birthDate: "2007-01-29",
+  });
+  await storage.createPlayerStats({ playerId: dybantsa.id, season: "2025-26", team: "BYU Cougars", league: "NCAA", gamesPlayed: 22, pointsPerGame: "23.9", reboundsPerGame: "6.4", assistsPerGame: "3.5", stealsPerGame: "1.2", blocksPerGame: "0.4", fieldGoalPct: "53.6" });
+  await storage.createPlayerStats({ playerId: dybantsa.id, season: "2024-25", team: "Utah Prep Academy", league: "HS", gamesPlayed: 30, pointsPerGame: "24.2", reboundsPerGame: "8.1", assistsPerGame: "3.9", stealsPerGame: "1.5", blocksPerGame: "1.0", fieldGoalPct: "50.5" });
+  await storage.createPlayerStats({ playerId: dybantsa.id, season: "2023-24", team: "Prolific Prep", league: "HS", gamesPlayed: 28, pointsPerGame: "22.8", reboundsPerGame: "7.5", assistsPerGame: "3.2", stealsPerGame: "1.4", blocksPerGame: "0.9", fieldGoalPct: "49.0" });
+  await storage.createPlayerStats({ playerId: dybantsa.id, season: "2022-23", team: "Saint Sebastians School", league: "HS", gamesPlayed: 26, pointsPerGame: "19.1", reboundsPerGame: "9.6", assistsPerGame: "2.9", stealsPerGame: "1.1", blocksPerGame: "2.5", fieldGoalPct: "47.5" });
+
   await seedTeamRecords();
 
   // Awards Seeding
@@ -500,4 +518,8 @@ async function seedDatabase() {
   await storage.createAward({ playerId: knueppel.id, name: "ACC Tournament MVP", year: "2025" });
   await storage.createAward({ playerId: knueppel.id, name: "#4 Overall Draft Pick", year: "2025" });
   await storage.createAward({ playerId: knueppel.id, name: "Wisconsin Mr. Basketball", year: "2024" });
+
+  await storage.createAward({ playerId: dybantsa.id, name: "FIBA U19 World Cup MVP", year: "2025" });
+  await storage.createAward({ playerId: dybantsa.id, name: "Naismith HS Player of the Year Finalist", year: "2025" });
+  await storage.createAward({ playerId: dybantsa.id, name: "Massachusetts Gatorade Player of the Year", year: "2023" });
 }
