@@ -23,17 +23,17 @@ export function StatsChart({ stats, dataKey, color = "#ff5722", label }: StatsCh
   const sortedStats = [...stats].sort((a, b) => a.season.localeCompare(b.season));
 
   return (
-    <div className="w-full h-[300px] bg-card/30 rounded-xl border border-white/5 p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-widest">{label} Trend</h4>
-        <div className="flex items-center gap-2">
+    <div className="w-full h-[200px] md:h-[300px] bg-card/30 rounded-xl border border-white/5 p-2 md:p-4">
+      <div className="mb-2 md:mb-4 flex items-center justify-between">
+        <h4 className="text-[10px] md:text-sm font-medium text-muted-foreground uppercase tracking-widest">{label}</h4>
+        <div className="flex items-center gap-1 md:gap-2">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }}></span>
-            <span className="text-xs text-muted-foreground font-mono">Per Game</span>
+            <span className="text-[9px] md:text-xs text-muted-foreground font-mono hidden md:inline">Per Game</span>
         </div>
       </div>
       
       <ResponsiveContainer width="100%" height="85%">
-        <AreaChart data={sortedStats} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+        <AreaChart data={sortedStats} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
           <defs>
             <linearGradient id={`color${dataKey}`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
@@ -44,18 +44,21 @@ export function StatsChart({ stats, dataKey, color = "#ff5722", label }: StatsCh
           <XAxis 
             dataKey="season" 
             stroke="rgba(255,255,255,0.3)" 
-            fontSize={12} 
+            fontSize={9}
             tickLine={false} 
             axisLine={false}
-            tickMargin={10}
+            tickMargin={5}
             fontFamily="var(--font-mono)"
+            tick={{ fontSize: 9 }}
+            interval="preserveStartEnd"
           />
           <YAxis 
             stroke="rgba(255,255,255,0.3)" 
-            fontSize={12} 
+            fontSize={9}
             tickLine={false} 
             axisLine={false}
             fontFamily="var(--font-mono)"
+            width={30}
           />
           <Tooltip 
             contentStyle={{ 
@@ -63,7 +66,8 @@ export function StatsChart({ stats, dataKey, color = "#ff5722", label }: StatsCh
               borderColor: 'hsl(var(--border))',
               color: 'hsl(var(--foreground))',
               borderRadius: '8px',
-              fontFamily: 'var(--font-mono)'
+              fontFamily: 'var(--font-mono)',
+              fontSize: '11px'
             }}
             itemStyle={{ color: color }}
             cursor={{ stroke: 'rgba(255,255,255,0.1)' }}
@@ -72,7 +76,7 @@ export function StatsChart({ stats, dataKey, color = "#ff5722", label }: StatsCh
             type="monotone" 
             dataKey={dataKey} 
             stroke={color} 
-            strokeWidth={3} 
+            strokeWidth={2} 
             fillOpacity={1} 
             fill={`url(#color${dataKey})`} 
             animationDuration={1500}

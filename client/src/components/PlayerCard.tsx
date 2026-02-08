@@ -26,29 +26,29 @@ export function PlayerCard({ player }: PlayerCardProps) {
           />
           
           {/* Jersey Number Badge */}
-          <div className="absolute top-4 right-4 z-20 font-display text-4xl font-bold text-foreground/5 group-hover:text-primary/10 transition-colors">
+          <div className="absolute top-2 right-2 md:top-4 md:right-4 z-20 font-display text-xl md:text-4xl font-bold text-foreground/5 group-hover:text-primary/10 transition-colors">
             #{player.jerseyNumber}
           </div>
           
           {/* Position Badge */}
-          <div className="absolute bottom-4 left-4 z-20">
-            <Badge variant="secondary" className="bg-primary text-white hover:bg-primary/90 font-bold tracking-wider rounded-sm">
+          <div className="absolute bottom-2 left-2 md:bottom-4 md:left-4 z-20">
+            <Badge variant="secondary" className="bg-primary text-white hover:bg-primary/90 font-bold tracking-wider rounded-sm text-[10px] md:text-xs px-1.5 md:px-2.5 py-0 md:py-0.5">
               {player.position}
             </Badge>
           </div>
         </div>
 
-        <CardContent className="p-5 flex flex-col flex-1 justify-between gap-3 relative z-20">
+        <CardContent className="p-2 md:p-5 flex flex-col flex-1 justify-between gap-1 md:gap-3 relative z-20">
           <div className="min-h-0">
-            <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-1 truncate">
+            <div className="text-[8px] md:text-[10px] font-mono text-primary uppercase tracking-widest mb-0.5 md:mb-1 truncate">
               {player.team}
             </div>
-            <h3 className="font-display text-2xl font-bold leading-tight text-foreground group-hover:text-primary transition-colors line-clamp-2">
+            <h3 className="font-display text-sm md:text-2xl font-bold leading-tight text-foreground group-hover:text-primary transition-colors line-clamp-2">
               {player.name}
             </h3>
           </div>
           
-          <div className="flex items-center gap-3 text-[10px] font-mono text-muted-foreground border-t border-border pt-3 mt-auto whitespace-nowrap overflow-hidden">
+          <div className="hidden md:flex items-center gap-3 text-[10px] font-mono text-muted-foreground border-t border-border pt-3 mt-auto whitespace-nowrap overflow-hidden">
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <Ruler className="w-3 h-3 text-primary" />
               <span>{player.height}</span>
