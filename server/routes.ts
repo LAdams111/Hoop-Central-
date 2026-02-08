@@ -112,6 +112,9 @@ async function seedTeamRecords() {
   await storage.createTeamRecord({ team: "Chicago Bulls", season: "1992-93", wins: 57, losses: 25 });
   await storage.createTeamRecord({ team: "Chicago Bulls", season: "1987-88", wins: 50, losses: 32 });
 
+  // Dallas Mavericks
+  await storage.createTeamRecord({ team: "Dallas Mavericks", season: "2025-26", wins: 33, losses: 19 });
+
   // G League Teams
   await storage.createTeamRecord({ team: "South Bay Lakers", season: "2023-24", wins: 20, losses: 14, league: "G League" });
   await storage.createTeamRecord({ team: "South Bay Lakers", season: "2021-22", wins: 17, losses: 15, league: "G League" });
@@ -426,6 +429,24 @@ async function seedDatabase() {
   await storage.createPlayerStats({ playerId: scw5.id, season: "2021-22", team: "College Park Skyhawks", league: "G League", gamesPlayed: 28, pointsPerGame: "12.1", reboundsPerGame: "3.2", assistsPerGame: "3.9", stealsPerGame: "1.0", blocksPerGame: "0.3", fieldGoalPct: "40.5" });
   await storage.createPlayerStats({ playerId: scw5.id, season: "2020-21", team: "Fort Wayne Mad Ants", league: "G League", gamesPlayed: 15, pointsPerGame: "9.8", reboundsPerGame: "2.7", assistsPerGame: "3.1", stealsPerGame: "0.8", blocksPerGame: "0.2", fieldGoalPct: "38.7" });
 
+  // Cooper Flagg
+  const flagg = await storage.createPlayer({
+    name: "Cooper Flagg",
+    position: "SF",
+    team: "Dallas Mavericks",
+    height: "6'9\"",
+    weight: "205 lbs",
+    jerseyNumber: 2,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/1642843.png",
+    bio: "Cooper Flagg is an American professional basketball player for the Dallas Mavericks. The #1 overall pick in the 2025 NBA Draft out of Duke University, Flagg was the consensus National Player of the Year as a freshman. Known for his elite two-way versatility, scoring ability, and basketball IQ.",
+    hometown: "Newport, ME",
+    birthDate: "2006-12-21",
+  });
+  await storage.createPlayerStats({ playerId: flagg.id, season: "2025-26", team: "Dallas Mavericks", gamesPlayed: 52, pointsPerGame: "20.4", reboundsPerGame: "6.6", assistsPerGame: "4.2", stealsPerGame: "1.4", blocksPerGame: "1.4", fieldGoalPct: "48.5" });
+  await storage.createPlayerStats({ playerId: flagg.id, season: "2024-25", team: "Duke Blue Devils", league: "NCAA", gamesPlayed: 37, pointsPerGame: "19.2", reboundsPerGame: "7.5", assistsPerGame: "4.2", stealsPerGame: "1.4", blocksPerGame: "1.4", fieldGoalPct: "48.0" });
+  await storage.createPlayerStats({ playerId: flagg.id, season: "2023-24", team: "Montverde Academy", league: "HS", gamesPlayed: 32, pointsPerGame: "16.5", reboundsPerGame: "7.2", assistsPerGame: "3.8", stealsPerGame: "1.8", blocksPerGame: "2.1", fieldGoalPct: "52.0" });
+  await storage.createPlayerStats({ playerId: flagg.id, season: "2022-23", team: "Nokomis Regional", league: "HS", gamesPlayed: 28, pointsPerGame: "20.5", reboundsPerGame: "10.0", assistsPerGame: "6.2", stealsPerGame: "3.7", blocksPerGame: "3.7", fieldGoalPct: "55.0" });
+
   await seedTeamRecords();
 
   // Awards Seeding
@@ -447,4 +468,7 @@ async function seedDatabase() {
   await storage.createAward({ playerId: mj.id, name: "NBA MVP", year: "1998" });
   await storage.createAward({ playerId: mj.id, name: "NBA Champion", year: "1998" });
   await storage.createAward({ playerId: mj.id, name: "NBA Finals MVP", year: "1998" });
+
+  await storage.createAward({ playerId: flagg.id, name: "NCAA National Player of the Year", year: "2025" });
+  await storage.createAward({ playerId: flagg.id, name: "#1 Overall Draft Pick", year: "2025" });
 }
