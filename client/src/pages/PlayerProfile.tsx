@@ -105,7 +105,7 @@ export default function PlayerProfile() {
         />
         
         <div className="container mx-auto px-4 h-full relative z-20 flex flex-col justify-between py-8">
-          <Button variant="ghost" className="text-foreground/60 hover:text-foreground w-fit -ml-4 mb-4" onClick={() => window.history.back()} data-testid="button-back">
+          <Button variant="outline" size="sm" className="rounded-full w-fit mb-4" onClick={() => window.history.back()} data-testid="button-back">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
