@@ -7,7 +7,7 @@ export function Navigation() {
   const navItems = [
     { label: "Home", href: "/" },
     { label: "Leagues", href: "/leagues" },
-    { label: "Classes", href: "/classes" },
+    { label: "Birth Year", href: "/classes" },
     { label: "Directory", href: "/players" },
   ];
 

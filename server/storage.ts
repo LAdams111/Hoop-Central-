@@ -9,6 +9,9 @@ export interface IStorage {
   incrementPlayerViews(id: number): Promise<void>;
   createPlayer(player: InsertPlayer): Promise<Player>;
   
+  // Birth Year
+  getPlayersByBirthYear(year: number): Promise<Player[]>;
+  
   // Awards
   getPlayerAwards(playerId: number): Promise<Award[]>;
   createAward(award: InsertAward): Promise<Award>;
@@ -75,6 +78,15 @@ export class DatabaseStorage implements IStorage {
   async createPlayerStats(insertStats: InsertPlayerStats): Promise<PlayerStats> {
     const [stats] = await db.insert(playerStats).values(insertStats).returning();
     return stats;
+  }
+
+  async getPlayersByBirthYear(year: number): Promise<Player[]> {
+    return await db
+      .select()
+      .from(players)
+      .where(sql`EXTRACT(YEAR FROM ${players.birthDate}::date) = ${year}`)
+      .orderBy(sql`${players.profileViews} DESC`)
+      .limit(100);
   }
 
   async getPlayerAwards(playerId: number): Promise<Award[]> {

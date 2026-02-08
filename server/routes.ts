@@ -47,6 +47,16 @@ export async function registerRoutes(
     res.json(roster);
   });
 
+  // Players by Birth Year
+  app.get("/api/players/birth-year/:year", async (req, res) => {
+    const year = parseInt(req.params.year);
+    if (isNaN(year)) {
+      return res.status(400).json({ message: "Invalid year" });
+    }
+    const results = await storage.getPlayersByBirthYear(year);
+    res.json(results);
+  });
+
   // Seed Data function
   await seedDatabase();
 
