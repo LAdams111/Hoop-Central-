@@ -77,7 +77,7 @@ export default function Classes() {
               All Years
             </Button>
             <h2 className="font-display text-3xl">Born in {selectedYear}</h2>
-            <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest ml-auto">Max 100 results &middot; Sorted by views</span>
+            <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest ml-auto">Max 100 results</span>
           </div>
 
           {isLoadingBirthYear ? (
