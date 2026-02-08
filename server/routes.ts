@@ -245,6 +245,20 @@ async function seedDatabase() {
   });
   await storage.createPlayerStats({ playerId: wiseman.id, season: "2020-21", team: "Golden State Warriors", gamesPlayed: 39, pointsPerGame: "11.5", reboundsPerGame: "5.8", assistsPerGame: "0.7", stealsPerGame: "0.3", blocksPerGame: "0.9", fieldGoalPct: "51.9" });
 
+  const damionLee = await storage.createPlayer({
+    name: "Damion Lee",
+    position: "SG",
+    team: "Golden State Warriors",
+    height: "6'5\"",
+    weight: "203 lbs",
+    jerseyNumber: 1,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/1627814.png",
+    bio: "Damion Lee is an American professional basketball player who won an NBA Championship with the Golden State Warriors in 2022. He is the brother-in-law of Stephen Curry.",
+    hometown: "Baltimore, MD",
+    birthDate: "1992-10-21",
+  });
+  await storage.createPlayerStats({ playerId: damionLee.id, season: "2021-22", team: "Golden State Warriors", gamesPlayed: 63, pointsPerGame: "7.4", reboundsPerGame: "3.2", assistsPerGame: "1.0", stealsPerGame: "0.6", blocksPerGame: "0.3", fieldGoalPct: "43.5" });
+
   // === G League Players (Santa Cruz Warriors) ===
   const scw1 = await storage.createPlayer({
     name: "Mac McClung",
