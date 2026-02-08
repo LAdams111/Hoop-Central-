@@ -47,6 +47,16 @@ export async function registerRoutes(
     res.json(roster);
   });
 
+  // Team Record
+  app.get("/api/teams/:team/record/:season", async (req, res) => {
+    const { team, season } = req.params;
+    const record = await storage.getTeamRecord(team, season);
+    if (!record) {
+      return res.status(404).json({ message: "Record not found" });
+    }
+    res.json(record);
+  });
+
   // Players by Birth Year
   app.get("/api/players/birth-year/:year", async (req, res) => {
     const year = parseInt(req.params.year);
@@ -63,9 +73,70 @@ export async function registerRoutes(
   return httpServer;
 }
 
+async function seedTeamRecords() {
+  const existingRecord = await storage.getTeamRecord("Los Angeles Lakers", "2023-24");
+  if (existingRecord) return;
+
+  console.log("Seeding team records...");
+
+  // Los Angeles Lakers
+  await storage.createTeamRecord({ team: "Los Angeles Lakers", season: "2023-24", wins: 47, losses: 35 });
+  await storage.createTeamRecord({ team: "Los Angeles Lakers", season: "2022-23", wins: 43, losses: 39 });
+  await storage.createTeamRecord({ team: "Los Angeles Lakers", season: "2021-22", wins: 33, losses: 49 });
+  await storage.createTeamRecord({ team: "Los Angeles Lakers", season: "2020-21", wins: 42, losses: 30 });
+
+  // Golden State Warriors
+  await storage.createTeamRecord({ team: "Golden State Warriors", season: "2023-24", wins: 46, losses: 36 });
+  await storage.createTeamRecord({ team: "Golden State Warriors", season: "2022-23", wins: 44, losses: 38 });
+  await storage.createTeamRecord({ team: "Golden State Warriors", season: "2021-22", wins: 53, losses: 29 });
+  await storage.createTeamRecord({ team: "Golden State Warriors", season: "2020-21", wins: 39, losses: 33 });
+  await storage.createTeamRecord({ team: "Golden State Warriors", season: "2018-19", wins: 57, losses: 25 });
+
+  // Denver Nuggets
+  await storage.createTeamRecord({ team: "Denver Nuggets", season: "2023-24", wins: 57, losses: 25 });
+  await storage.createTeamRecord({ team: "Denver Nuggets", season: "2022-23", wins: 53, losses: 29 });
+  await storage.createTeamRecord({ team: "Denver Nuggets", season: "2021-22", wins: 48, losses: 34 });
+  await storage.createTeamRecord({ team: "Denver Nuggets", season: "2020-21", wins: 47, losses: 25 });
+
+  // Phoenix Suns
+  await storage.createTeamRecord({ team: "Phoenix Suns", season: "2023-24", wins: 49, losses: 33 });
+  await storage.createTeamRecord({ team: "Phoenix Suns", season: "2022-23", wins: 45, losses: 37 });
+
+  // Brooklyn Nets
+  await storage.createTeamRecord({ team: "Brooklyn Nets", season: "2021-22", wins: 44, losses: 38 });
+  await storage.createTeamRecord({ team: "Brooklyn Nets", season: "2020-21", wins: 48, losses: 24 });
+
+  // Chicago Bulls
+  await storage.createTeamRecord({ team: "Chicago Bulls", season: "1997-98", wins: 62, losses: 20 });
+  await storage.createTeamRecord({ team: "Chicago Bulls", season: "1995-96", wins: 72, losses: 10 });
+  await storage.createTeamRecord({ team: "Chicago Bulls", season: "1992-93", wins: 57, losses: 25 });
+  await storage.createTeamRecord({ team: "Chicago Bulls", season: "1987-88", wins: 50, losses: 32 });
+
+  // G League Teams
+  await storage.createTeamRecord({ team: "South Bay Lakers", season: "2023-24", wins: 20, losses: 14, league: "G League" });
+  await storage.createTeamRecord({ team: "South Bay Lakers", season: "2021-22", wins: 17, losses: 15, league: "G League" });
+  await storage.createTeamRecord({ team: "South Bay Lakers", season: "2020-21", wins: 8, losses: 7, league: "G League" });
+  await storage.createTeamRecord({ team: "Delaware Blue Coats", season: "2022-23", wins: 18, losses: 14, league: "G League" });
+  await storage.createTeamRecord({ team: "Santa Cruz Warriors", season: "2023-24", wins: 22, losses: 12, league: "G League" });
+  await storage.createTeamRecord({ team: "Santa Cruz Warriors", season: "2022-23", wins: 19, losses: 13, league: "G League" });
+  await storage.createTeamRecord({ team: "Santa Cruz Warriors", season: "2021-22", wins: 16, losses: 16, league: "G League" });
+  await storage.createTeamRecord({ team: "Santa Cruz Warriors", season: "2020-21", wins: 8, losses: 7, league: "G League" });
+  await storage.createTeamRecord({ team: "Windy City Bulls", season: "2023-24", wins: 15, losses: 19, league: "G League" });
+  await storage.createTeamRecord({ team: "Windy City Bulls", season: "2022-23", wins: 14, losses: 18, league: "G League" });
+  await storage.createTeamRecord({ team: "Stockton Kings", season: "2021-22", wins: 18, losses: 14, league: "G League" });
+  await storage.createTeamRecord({ team: "Agua Caliente Clippers", season: "2020-21", wins: 7, losses: 8, league: "G League" });
+  await storage.createTeamRecord({ team: "Maine Celtics", season: "2023-24", wins: 21, losses: 13, league: "G League" });
+  await storage.createTeamRecord({ team: "Maine Celtics", season: "2022-23", wins: 20, losses: 12, league: "G League" });
+  await storage.createTeamRecord({ team: "College Park Skyhawks", season: "2021-22", wins: 12, losses: 20, league: "G League" });
+  await storage.createTeamRecord({ team: "Fort Wayne Mad Ants", season: "2020-21", wins: 9, losses: 6, league: "G League" });
+}
+
 async function seedDatabase() {
   const existing = await storage.getPlayers();
-  if (existing.length > 0) return;
+  if (existing.length > 0) {
+    await seedTeamRecords();
+    return;
+  }
 
   console.log("Seeding database with legendary players...");
 
@@ -354,6 +425,8 @@ async function seedDatabase() {
   await storage.createPlayerStats({ playerId: scw5.id, season: "2022-23", team: "Maine Celtics", league: "G League", gamesPlayed: 36, pointsPerGame: "14.5", reboundsPerGame: "3.9", assistsPerGame: "4.8", stealsPerGame: "1.2", blocksPerGame: "0.4", fieldGoalPct: "41.8" });
   await storage.createPlayerStats({ playerId: scw5.id, season: "2021-22", team: "College Park Skyhawks", league: "G League", gamesPlayed: 28, pointsPerGame: "12.1", reboundsPerGame: "3.2", assistsPerGame: "3.9", stealsPerGame: "1.0", blocksPerGame: "0.3", fieldGoalPct: "40.5" });
   await storage.createPlayerStats({ playerId: scw5.id, season: "2020-21", team: "Fort Wayne Mad Ants", league: "G League", gamesPlayed: 15, pointsPerGame: "9.8", reboundsPerGame: "2.7", assistsPerGame: "3.1", stealsPerGame: "0.8", blocksPerGame: "0.2", fieldGoalPct: "38.7" });
+
+  await seedTeamRecords();
 
   // Awards Seeding
   await storage.createAward({ playerId: lebron.id, name: "NBA Champion", year: "2020" });

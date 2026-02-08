@@ -1,6 +1,6 @@
-import { players, playerStats, awards, type Player, type InsertPlayer, type PlayerStats, type InsertPlayerStats, type Award, type InsertAward } from "@shared/schema";
+import { players, playerStats, awards, teamRecords, type Player, type InsertPlayer, type PlayerStats, type InsertPlayerStats, type Award, type InsertAward, type TeamRecord, type InsertTeamRecord } from "@shared/schema";
 import { db } from "./db";
-import { eq, ilike, or, sql } from "drizzle-orm";
+import { eq, ilike, or, sql, and } from "drizzle-orm";
 
 export interface IStorage {
   // Players
@@ -15,6 +15,10 @@ export interface IStorage {
   // Awards
   getPlayerAwards(playerId: number): Promise<Award[]>;
   createAward(award: InsertAward): Promise<Award>;
+
+  // Team Records
+  getTeamRecord(team: string, season: string): Promise<TeamRecord | undefined>;
+  createTeamRecord(record: InsertTeamRecord): Promise<TeamRecord>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -96,6 +100,20 @@ export class DatabaseStorage implements IStorage {
   async createAward(insertAward: InsertAward): Promise<Award> {
     const [award] = await db.insert(awards).values(insertAward).returning();
     return award;
+  }
+
+  async getTeamRecord(team: string, season: string): Promise<TeamRecord | undefined> {
+    const teamLower = team.toLowerCase();
+    const [record] = await db
+      .select()
+      .from(teamRecords)
+      .where(sql`LOWER(${teamRecords.team}) = ${teamLower} AND ${teamRecords.season} = ${season}`);
+    return record;
+  }
+
+  async createTeamRecord(record: InsertTeamRecord): Promise<TeamRecord> {
+    const [created] = await db.insert(teamRecords).values(record).returning();
+    return created;
   }
 }
 

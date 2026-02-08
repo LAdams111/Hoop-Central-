@@ -3,9 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Calendar } from "lucide-react";
+import { ArrowLeft, Users, Calendar, Trophy } from "lucide-react";
 import { Link } from "wouter";
-import { Player } from "@shared/schema";
+import { Player, TeamRecord } from "@shared/schema";
 import { DEFAULT_HEADSHOT } from "@/lib/constants";
 import {
   Select,
@@ -28,6 +28,16 @@ export default function Roster() {
     queryFn: async () => {
       const res = await fetch(`/api/teams/${encodeURIComponent(team)}/roster/${encodeURIComponent(season)}`);
       if (!res.ok) throw new Error("Failed to fetch roster");
+      return res.json();
+    },
+    enabled: !!team && !!season,
+  });
+
+  const { data: teamRecord } = useQuery<TeamRecord | null>({
+    queryKey: ['/api/teams', team, 'record', season],
+    queryFn: async () => {
+      const res = await fetch(`/api/teams/${encodeURIComponent(team)}/record/${encodeURIComponent(season)}`);
+      if (!res.ok) return null;
       return res.json();
     },
     enabled: !!team && !!season,
@@ -94,10 +104,23 @@ export default function Roster() {
       </div>
 
       <div className="container mx-auto px-4 mt-12">
-        <div className="flex items-center gap-3 mb-8 border-b border-border pb-4">
-          <h2 className="font-display text-3xl font-bold uppercase tracking-tight" data-testid="text-season-heading">{season} Season Roster</h2>
-          {players.length > 0 && (
-            <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-widest">{players.length} Active</Badge>
+        <div className="flex items-center justify-between gap-3 mb-8 border-b border-border pb-4 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="font-display text-3xl font-bold uppercase tracking-tight" data-testid="text-season-heading">{season} Season Roster</h2>
+            {players.length > 0 && (
+              <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-widest">{players.length} Active</Badge>
+            )}
+          </div>
+          {teamRecord && (
+            <div className="flex items-center gap-3" data-testid="team-record">
+              <Trophy className="w-4 h-4 text-primary" />
+              <span className="font-display text-2xl font-bold tracking-tight">
+                <span className="text-primary">{teamRecord.wins}</span>
+                <span className="text-muted-foreground mx-1">-</span>
+                <span className="text-muted-foreground">{teamRecord.losses}</span>
+              </span>
+              <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">W-L</span>
+            </div>
           )}
         </div>
 
