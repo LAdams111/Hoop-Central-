@@ -19,6 +19,9 @@ export interface IStorage {
   // Team Records
   getTeamRecord(team: string, season: string): Promise<TeamRecord | undefined>;
   createTeamRecord(record: InsertTeamRecord): Promise<TeamRecord>;
+
+  // League Teams
+  getTeamsByLeague(league: string): Promise<{ team: string; season: string }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -114,6 +117,16 @@ export class DatabaseStorage implements IStorage {
   async createTeamRecord(record: InsertTeamRecord): Promise<TeamRecord> {
     const [created] = await db.insert(teamRecords).values(record).returning();
     return created;
+  }
+
+  async getTeamsByLeague(league: string): Promise<{ team: string; season: string }[]> {
+    const results = await db
+      .select({ team: playerStats.team, season: playerStats.season })
+      .from(playerStats)
+      .where(eq(playerStats.league, league))
+      .groupBy(playerStats.team, playerStats.season)
+      .orderBy(playerStats.team);
+    return results;
   }
 }
 

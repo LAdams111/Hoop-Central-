@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, ChevronRight, ChevronDown } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 
 const NBA_TEAMS = [
@@ -68,6 +69,13 @@ const G_LEAGUE_TEAMS = [
   { name: "Wisconsin Herd", id: "Wisconsin Herd" },
 ];
 
+type LeagueKey = "NCAA" | "HS";
+
+const LEAGUE_API_MAP: Record<string, LeagueKey> = {
+  "NCAA Division I": "NCAA",
+  "High School": "HS",
+};
+
 const LEAGUES = [
   {
     name: "NBA",
@@ -90,6 +98,7 @@ const LEAGUES = [
     tier: "Tier 3: Collegiate",
     description: "The highest level of intercollegiate athletics sanctioned by the NCAA.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/commons/d/dd/NCAA_logo.svg",
+    hasTeams: true,
     regions: ["US"]
   },
   {
@@ -103,6 +112,7 @@ const LEAGUES = [
     name: "High School",
     tier: "Tier 5: Amateur",
     description: "Varsity high school basketball programs across the country producing top collegiate and professional talent.",
+    hasTeams: true,
     regions: ["US", "CA"]
   },
   {
@@ -126,6 +136,33 @@ export default function Leagues() {
     }
   };
 
+  const leagueKey = expandedLeague ? LEAGUE_API_MAP[expandedLeague] : null;
+
+  const { data: dynamicTeams } = useQuery<{ team: string; season: string }[]>({
+    queryKey: ['/api/leagues', leagueKey, 'teams'],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${encodeURIComponent(leagueKey!)}/teams`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!leagueKey,
+  });
+
+  const groupedDynamicTeams = dynamicTeams
+    ? Object.entries(
+        dynamicTeams.reduce<Record<string, string[]>>((acc, { team, season }) => {
+          if (!acc[team]) acc[team] = [];
+          acc[team].push(season);
+          return acc;
+        }, {})
+      )
+        .map(([team, seasons]) => ({
+          name: team,
+          latestSeason: seasons.sort().reverse()[0],
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    : [];
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-12">
@@ -142,7 +179,13 @@ export default function Leagues() {
             >
               <div className="flex flex-col md:flex-row items-center p-6 gap-6">
                 <div className="w-20 h-20 flex items-center justify-center flex-shrink-0">
-                  <img src={league.logoUrl} alt={league.name} className="max-w-full max-h-full object-contain" />
+                  {(league as any).logoUrl ? (
+                    <img src={(league as any).logoUrl} alt={league.name} className="max-w-full max-h-full object-contain" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-display text-2xl font-bold">
+                      {league.name.charAt(0)}
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 text-center md:text-left">
                   <div className="text-xs font-mono text-primary uppercase tracking-widest mb-1">{league.tier}</div>
@@ -171,7 +214,6 @@ export default function Leagues() {
               </div>
             </Card>
 
-            {/* NBA Teams Sub-list */}
             {expandedLeague === "NBA" && league.name === "NBA" && (
               <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 animate-in fade-in slide-in-from-top-4 duration-300 px-2">
                 {NBA_TEAMS.map((team) => (
@@ -179,7 +221,7 @@ export default function Leagues() {
                     <Card className="p-3 hover-elevate border-border hover:border-primary/40 cursor-pointer bg-card/50 backdrop-blur-sm">
                       <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-1 truncate">{team.name}</div>
                       <div className="text-sm font-bold truncate">{team.name}</div>
-                      <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center justify-between gap-1 mt-2">
                         <span className="text-[9px] text-muted-foreground font-mono">View Roster</span>
                         <ArrowRight className="w-3 h-3 text-primary" />
                       </div>
@@ -189,7 +231,6 @@ export default function Leagues() {
               </div>
             )}
 
-            {/* G League Teams Sub-list */}
             {expandedLeague === "NBA G League" && league.name === "NBA G League" && (
               <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 animate-in fade-in slide-in-from-top-4 duration-300 px-2">
                 {G_LEAGUE_TEAMS.map((team) => (
@@ -197,13 +238,36 @@ export default function Leagues() {
                     <Card className="p-3 hover-elevate border-border hover:border-primary/40 cursor-pointer bg-card/50 backdrop-blur-sm">
                       <div className="text-[10px] font-mono text-accent uppercase tracking-widest mb-1 truncate">G League</div>
                       <div className="text-sm font-bold truncate">{team.name}</div>
-                      <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center justify-between gap-1 mt-2">
                         <span className="text-[9px] text-muted-foreground font-mono">View Roster</span>
                         <ArrowRight className="w-3 h-3 text-accent" />
                       </div>
                     </Card>
                   </Link>
                 ))}
+              </div>
+            )}
+
+            {expandedLeague === league.name && LEAGUE_API_MAP[league.name] && (
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 animate-in fade-in slide-in-from-top-4 duration-300 px-2">
+                {groupedDynamicTeams.length > 0 ? (
+                  groupedDynamicTeams.map((team) => (
+                    <Link key={team.name} href={`/roster/${encodeURIComponent(team.name)}/${encodeURIComponent(team.latestSeason)}`} data-testid={`link-team-${team.name.replace(/\s+/g, '-').toLowerCase()}`}>
+                      <Card className="p-3 hover-elevate border-border hover:border-primary/40 cursor-pointer bg-card/50 backdrop-blur-sm">
+                        <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-1 truncate">{league.name}</div>
+                        <div className="text-sm font-bold truncate">{team.name}</div>
+                        <div className="flex items-center justify-between gap-1 mt-2">
+                          <span className="text-[9px] text-muted-foreground font-mono">{team.latestSeason}</span>
+                          <ArrowRight className="w-3 h-3 text-primary" />
+                        </div>
+                      </Card>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-6 text-muted-foreground text-sm font-mono">
+                    No teams found in this league yet
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -57,6 +57,13 @@ export async function registerRoutes(
     res.json(record);
   });
 
+  // Teams by League
+  app.get("/api/leagues/:league/teams", async (req, res) => {
+    const { league } = req.params;
+    const teams = await storage.getTeamsByLeague(league);
+    res.json(teams);
+  });
+
   // Players by Birth Year
   app.get("/api/players/birth-year/:year", async (req, res) => {
     const year = parseInt(req.params.year);
