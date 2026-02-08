@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navigation } from "@/components/Navigation";
 import Home from "@/pages/Home";
 import Leagues from "@/pages/Leagues";
+import LeagueDetail from "@/pages/LeagueDetail";
 import Classes from "@/pages/Classes";
 import PlayerDirectory from "@/pages/PlayerDirectory";
 import PlayerProfile from "@/pages/PlayerProfile";
@@ -17,6 +18,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/leagues" component={Leagues} />
+      <Route path="/leagues/:league" component={LeagueDetail} />
       <Route path="/classes" component={Classes} />
       <Route path="/players" component={PlayerDirectory} />
       <Route path="/players/:id" component={PlayerProfile} />
