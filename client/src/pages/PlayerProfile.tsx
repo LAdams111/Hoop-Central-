@@ -105,12 +105,10 @@ export default function PlayerProfile() {
         />
         
         <div className="container mx-auto px-4 h-full relative z-20 flex flex-col justify-between py-8">
-          <Link href="/">
-            <Button variant="ghost" className="text-foreground/60 hover:text-foreground w-fit -ml-4 mb-4">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
-            </Button>
-          </Link>
+          <Button variant="ghost" className="text-foreground/60 hover:text-foreground w-fit -ml-4 mb-4" onClick={() => window.history.back()} data-testid="button-back">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
 
           <div className="flex flex-col md:flex-row items-end gap-8 md:gap-12">
             {/* Player Image */}

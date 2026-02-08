@@ -50,12 +50,10 @@ export default function Roster() {
     <div className="min-h-screen bg-background pb-24">
       <div className="bg-muted border-b border-border py-12">
         <div className="container mx-auto px-4">
-          <Link href="/">
-            <Button variant="ghost" className="mb-8 -ml-4" data-testid="button-back-home">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
-            </Button>
-          </Link>
+          <Button variant="ghost" className="mb-8 -ml-4" onClick={() => window.history.back()} data-testid="button-back">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
           
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div className="flex items-center gap-6">
