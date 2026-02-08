@@ -100,11 +100,17 @@ const LEAGUES = [
     regions: ["US"]
   },
   {
-    name: "High School / AAU",
+    name: "High School",
     tier: "Tier 5: Amateur",
-    description: "Premier competitive circuit for high school athletes and independent club teams.",
-    logoUrl: "https://upload.wikimedia.org/wikipedia/en/f/f6/Amateur_Athletic_Union_%28logo%29.png",
+    description: "Varsity high school basketball programs across the country producing top collegiate and professional talent.",
     regions: ["US", "CA"]
+  },
+  {
+    name: "AAU",
+    tier: "Tier 5: Amateur",
+    description: "The Amateur Athletic Union organizes competitive club basketball for youth and high school players nationwide.",
+    logoUrl: "https://upload.wikimedia.org/wikipedia/en/f/f6/Amateur_Athletic_Union_%28logo%29.png",
+    regions: ["US"]
   }
 ];
 
