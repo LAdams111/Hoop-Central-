@@ -447,6 +447,24 @@ async function seedDatabase() {
   await storage.createPlayerStats({ playerId: flagg.id, season: "2023-24", team: "Montverde Academy", league: "HS", gamesPlayed: 32, pointsPerGame: "16.5", reboundsPerGame: "7.2", assistsPerGame: "3.8", stealsPerGame: "1.8", blocksPerGame: "2.1", fieldGoalPct: "52.0" });
   await storage.createPlayerStats({ playerId: flagg.id, season: "2022-23", team: "Nokomis Regional", league: "HS", gamesPlayed: 28, pointsPerGame: "20.5", reboundsPerGame: "10.0", assistsPerGame: "6.2", stealsPerGame: "3.7", blocksPerGame: "3.7", fieldGoalPct: "55.0" });
 
+  // Kon Knueppel
+  const knueppel = await storage.createPlayer({
+    name: "Kon Knueppel",
+    position: "SG",
+    team: "Charlotte Hornets",
+    height: "6'7\"",
+    weight: "217 lbs",
+    jerseyNumber: 7,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/1642851.png",
+    bio: "Kon Knueppel is an American professional basketball player for the Charlotte Hornets. The #4 overall pick in the 2025 NBA Draft out of Duke University, Knueppel is an elite shooter known for his textbook mechanics, high basketball IQ, and three-level scoring ability. He set NBA records as a rookie for fastest to 50 and 100 career three-pointers.",
+    hometown: "Milwaukee, WI",
+    birthDate: "2005-08-03",
+  });
+  await storage.createPlayerStats({ playerId: knueppel.id, season: "2025-26", team: "Charlotte Hornets", gamesPlayed: 52, pointsPerGame: "18.8", reboundsPerGame: "5.5", assistsPerGame: "3.5", stealsPerGame: "1.0", blocksPerGame: "0.3", fieldGoalPct: "48.5" });
+  await storage.createPlayerStats({ playerId: knueppel.id, season: "2024-25", team: "Duke Blue Devils", league: "NCAA", gamesPlayed: 37, pointsPerGame: "14.4", reboundsPerGame: "4.0", assistsPerGame: "2.7", stealsPerGame: "1.0", blocksPerGame: "0.3", fieldGoalPct: "48.0" });
+  await storage.createPlayerStats({ playerId: knueppel.id, season: "2023-24", team: "Wisconsin Lutheran", league: "HS", gamesPlayed: 30, pointsPerGame: "26.4", reboundsPerGame: "8.8", assistsPerGame: "5.1", stealsPerGame: "1.5", blocksPerGame: "0.5", fieldGoalPct: "52.0" });
+  await storage.createPlayerStats({ playerId: knueppel.id, season: "2022-23", team: "Wisconsin Lutheran", league: "HS", gamesPlayed: 28, pointsPerGame: "19.7", reboundsPerGame: "9.2", assistsPerGame: "3.8", stealsPerGame: "1.3", blocksPerGame: "0.4", fieldGoalPct: "49.0" });
+
   await seedTeamRecords();
 
   // Awards Seeding
@@ -471,4 +489,8 @@ async function seedDatabase() {
 
   await storage.createAward({ playerId: flagg.id, name: "NCAA National Player of the Year", year: "2025" });
   await storage.createAward({ playerId: flagg.id, name: "#1 Overall Draft Pick", year: "2025" });
+
+  await storage.createAward({ playerId: knueppel.id, name: "ACC Tournament MVP", year: "2025" });
+  await storage.createAward({ playerId: knueppel.id, name: "#4 Overall Draft Pick", year: "2025" });
+  await storage.createAward({ playerId: knueppel.id, name: "Wisconsin Mr. Basketball", year: "2024" });
 }
