@@ -58,7 +58,7 @@ export default function Home() {
             The ultimate database for modern basketball stats. Track performance of the biggest stars and hottest prospects.
           </p>
 
-          <div className="max-w-md mx-auto relative group animate-fade-in-up delay-300">
+          <div className="max-w-md mx-auto relative group animate-fade-in-up delay-300 z-[100]">
             <form onSubmit={handleSearch} className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input 
