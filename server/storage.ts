@@ -57,13 +57,12 @@ export class DatabaseStorage implements IStorage {
 
   async getRoster(team: string, season: string): Promise<Player[]> {
     const teamLower = team.toLowerCase();
-    const teamPattern = `%${teamLower}`;
     const results = await db
       .select({ player: players })
       .from(players)
       .innerJoin(playerStats, eq(players.id, playerStats.playerId))
       .where(
-        sql`(LOWER(${playerStats.team}) = ${teamLower} OR ${teamLower} LIKE '%' || LOWER(${playerStats.team}) OR LOWER(${playerStats.team}) LIKE ${teamPattern}) AND ${playerStats.season} = ${season}`
+        sql`LOWER(${playerStats.team}) = ${teamLower} AND ${playerStats.season} = ${season}`
       );
     const seen = new Set<number>();
     return results.map(r => r.player).filter(p => {
