@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Users, ArrowRight, ArrowLeft, Eye } from "lucide-react";
 import { useState } from "react";
 import { Player } from "@shared/schema";
+import { DEFAULT_HEADSHOT } from "@/lib/constants";
 
 export default function Classes() {
   const { data: players, isLoading } = usePlayers();
@@ -94,7 +95,7 @@ export default function Classes() {
                         {index + 1}
                       </div>
                       <div className="w-16 h-16 rounded-full overflow-hidden bg-muted flex-shrink-0 border-2 border-border">
-                        <img src={player.headshotUrl} alt={player.name} className="w-full h-full object-cover object-top" />
+                        <img src={player.headshotUrl || DEFAULT_HEADSHOT} alt={player.name} className="w-full h-full object-cover object-top" onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-0.5">{player.team}</div>

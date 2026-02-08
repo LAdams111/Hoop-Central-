@@ -3,6 +3,7 @@ import { type Player } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Ruler, Weight } from "lucide-react";
+import { DEFAULT_HEADSHOT } from "@/lib/constants";
 
 interface PlayerCardProps {
   player: Player;
@@ -17,10 +18,11 @@ export function PlayerCard({ player }: PlayerCardProps) {
         <div className="relative aspect-[4/5] overflow-hidden bg-muted flex-shrink-0">
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10 opacity-60" />
           <img 
-            src={player.headshotUrl} 
+            src={player.headshotUrl || DEFAULT_HEADSHOT} 
             alt={player.name}
             className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
+            onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }}
           />
           
           {/* Jersey Number Badge */}

@@ -5,6 +5,7 @@ import { StatsChart } from "@/components/StatsChart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
+import { DEFAULT_HEADSHOT } from "@/lib/constants";
 import { 
   ArrowLeft, 
   Trophy, 
@@ -101,7 +102,7 @@ export default function PlayerProfile() {
         {/* Background Image (blurred) */}
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-10 z-0 grayscale"
-          style={{ backgroundImage: `url(${player.headshotUrl})` }}
+          style={{ backgroundImage: `url(${player.headshotUrl || DEFAULT_HEADSHOT})` }}
         />
         
         <div className="container mx-auto px-4 h-full relative z-20 flex flex-col justify-between py-8">
@@ -115,9 +116,10 @@ export default function PlayerProfile() {
             <div className="relative flex-shrink-0 z-30 mb-[-120px] md:mb-[-160px] -translate-y-[100px] md:-translate-y-[120px]">
               <div className="w-48 h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden border-4 border-background shadow-2xl bg-muted">
                 <img 
-                  src={player.headshotUrl} 
+                  src={player.headshotUrl || DEFAULT_HEADSHOT} 
                   alt={player.name} 
                   className="w-full h-full object-cover object-top"
+                  onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }}
                 />
               </div>
               <div className="absolute -top-4 -right-4 bg-primary text-white w-16 h-16 flex items-center justify-center rounded-lg font-display text-3xl font-bold border-4 border-background shadow-lg">

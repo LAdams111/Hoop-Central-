@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Users, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import { Player } from "@shared/schema";
+import { DEFAULT_HEADSHOT } from "@/lib/constants";
 import {
   Select,
   SelectContent,
@@ -107,10 +108,11 @@ export default function Roster() {
                 <div className="flex flex-col items-center gap-4 p-6 rounded-3xl hover:bg-muted transition-all duration-300 border border-transparent hover:border-border">
                   <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-105 shadow-md">
                     <img 
-                      src={player.headshotUrl} 
+                      src={player.headshotUrl || DEFAULT_HEADSHOT} 
                       alt={player.name}
                       className="w-full h-full object-cover object-top"
                       data-testid={`img-player-${player.id}`}
+                      onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }}
                     />
                   </div>
                   <div className="flex flex-col items-center gap-1">

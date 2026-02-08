@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { DEFAULT_HEADSHOT } from "@/lib/constants";
 
 export default function Home() {
   const { data: players, isLoading } = usePlayers();
@@ -90,9 +91,10 @@ export default function Home() {
                     >
                       <div className="w-8 h-8 rounded-full overflow-hidden border border-border">
                         <img 
-                          src={player.headshotUrl} 
+                          src={player.headshotUrl || DEFAULT_HEADSHOT} 
                           alt={player.name}
                           className="w-full h-full object-cover object-top"
+                          onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }}
                         />
                       </div>
                       <div className="flex-1">
@@ -259,9 +261,10 @@ function FavoritesBar({ players }: { players: any[] | undefined }) {
                 <Link key={player.id} href={`/players/${player.id}`} className="group relative">
                   <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-110 shadow-sm">
                     <img 
-                      src={player.headshotUrl} 
+                      src={player.headshotUrl || DEFAULT_HEADSHOT} 
                       alt={player.name}
                       className="w-full h-full object-cover object-top"
+                      onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }}
                     />
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity" />
