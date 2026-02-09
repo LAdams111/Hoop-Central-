@@ -68,6 +68,12 @@ export async function registerRoutes(
     res.json({ count });
   });
 
+  // All teams with league info
+  app.get("/api/teams/all", async (req, res) => {
+    const dbTeams = await storage.getAllTeamsWithLeague();
+    res.json(dbTeams);
+  });
+
   // Teams by League
   app.get("/api/leagues/:league/teams", async (req, res) => {
     const { league } = req.params;

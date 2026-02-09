@@ -13,9 +13,14 @@ export default function Home() {
   const { data: players, isLoading } = usePlayers();
   const { data: trendingPlayers, isLoading: isLoadingTrending } = usePlayers({ sortBy: "views" });
   const { data: teamCountData } = useQuery<{ count: number }>({ queryKey: ['/api/teams/count'] });
+  const { data: dbTeams } = useQuery<{ team: string; league: string; season: string }[]>({ queryKey: ['/api/teams/all'] });
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const LEAGUE_TIER: Record<string, number> = {
+    "NBA": 1, "G-League": 2, "NCAA": 3, "OTE": 4, "HS": 5, "AAU": 5,
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,29 +30,40 @@ export default function Home() {
     }
   };
 
-  const allTeams = [
-    ...NBA_TEAMS.map(name => ({ name, league: "NBA" as const })),
-    ...G_LEAGUE_TEAMS.map(name => ({ name, league: "G-League" as const })),
-  ];
+  const allTeams = (() => {
+    const teamMap = new Map<string, { name: string; league: string; season: string }>();
+    NBA_TEAMS.forEach(name => teamMap.set(name, { name, league: "NBA", season: "2023-24" }));
+    G_LEAGUE_TEAMS.forEach(name => teamMap.set(name, { name, league: "G-League", season: "2023-24" }));
+    dbTeams?.forEach(t => {
+      if (!teamMap.has(t.team)) {
+        teamMap.set(t.team, { name: t.team, league: t.league, season: t.season });
+      }
+    });
+    return Array.from(teamMap.values());
+  })();
 
-  const teamSuggestions = search.length > 0
-    ? allTeams.filter(t => {
-        const searchWords = search.toLowerCase().trim().split(/\s+/);
-        const nameWords = t.name.toLowerCase().split(' ');
-        return searchWords.every(sw => nameWords.some(nw => nw.startsWith(sw)));
-      }).slice(0, 3)
-    : [];
+  const matchesSearch = (name: string) => {
+    if (search.length === 0) return false;
+    const searchWords = search.toLowerCase().trim().split(/\s+/);
+    const nameWords = name.toLowerCase().split(' ');
+    return searchWords.every(sw => nameWords.some(nw => nw.startsWith(sw)));
+  };
+
+  const teamSuggestions = allTeams
+    .filter(t => matchesSearch(t.name))
+    .sort((a, b) => (LEAGUE_TIER[a.league] || 99) - (LEAGUE_TIER[b.league] || 99))
+    .slice(0, 5);
 
   const playerSuggestions = players
-    ?.filter(p => {
-      if (search.length === 0) return false;
-      const searchWords = search.toLowerCase().trim().split(/\s+/);
-      const nameWords = p.name.toLowerCase().split(' ');
-      return searchWords.every(sw => nameWords.some(nw => nw.startsWith(sw)));
-    })
-    .slice(0, teamSuggestions.length > 0 ? 3 : 5) || [];
+    ?.filter(p => matchesSearch(p.name))
+    .slice(0, 5) || [];
 
-  const hasSuggestions = playerSuggestions.length > 0 || teamSuggestions.length > 0;
+  const combined = [
+    ...playerSuggestions.map(p => ({ type: "player" as const, data: p })),
+    ...teamSuggestions.map(t => ({ type: "team" as const, data: t })),
+  ].slice(0, 5);
+
+  const hasSuggestions = combined.length > 0;
 
   // Get featured players (excluding Jalen Green)
   const featuredPlayers = players?.filter(p => p.name !== "Jalen Green").slice(0, 5) || [];
@@ -102,69 +118,59 @@ export default function Home() {
             {showSuggestions && hasSuggestions && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-2xl shadow-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="py-2">
-                  {playerSuggestions.length > 0 && (
-                    <>
-                      <div className="px-4 py-1.5 text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Players</div>
-                      {playerSuggestions.map((player) => (
-                        <button
-                          key={player.id}
-                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-left transition-colors group"
-                          data-testid={`suggestion-player-${player.id}`}
-                          onClick={() => {
-                            setLocation(`/players/${player.id}`);
-                            setShowSuggestions(false);
-                          }}
-                        >
-                          <div className="w-8 h-8 rounded-full overflow-hidden border border-border">
-                            <img 
-                              src={player.headshotUrl || DEFAULT_HEADSHOT} 
-                              alt={player.name}
-                              className="w-full h-full object-cover object-top"
-                              onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }}
-                            />
+                  {combined.map((item) => (
+                    item.type === "player" ? (
+                      <button
+                        key={`player-${item.data.id}`}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-left transition-colors group"
+                        data-testid={`suggestion-player-${item.data.id}`}
+                        onClick={() => {
+                          setLocation(`/players/${item.data.id}`);
+                          setShowSuggestions(false);
+                        }}
+                      >
+                        <div className="w-8 h-8 rounded-full overflow-hidden border border-border">
+                          <img 
+                            src={item.data.headshotUrl || DEFAULT_HEADSHOT} 
+                            alt={item.data.name}
+                            className="w-full h-full object-cover object-top"
+                            onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-display font-bold text-foreground group-hover:text-primary transition-colors">
+                            {item.data.name}
                           </div>
-                          <div className="flex-1">
-                            <div className="font-display font-bold text-foreground group-hover:text-primary transition-colors">
-                              {player.name}
-                            </div>
-                            <div className="text-xs text-muted-foreground font-mono uppercase">
-                              {player.team} • #{player.jerseyNumber}
-                            </div>
+                          <div className="text-xs text-muted-foreground font-mono uppercase">
+                            {item.data.team} • #{item.data.jerseyNumber}
                           </div>
-                        </button>
-                      ))}
-                    </>
-                  )}
-                  {teamSuggestions.length > 0 && (
-                    <>
-                      {playerSuggestions.length > 0 && <div className="border-t border-border my-1" />}
-                      <div className="px-4 py-1.5 text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Teams</div>
-                      {teamSuggestions.map((team) => (
-                        <button
-                          key={team.name}
-                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-left transition-colors group"
-                          data-testid={`suggestion-team-${team.name}`}
-                          onClick={() => {
-                            const season = LEAGUE_DEFAULT_SEASONS[team.league] || "2023-24";
-                            setLocation(`/roster/${encodeURIComponent(team.name)}/${season}`);
-                            setShowSuggestions(false);
-                          }}
-                        >
-                          <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center border border-border">
-                            <Users className="w-4 h-4 text-primary" />
+                        </div>
+                      </button>
+                    ) : (
+                      <button
+                        key={`team-${item.data.name}`}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-left transition-colors group"
+                        data-testid={`suggestion-team-${item.data.name}`}
+                        onClick={() => {
+                          const season = item.data.season || "2023-24";
+                          setLocation(`/roster/${encodeURIComponent(item.data.name)}/${season}`);
+                          setShowSuggestions(false);
+                        }}
+                      >
+                        <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center border border-border">
+                          <Users className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-display font-bold text-foreground group-hover:text-primary transition-colors">
+                            {item.data.name}
                           </div>
-                          <div className="flex-1">
-                            <div className="font-display font-bold text-foreground group-hover:text-primary transition-colors">
-                              {team.name}
-                            </div>
-                            <div className="text-xs text-muted-foreground font-mono uppercase">
-                              {team.league}
-                            </div>
+                          <div className="text-xs text-muted-foreground font-mono uppercase">
+                            {item.data.league}
                           </div>
-                        </button>
-                      ))}
-                    </>
-                  )}
+                        </div>
+                      </button>
+                    )
+                  ))}
                 </div>
               </div>
             )}
