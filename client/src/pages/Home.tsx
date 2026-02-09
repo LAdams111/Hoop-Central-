@@ -129,7 +129,7 @@ export default function Home() {
             { label: "Active Players", value: `${players?.length || 0}+`, icon: Users },
             { label: "Active Scouts", value: "1.2k", icon: Search },
             { label: "Seasons Tracked", value: "75", icon: Trophy },
-            { label: "Teams", value: "30", icon: Users },
+            { label: "Teams", value: `${new Set(players?.map(p => p.team) || []).size}+`, icon: Users },
           ].map((stat, i) => (
             <div key={i} className="flex items-center gap-4 justify-center group">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
