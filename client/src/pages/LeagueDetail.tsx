@@ -1,8 +1,10 @@
 import { useRoute } from "wouter";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, ArrowRight, Search } from "lucide-react";
 import { Link } from "wouter";
 
 const NBA_TEAMS = [
@@ -120,7 +122,9 @@ export default function LeagueDetail() {
         .sort((a, b) => a.name.localeCompare(b.name))
     : [];
 
-  const teams = isDynamic ? groupedDynamic : staticTeams;
+  const allTeams = isDynamic ? groupedDynamic : staticTeams;
+  const [teamSearch, setTeamSearch] = useState("");
+  const teams = allTeams.filter(t => t.name.toLowerCase().includes(teamSearch.toLowerCase()));
   const accentClass = leagueSlug === "G-League" ? "text-accent" : "text-primary";
   const arrowAccent = leagueSlug === "G-League" ? "text-accent" : "text-primary";
 
@@ -155,11 +159,23 @@ export default function LeagueDetail() {
       </div>
 
       <div className="container mx-auto px-4 mt-12">
-        <div className="flex items-center gap-3 mb-8 border-b border-border pb-4 flex-wrap">
-          <h2 className="font-display text-3xl font-bold uppercase tracking-tight" data-testid="text-teams-heading">Teams</h2>
-          {teams.length > 0 && (
-            <span className="text-sm font-mono text-muted-foreground">{teams.length} teams</span>
-          )}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8 border-b border-border pb-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="font-display text-3xl font-bold uppercase tracking-tight" data-testid="text-teams-heading">Teams</h2>
+            {allTeams.length > 0 && (
+              <span className="text-sm font-mono text-muted-foreground">{teams.length} of {allTeams.length}</span>
+            )}
+          </div>
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search teams..."
+              className="pl-10 bg-card/50 border-border"
+              value={teamSearch}
+              onChange={(e) => setTeamSearch(e.target.value)}
+              data-testid="input-search-teams"
+            />
+          </div>
         </div>
 
         {isDynamic && isLoading ? (
