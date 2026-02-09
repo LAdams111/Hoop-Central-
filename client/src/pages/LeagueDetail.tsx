@@ -81,6 +81,7 @@ export default function LeagueDetail() {
   const info = LEAGUE_INFO[leagueSlug];
 
   const isDynamic = !!info?.apiKey;
+  const [teamSearch, setTeamSearch] = useState("");
 
   const { data: dynamicTeams, isLoading } = useQuery<{ team: string; season: string }[]>({
     queryKey: ['/api/leagues', info?.apiKey, 'teams'],
@@ -123,7 +124,6 @@ export default function LeagueDetail() {
     : [];
 
   const allTeams = isDynamic ? groupedDynamic : staticTeams;
-  const [teamSearch, setTeamSearch] = useState("");
   const teams = allTeams.filter(t => t.name.toLowerCase().includes(teamSearch.toLowerCase()));
   const accentClass = leagueSlug === "G-League" ? "text-accent" : "text-primary";
   const arrowAccent = leagueSlug === "G-League" ? "text-accent" : "text-primary";
