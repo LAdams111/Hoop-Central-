@@ -17,6 +17,12 @@ export async function registerRoutes(
     res.json(players);
   });
 
+  // Prospects (under 20, sorted by views)
+  app.get("/api/players/prospects", async (req, res) => {
+    const results = await storage.getProspects(20, 50);
+    res.json(results);
+  });
+
   // Player Detail (with stats)
   app.get(api.players.get.path, async (req, res) => {
     const id = Number(req.params.id);
@@ -67,12 +73,6 @@ export async function registerRoutes(
     const { league } = req.params;
     const teams = await storage.getTeamsByLeague(league);
     res.json(teams);
-  });
-
-  // Prospects (under 19, sorted by views)
-  app.get("/api/players/prospects", async (req, res) => {
-    const results = await storage.getProspects(20, 50);
-    res.json(results);
   });
 
   // Players by Birth Year
