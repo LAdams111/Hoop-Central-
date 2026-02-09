@@ -36,19 +36,19 @@ export default function PlayerDirectory() {
   return (
     <div className="min-h-screen pt-12 pb-24 bg-background">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 md:mb-12 gap-3 md:gap-6">
           <div>
-            <h1 className="text-5xl md:text-7xl font-display text-foreground mb-4">
+            <h1 className="text-3xl md:text-7xl font-display text-foreground mb-2 md:mb-4">
               Player <span className="text-primary text-glow">Directory</span>
             </h1>
-            <p className="text-muted-foreground text-lg max-w-xl">
+            <p className="text-muted-foreground text-sm md:text-lg max-w-xl">
               Browse the complete roster. Filter by position or search by name to find specific athlete stats.
             </p>
           </div>
         </div>
 
         {/* Filters Bar */}
-        <div className="sticky top-20 z-40 bg-background/95 backdrop-blur-xl border border-border rounded-2xl p-4 mb-12 shadow-2xl">
+        <div className="sticky top-20 z-40 bg-background/95 backdrop-blur-xl border border-border rounded-2xl p-3 md:p-4 mb-6 md:mb-12 shadow-2xl">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -85,7 +85,7 @@ export default function PlayerDirectory() {
 
         {/* Results Grid */}
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 md:gap-6">
             {[...Array(8)].map((_, i) => (
               <div key={i} className="aspect-[4/5] bg-card/50 rounded-xl animate-pulse border border-border" />
             ))}
@@ -97,7 +97,7 @@ export default function PlayerDirectory() {
             <Button variant="ghost" onClick={clearFilters} className="mt-4 text-primary">Clear all filters</Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 md:gap-6">
             {players?.map((player) => (
               <PlayerCard key={player.id} player={player} />
             ))}
