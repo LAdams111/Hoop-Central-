@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { DEFAULT_HEADSHOT } from "@/lib/constants";
+import { DEFAULT_HEADSHOT, NBA_TEAMS, G_LEAGUE_TEAMS, LEAGUE_DEFAULT_SEASONS } from "@/lib/constants";
 
 export default function Home() {
   const { data: players, isLoading } = usePlayers();
@@ -25,14 +25,29 @@ export default function Home() {
     }
   };
 
-  const suggestions = players
+  const allTeams = [
+    ...NBA_TEAMS.map(name => ({ name, league: "NBA" as const })),
+    ...G_LEAGUE_TEAMS.map(name => ({ name, league: "G-League" as const })),
+  ];
+
+  const teamSuggestions = search.length > 0
+    ? allTeams.filter(t => {
+        const searchWords = search.toLowerCase().trim().split(/\s+/);
+        const nameWords = t.name.toLowerCase().split(' ');
+        return searchWords.every(sw => nameWords.some(nw => nw.startsWith(sw)));
+      }).slice(0, 3)
+    : [];
+
+  const playerSuggestions = players
     ?.filter(p => {
       if (search.length === 0) return false;
       const searchWords = search.toLowerCase().trim().split(/\s+/);
       const nameWords = p.name.toLowerCase().split(' ');
       return searchWords.every(sw => nameWords.some(nw => nw.startsWith(sw)));
     })
-    .slice(0, 5) || [];
+    .slice(0, teamSuggestions.length > 0 ? 3 : 5) || [];
+
+  const hasSuggestions = playerSuggestions.length > 0 || teamSuggestions.length > 0;
 
   // Get featured players (excluding Jalen Green)
   const featuredPlayers = players?.filter(p => p.name !== "Jalen Green").slice(0, 5) || [];
@@ -70,7 +85,7 @@ export default function Home() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input 
                 className="pl-12 py-7 rounded-full bg-white/5 border-black text-lg focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50 border-2" 
-                placeholder="Search player name..." 
+                placeholder="Search players or teams..." 
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -84,36 +99,72 @@ export default function Home() {
             </form>
 
             {/* Suggestions Pop-up */}
-            {showSuggestions && suggestions.length > 0 && (
+            {showSuggestions && hasSuggestions && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-2xl shadow-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="py-2">
-                  {suggestions.map((player) => (
-                    <button
-                      key={player.id}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-left transition-colors group"
-                      onClick={() => {
-                        setLocation(`/players/${player.id}`);
-                        setShowSuggestions(false);
-                      }}
-                    >
-                      <div className="w-8 h-8 rounded-full overflow-hidden border border-border">
-                        <img 
-                          src={player.headshotUrl || DEFAULT_HEADSHOT} 
-                          alt={player.name}
-                          className="w-full h-full object-cover object-top"
-                          onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-display font-bold text-foreground group-hover:text-primary transition-colors">
-                          {player.name}
-                        </div>
-                        <div className="text-xs text-muted-foreground font-mono uppercase">
-                          {player.team} • #{player.jerseyNumber}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+                  {playerSuggestions.length > 0 && (
+                    <>
+                      <div className="px-4 py-1.5 text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Players</div>
+                      {playerSuggestions.map((player) => (
+                        <button
+                          key={player.id}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-left transition-colors group"
+                          data-testid={`suggestion-player-${player.id}`}
+                          onClick={() => {
+                            setLocation(`/players/${player.id}`);
+                            setShowSuggestions(false);
+                          }}
+                        >
+                          <div className="w-8 h-8 rounded-full overflow-hidden border border-border">
+                            <img 
+                              src={player.headshotUrl || DEFAULT_HEADSHOT} 
+                              alt={player.name}
+                              className="w-full h-full object-cover object-top"
+                              onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-display font-bold text-foreground group-hover:text-primary transition-colors">
+                              {player.name}
+                            </div>
+                            <div className="text-xs text-muted-foreground font-mono uppercase">
+                              {player.team} • #{player.jerseyNumber}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {teamSuggestions.length > 0 && (
+                    <>
+                      {playerSuggestions.length > 0 && <div className="border-t border-border my-1" />}
+                      <div className="px-4 py-1.5 text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Teams</div>
+                      {teamSuggestions.map((team) => (
+                        <button
+                          key={team.name}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-left transition-colors group"
+                          data-testid={`suggestion-team-${team.name}`}
+                          onClick={() => {
+                            const season = LEAGUE_DEFAULT_SEASONS[team.league] || "2023-24";
+                            setLocation(`/roster/${encodeURIComponent(team.name)}/${season}`);
+                            setShowSuggestions(false);
+                          }}
+                        >
+                          <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center border border-border">
+                            <Users className="w-4 h-4 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-display font-bold text-foreground group-hover:text-primary transition-colors">
+                              {team.name}
+                            </div>
+                            <div className="text-xs text-muted-foreground font-mono uppercase">
+                              {team.league}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </>
+                  )}
                 </div>
               </div>
             )}
