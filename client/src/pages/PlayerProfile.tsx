@@ -11,7 +11,6 @@ import {
   Trophy, 
   Target, 
   Activity, 
-  TrendingUp, 
   Share2,
   Eye,
   Flag
@@ -156,10 +155,6 @@ export default function PlayerProfile() {
                   <div className="flex gap-3">
                     <Button variant="secondary" size="icon" className="rounded-xl h-12 w-12 flex-shrink-0">
                       <Share2 className="w-4 h-4" />
-                    </Button>
-                    <Button className="rounded-xl h-12 flex-1">
-                      <TrendingUp className="w-4 h-4 mr-2" />
-                      Compare
                     </Button>
                   </div>
                 </div>
