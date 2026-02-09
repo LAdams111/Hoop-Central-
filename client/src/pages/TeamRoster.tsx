@@ -89,7 +89,7 @@ export default function TeamRoster() {
             <h3 className="font-display text-2xl text-muted-foreground">No roster data available</h3>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {players.map((player) => (
               <PlayerCard key={player.id} player={player} />
             ))}
