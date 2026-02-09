@@ -11,7 +11,6 @@ import {
   Trophy, 
   Target, 
   Activity, 
-  Share2,
   Eye,
   Flag
 } from "lucide-react";
@@ -152,11 +151,6 @@ export default function PlayerProfile() {
                     <Flag className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />
                     <span className="font-display font-bold uppercase tracking-tight">Favorite</span>
                   </Button>
-                  <div className="flex gap-3">
-                    <Button variant="secondary" size="icon" className="rounded-xl h-12 w-12 flex-shrink-0">
-                      <Share2 className="w-4 h-4" />
-                    </Button>
-                  </div>
                 </div>
               </div>
 
