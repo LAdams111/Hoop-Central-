@@ -300,7 +300,7 @@ function FavoritesBar({ players }: { players: any[] | undefined }) {
   const favoritePlayers = players?.filter(p => favIds.includes(p.id)) || [];
 
   return (
-    <section className="py-4 bg-background border-y border-border overflow-hidden">
+    <section className="py-6 bg-background border-y border-border overflow-hidden">
       <div className="container mx-auto px-4">
         <div className="flex items-center gap-6 overflow-x-auto pb-2 no-scrollbar">
           <div className="flex-shrink-0 flex items-center gap-2 pr-6 border-r border-border">
@@ -310,7 +310,7 @@ function FavoritesBar({ players }: { players: any[] | undefined }) {
           <div className="flex items-center gap-4">
             {favTeams.map((teamName) => (
               <Link key={teamName} href={`/players?team=${encodeURIComponent(teamName)}`} className="group relative">
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-110 shadow-sm bg-white flex items-center justify-center p-1.5">
+                <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-110 shadow-sm bg-white flex items-center justify-center p-1.5">
                   <img 
                     src={`https://cdn.nba.com/logos/nba/${TEAM_LOGOS[teamName] || '1610612737'}/global/L/logo.svg`}
                     alt={teamName}
@@ -323,7 +323,7 @@ function FavoritesBar({ players }: { players: any[] | undefined }) {
             {favoritePlayers.length > 0 || favTeams.length > 0 ? (
               favoritePlayers.map((player) => (
                 <Link key={player.id} href={`/players/${player.id}`} className="group relative">
-                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-110 shadow-sm">
+                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-110 shadow-sm">
                     <img 
                       src={player.headshotUrl || DEFAULT_HEADSHOT} 
                       alt={player.name}
@@ -337,13 +337,13 @@ function FavoritesBar({ players }: { players: any[] | undefined }) {
             ) : (
               <div className="flex items-center -space-x-4 opacity-40">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="w-10 h-10 rounded-full border-2 border-border bg-muted/50 flex items-center justify-center">
+                  <div key={i} className="w-12 h-12 rounded-full border-2 border-border bg-muted/50 flex items-center justify-center">
                     <Users className="w-4 h-4" />
                   </div>
                 ))}
               </div>
             )}
-            <Link href="/players" className="w-10 h-10 rounded-full border-2 border-dashed border-border flex items-center justify-center hover:border-primary hover:text-primary transition-all group">
+            <Link href="/players" className="w-12 h-12 rounded-full border-2 border-dashed border-border flex items-center justify-center hover:border-primary hover:text-primary transition-all group">
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
