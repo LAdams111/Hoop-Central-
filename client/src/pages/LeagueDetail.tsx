@@ -124,7 +124,12 @@ export default function LeagueDetail() {
     : [];
 
   const allTeams = isDynamic ? groupedDynamic : staticTeams;
-  const teams = allTeams.filter(t => t.name.toLowerCase().includes(teamSearch.toLowerCase()));
+  const teams = allTeams.filter(t => {
+    if (teamSearch.length === 0) return true;
+    const searchWords = teamSearch.toLowerCase().trim().split(/\s+/);
+    const nameWords = t.name.toLowerCase().split(' ');
+    return searchWords.every(sw => nameWords.some(nw => nw.startsWith(sw)));
+  });
   const accentClass = leagueSlug === "G-League" ? "text-accent" : "text-primary";
   const arrowAccent = leagueSlug === "G-League" ? "text-accent" : "text-primary";
 
