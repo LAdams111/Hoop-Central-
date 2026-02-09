@@ -12,6 +12,9 @@ export interface IStorage {
   // Birth Year
   getPlayersByBirthYear(year: number): Promise<Player[]>;
   
+  // Prospects (under age threshold, sorted by views)
+  getProspects(maxAge: number, limit: number): Promise<Player[]>;
+  
   // Awards
   getPlayerAwards(playerId: number): Promise<Award[]>;
   createAward(award: InsertAward): Promise<Award>;
@@ -86,6 +89,15 @@ export class DatabaseStorage implements IStorage {
   async createPlayerStats(insertStats: InsertPlayerStats): Promise<PlayerStats> {
     const [stats] = await db.insert(playerStats).values(insertStats).returning();
     return stats;
+  }
+
+  async getProspects(maxAge: number, limit: number): Promise<Player[]> {
+    return await db
+      .select()
+      .from(players)
+      .where(sql`${players.birthDate} IS NOT NULL AND (CURRENT_DATE - ${players.birthDate}::date) / 365.25 < ${maxAge}`)
+      .orderBy(sql`${players.profileViews} DESC`)
+      .limit(limit);
   }
 
   async getPlayersByBirthYear(year: number): Promise<Player[]> {

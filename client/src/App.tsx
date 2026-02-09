@@ -8,6 +8,7 @@ import Home from "@/pages/Home";
 import Leagues from "@/pages/Leagues";
 import LeagueDetail from "@/pages/LeagueDetail";
 import Classes from "@/pages/Classes";
+import Prospects from "@/pages/Prospects";
 import PlayerDirectory from "@/pages/PlayerDirectory";
 import PlayerProfile from "@/pages/PlayerProfile";
 import TeamRoster from "@/pages/Roster";
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/leagues" component={Leagues} />
       <Route path="/leagues/:league" component={LeagueDetail} />
+      <Route path="/prospects" component={Prospects} />
       <Route path="/classes" component={Classes} />
       <Route path="/players" component={PlayerDirectory} />
       <Route path="/players/:id" component={PlayerProfile} />

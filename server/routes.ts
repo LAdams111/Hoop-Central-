@@ -69,6 +69,12 @@ export async function registerRoutes(
     res.json(teams);
   });
 
+  // Prospects (under 19, sorted by views)
+  app.get("/api/players/prospects", async (req, res) => {
+    const results = await storage.getProspects(19, 50);
+    res.json(results);
+  });
+
   // Players by Birth Year
   app.get("/api/players/birth-year/:year", async (req, res) => {
     const year = parseInt(req.params.year);

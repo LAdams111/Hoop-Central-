@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Search, Trophy, Home, Layers, Calendar, Users } from "lucide-react";
+import { Search, Trophy, Home, Layers, Calendar, Users, Flame } from "lucide-react";
 
 export function Navigation() {
   const [location] = useLocation();
@@ -7,6 +7,7 @@ export function Navigation() {
   const navItems = [
     { label: "Home", href: "/" },
     { label: "Leagues", href: "/leagues" },
+    { label: "Prospects", href: "/prospects" },
     { label: "Birth Year", href: "/classes" },
     { label: "Directory", href: "/players" },
   ];
@@ -14,6 +15,7 @@ export function Navigation() {
   const mobileNavItems = [
     { label: "Home", href: "/", icon: Home },
     { label: "Leagues", href: "/leagues", icon: Layers },
+    { label: "Prospects", href: "/prospects", icon: Flame },
     { label: "Birth Year", href: "/classes", icon: Calendar },
     { label: "Directory", href: "/players", icon: Users },
   ];
