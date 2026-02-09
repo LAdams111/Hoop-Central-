@@ -14,14 +14,14 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
     tier: "Tier 1: Professional",
     description: "The National Basketball Association - the premier professional basketball league in the world.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/0/03/National_Basketball_Association_logo.svg",
-    defaultSeason: "2023-24",
+    defaultSeason: "2025-26",
   },
   "G-League": {
     display: "NBA G League",
     tier: "Tier 2: Professional",
     description: "The official minor league organization of the NBA.",
     logoUrl: "https://cdn.nba.com/logos/leagues/logo-gleague.svg",
-    defaultSeason: "2023-24",
+    defaultSeason: "2025-26",
   },
   "NCAA": {
     display: "NCAA Division I",
@@ -29,21 +29,21 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
     description: "The highest level of intercollegiate athletics sanctioned by the NCAA.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/commons/d/dd/NCAA_logo.svg",
     apiKey: "NCAA",
-    defaultSeason: "2024-25",
+    defaultSeason: "2025-26",
   },
   "OTE": {
     display: "Overtime Elite (OTE)",
     tier: "Tier 4: Professional",
     description: "A professional basketball league for late-stage high school and early college-level players.",
     apiKey: "OTE",
-    defaultSeason: "2023-24",
+    defaultSeason: "2025-26",
   },
   "High-School": {
     display: "High School",
     tier: "Tier 5: Amateur",
     description: "Varsity high school basketball programs across the country producing top collegiate and professional talent.",
     apiKey: "HS",
-    defaultSeason: "2023-24",
+    defaultSeason: "2025-26",
   },
   "AAU": {
     display: "AAU",
@@ -51,7 +51,7 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
     description: "The Amateur Athletic Union organizes competitive club basketball for youth and high school players nationwide.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/f/f6/Amateur_Athletic_Union_%28logo%29.png",
     apiKey: "AAU",
-    defaultSeason: "2023-24",
+    defaultSeason: "2025-26",
   },
 };
 

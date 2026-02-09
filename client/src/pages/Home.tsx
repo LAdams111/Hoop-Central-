@@ -32,8 +32,8 @@ export default function Home() {
 
   const allTeams = (() => {
     const teamMap = new Map<string, { name: string; league: string; season: string }>();
-    NBA_TEAMS.forEach(name => teamMap.set(name, { name, league: "NBA", season: "2023-24" }));
-    G_LEAGUE_TEAMS.forEach(name => teamMap.set(name, { name, league: "G-League", season: "2023-24" }));
+    NBA_TEAMS.forEach(name => teamMap.set(name, { name, league: "NBA", season: "2025-26" }));
+    G_LEAGUE_TEAMS.forEach(name => teamMap.set(name, { name, league: "G-League", season: "2025-26" }));
     dbTeams?.forEach(t => {
       if (!teamMap.has(t.team)) {
         teamMap.set(t.team, { name: t.team, league: t.league, season: t.season });
@@ -152,7 +152,7 @@ export default function Home() {
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-left transition-colors group"
                         data-testid={`suggestion-team-${item.data.name}`}
                         onClick={() => {
-                          const season = item.data.season || "2023-24";
+                          const season = item.data.season || "2025-26";
                           setLocation(`/roster/${encodeURIComponent(item.data.name)}/${season}`);
                           setShowSuggestions(false);
                         }}

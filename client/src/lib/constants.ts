@@ -22,6 +22,6 @@ export const G_LEAGUE_TEAMS = [
 ];
 
 export const LEAGUE_DEFAULT_SEASONS: Record<string, string> = {
-  "NBA": "2023-24",
-  "G-League": "2023-24",
+  "NBA": "2025-26",
+  "G-League": "2025-26",
 };
