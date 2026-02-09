@@ -25,6 +25,10 @@ export default function PlayerProfile() {
   const [isFavorited, setIsFavorited] = useState(false);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
+
+  useEffect(() => {
     if (!id) return;
     
     // Check if favorited
@@ -96,7 +100,7 @@ export default function PlayerProfile() {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* HEADER SECTION */}
-      <div className="relative min-h-[70vh] md:min-h-[60vh] overflow-hidden border-b border-border pb-12">
+      <div className="relative min-h-[auto] md:min-h-[60vh] overflow-hidden border-b border-border pb-6 md:pb-12">
         <div className="absolute inset-0 bg-background/60 z-10" />
         
         {/* Background Image (blurred) */}
@@ -111,10 +115,10 @@ export default function PlayerProfile() {
             Back
           </Button>
 
-          <div className="flex flex-col md:flex-row items-end gap-8 md:gap-12">
+          <div className="flex flex-col md:flex-row items-center md:items-end gap-4 md:gap-12">
             {/* Player Image */}
-            <div className="relative flex-shrink-0 z-30 mb-[-120px] md:mb-[-160px] -translate-y-[100px] md:-translate-y-[120px]">
-              <div className="w-48 h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden border-4 border-background shadow-2xl bg-muted">
+            <div className="relative flex-shrink-0 z-30 mt-4 md:mt-0 md:mb-[-160px] md:-translate-y-[120px]">
+              <div className="w-36 h-36 md:w-64 md:h-64 rounded-2xl overflow-hidden border-4 border-background shadow-2xl bg-muted">
                 <img 
                   src={player.headshotUrl || DEFAULT_HEADSHOT} 
                   alt={player.name} 
@@ -122,21 +126,21 @@ export default function PlayerProfile() {
                   onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }}
                 />
               </div>
-              <div className="absolute -top-4 -right-4 bg-primary text-white w-16 h-16 flex items-center justify-center rounded-lg font-display text-3xl font-bold border-4 border-background shadow-lg">
+              <div className="absolute -top-3 -right-3 md:-top-4 md:-right-4 bg-primary text-white w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-lg font-display text-2xl md:text-3xl font-bold border-4 border-background shadow-lg">
                 #{player.jerseyNumber}
               </div>
             </div>
 
             {/* Player Info */}
-            <div className="flex-1 pb-4 md:pb-8 pt-8 md:pt-0 flex flex-col justify-end">
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
-                <div>
+            <div className="flex-1 pb-4 md:pb-8 pt-2 md:pt-0 flex flex-col justify-end items-center md:items-start">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4 md:mb-6 w-full">
+                <div className="text-center md:text-left">
                   <Link href={`/roster/${encodeURIComponent(player.team)}/2023-24`}>
                     <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
-                      <h3 className="text-primary font-mono text-lg uppercase tracking-widest mb-1 hover:text-primary/80 transition-colors cursor-pointer">{player.team}</h3>
+                      <h3 className="text-primary font-mono text-sm md:text-lg uppercase tracking-widest mb-1 hover:text-primary/80 transition-colors cursor-pointer">{player.team}</h3>
                     </Button>
                   </Link>
-                  <h1 className="font-display text-6xl md:text-8xl font-bold leading-[0.8] text-foreground tracking-tighter">
+                  <h1 className="font-display text-4xl md:text-8xl font-bold leading-[0.85] text-foreground tracking-tighter">
                     {player.name}
                   </h1>
                 </div>
@@ -161,8 +165,8 @@ export default function PlayerProfile() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-6">
-                <div className="flex flex-wrap items-center gap-4 text-sm text-foreground/60 font-mono">
+              <div className="flex flex-col gap-3 md:gap-6 items-center md:items-start">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-4 text-xs md:text-sm text-foreground/60 font-mono">
                   <Badge variant="outline" className="text-foreground border-border px-4 py-1">
                     {player.position}
                   </Badge>
