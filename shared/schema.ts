@@ -13,7 +13,7 @@ export const players = pgTable("players", {
   jerseyNumber: integer("jersey_number").notNull(),
   headshotUrl: text("headshot_url").notNull(),
   bio: text("bio"),
-  profileViews: integer("profile_views").default(0).notNull(),
+  profileViews: integer("profile_views").default(50).notNull(),
   hometown: text("hometown"),
   birthDate: text("birth_date"),
 });
