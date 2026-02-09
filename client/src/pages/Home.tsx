@@ -126,7 +126,7 @@ export default function Home() {
     <section className="border-b border-border/40 bg-card/30 backdrop-blur-sm py-8">
         <div className="container mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
-            { label: "Active Players", value: "450+", icon: Users },
+            { label: "Active Players", value: `${players?.length || 0}+`, icon: Users },
             { label: "Active Scouts", value: "1.2k", icon: Search },
             { label: "Seasons Tracked", value: "75", icon: Trophy },
             { label: "Teams", value: "30", icon: Users },
