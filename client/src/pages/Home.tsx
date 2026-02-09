@@ -26,7 +26,12 @@ export default function Home() {
   };
 
   const suggestions = players
-    ?.filter(p => search.length > 0 && p.name.toLowerCase().split(' ').some(w => w.startsWith(search.toLowerCase())))
+    ?.filter(p => {
+      if (search.length === 0) return false;
+      const searchWords = search.toLowerCase().trim().split(/\s+/);
+      const nameWords = p.name.toLowerCase().split(' ');
+      return searchWords.every(sw => nameWords.some(nw => nw.startsWith(sw)));
+    })
     .slice(0, 5) || [];
 
   // Get featured players (excluding Jalen Green)
