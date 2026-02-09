@@ -22,6 +22,7 @@ export interface IStorage {
 
   // League Teams
   getTeamsByLeague(league: string): Promise<{ team: string; season: string }[]>;
+  getTotalTeamCount(): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -127,6 +128,13 @@ export class DatabaseStorage implements IStorage {
       .groupBy(playerStats.team, playerStats.season)
       .orderBy(playerStats.team);
     return results;
+  }
+
+  async getTotalTeamCount(): Promise<number> {
+    const result = await db
+      .selectDistinct({ team: playerStats.team })
+      .from(playerStats);
+    return result.length;
   }
 }
 

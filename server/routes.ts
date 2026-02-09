@@ -57,6 +57,11 @@ export async function registerRoutes(
     res.json(record);
   });
 
+  app.get("/api/teams/count", async (req, res) => {
+    const count = await storage.getTotalTeamCount();
+    res.json({ count });
+  });
+
   // Teams by League
   app.get("/api/leagues/:league/teams", async (req, res) => {
     const { league } = req.params;

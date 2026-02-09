@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ArrowRight, Search, Activity, Users, Trophy } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { usePlayers } from "@/hooks/use-players";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { DEFAULT_HEADSHOT } from "@/lib/constants";
 export default function Home() {
   const { data: players, isLoading } = usePlayers();
   const { data: trendingPlayers, isLoading: isLoadingTrending } = usePlayers({ sortBy: "views" });
+  const { data: teamCountData } = useQuery<{ count: number }>({ queryKey: ['/api/teams/count'] });
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -129,7 +131,7 @@ export default function Home() {
             { label: "Active Players", value: `${players?.length || 0}+`, icon: Users },
             { label: "Active Scouts", value: "1.2k", icon: Search },
             { label: "Seasons Tracked", value: "75", icon: Trophy },
-            { label: "Teams", value: `${new Set(players?.map(p => p.team) || []).size}+`, icon: Users },
+            { label: "Teams", value: `${teamCountData?.count || 0}+`, icon: Users },
           ].map((stat, i) => (
             <div key={i} className="flex items-center gap-4 justify-center group">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
