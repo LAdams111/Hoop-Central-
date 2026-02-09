@@ -53,6 +53,48 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
     apiKey: "AAU",
     defaultSeason: "2025-26",
   },
+  "EuroLeague": {
+    display: "EuroLeague",
+    tier: "Tier 1: Professional",
+    description: "The top-tier European professional basketball club competition, featuring the best teams from across the continent.",
+    apiKey: "EuroLeague",
+    defaultSeason: "2025-26",
+  },
+  "ACB": {
+    display: "Liga ACB",
+    tier: "Tier 1: Professional",
+    description: "Spain's premier professional basketball league and one of the strongest domestic leagues in the world.",
+    apiKey: "ACB",
+    defaultSeason: "2025-26",
+  },
+  "NBL": {
+    display: "NBL Australia",
+    tier: "Tier 1: Professional",
+    description: "Australia's top professional basketball league, increasingly a pathway for NBA-bound international talent.",
+    apiKey: "NBL",
+    defaultSeason: "2025-26",
+  },
+  "BAL": {
+    display: "Basketball Africa League",
+    tier: "Tier 2: Professional",
+    description: "The premier professional basketball league on the African continent, backed by the NBA and FIBA.",
+    apiKey: "BAL",
+    defaultSeason: "2025-26",
+  },
+  "CBA": {
+    display: "Chinese Basketball Association",
+    tier: "Tier 1: Professional",
+    description: "China's top professional basketball league with a growing international presence.",
+    apiKey: "CBA",
+    defaultSeason: "2025-26",
+  },
+  "BLeague": {
+    display: "B.League (Japan)",
+    tier: "Tier 1: Professional",
+    description: "Japan's top professional basketball league, known for its passionate fanbase and rising talent development.",
+    apiKey: "BLeague",
+    defaultSeason: "2025-26",
+  },
 };
 
 export default function LeagueDetail() {
