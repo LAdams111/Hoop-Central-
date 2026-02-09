@@ -1,13 +1,12 @@
 import { 
-  LineChart, 
-  Line, 
+  BarChart,
+  Bar,
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  Area,
-  AreaChart
+  Cell
 } from "recharts";
 import { type PlayerStats } from "@shared/schema";
 
@@ -19,38 +18,45 @@ interface StatsChartProps {
 }
 
 export function StatsChart({ stats, dataKey, color = "#ff5722", label }: StatsChartProps) {
-  // Sort stats by season chronologically if needed, assuming season string is sortable "2020-21"
   const sortedStats = [...stats].sort((a, b) => a.season.localeCompare(b.season));
+  const currentSeason = sortedStats[sortedStats.length - 1];
+
+  if (!currentSeason) return null;
+
+  const isPointsChart = dataKey === "pointsPerGame";
+
+  const chartData = isPointsChart
+    ? [
+        { name: "PPG", value: Number(currentSeason.pointsPerGame), fill: color },
+        { name: "RPG", value: Number(currentSeason.reboundsPerGame), fill: "hsl(var(--accent))" },
+        { name: "FG%", value: Number(currentSeason.fieldGoalPct), fill: "hsl(var(--muted-foreground))" },
+      ]
+    : [
+        { name: "APG", value: Number(currentSeason.assistsPerGame), fill: color },
+        { name: "SPG", value: Number(currentSeason.stealsPerGame), fill: "hsl(var(--accent))" },
+        { name: "BPG", value: Number(currentSeason.blocksPerGame), fill: "hsl(var(--muted-foreground))" },
+      ];
+
+  const seasonLabel = currentSeason.season;
 
   return (
     <div className="w-full h-[200px] md:h-[300px] bg-card/30 rounded-xl border border-white/5 p-2 md:p-4">
       <div className="mb-2 md:mb-4 flex items-center justify-between">
         <h4 className="text-[10px] md:text-sm font-medium text-muted-foreground uppercase tracking-widest">{label}</h4>
-        <div className="flex items-center gap-1 md:gap-2">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }}></span>
-            <span className="text-[9px] md:text-xs text-muted-foreground font-mono hidden md:inline">Per Game</span>
-        </div>
+        <span className="text-[9px] md:text-xs text-muted-foreground font-mono">{seasonLabel}</span>
       </div>
       
       <ResponsiveContainer width="100%" height="85%">
-        <AreaChart data={sortedStats} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-          <defs>
-            <linearGradient id={`color${dataKey}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
-              <stop offset="95%" stopColor={color} stopOpacity={0}/>
-            </linearGradient>
-          </defs>
+        <BarChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
           <XAxis 
-            dataKey="season" 
+            dataKey="name" 
             stroke="rgba(255,255,255,0.3)" 
-            fontSize={9}
+            fontSize={10}
             tickLine={false} 
             axisLine={false}
             tickMargin={5}
             fontFamily="var(--font-mono)"
-            tick={{ fontSize: 9 }}
-            interval="preserveStartEnd"
           />
           <YAxis 
             stroke="rgba(255,255,255,0.3)" 
@@ -69,19 +75,18 @@ export function StatsChart({ stats, dataKey, color = "#ff5722", label }: StatsCh
               fontFamily: 'var(--font-mono)',
               fontSize: '11px'
             }}
-            itemStyle={{ color: color }}
-            cursor={{ stroke: 'rgba(255,255,255,0.1)' }}
+            cursor={{ fill: 'rgba(255,255,255,0.03)' }}
           />
-          <Area 
-            type="monotone" 
-            dataKey={dataKey} 
-            stroke={color} 
-            strokeWidth={2} 
-            fillOpacity={1} 
-            fill={`url(#color${dataKey})`} 
-            animationDuration={1500}
-          />
-        </AreaChart>
+          <Bar 
+            dataKey="value" 
+            radius={[6, 6, 0, 0]} 
+            animationDuration={1200}
+          >
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.fill} fillOpacity={0.85} />
+            ))}
+          </Bar>
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );
