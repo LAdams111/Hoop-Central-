@@ -68,13 +68,6 @@ export async function registerRoutes(
     res.json({ count });
   });
 
-  // Get available seasons for a team
-  app.get("/api/teams/:team/seasons", async (req, res) => {
-    const team = decodeURIComponent(req.params.team);
-    const seasons = await storage.getTeamSeasons(team);
-    res.json(seasons);
-  });
-
   // All teams with league info
   app.get("/api/teams/all", async (req, res) => {
     const dbTeams = await storage.getAllTeamsWithLeague();

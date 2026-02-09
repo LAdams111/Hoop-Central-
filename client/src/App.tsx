@@ -25,7 +25,6 @@ function Router() {
       <Route path="/players" component={PlayerDirectory} />
       <Route path="/players/:id" component={PlayerProfile} />
       <Route path="/roster/:team/:season" component={TeamRoster} />
-      <Route path="/roster/:team" component={TeamRoster} />
       <Route component={NotFound} />
     </Switch>
   );
