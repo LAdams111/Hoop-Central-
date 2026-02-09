@@ -97,7 +97,7 @@ export default function Prospects() {
 
                     <div className="flex items-center gap-1 text-xs text-muted-foreground font-mono flex-shrink-0">
                       <Eye className="w-3 h-3" />
-                      <span className="hidden sm:inline">{player.profileViews}</span>
+                      <span>{player.profileViews}</span>
                     </div>
                   </div>
                 </Link>
