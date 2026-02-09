@@ -453,6 +453,24 @@ async function seedDatabase() {
   await storage.createPlayerStats({ playerId: scw5.id, season: "2021-22", team: "College Park Skyhawks", league: "G League", gamesPlayed: 28, pointsPerGame: "12.1", reboundsPerGame: "3.2", assistsPerGame: "3.9", stealsPerGame: "1.0", blocksPerGame: "0.3", fieldGoalPct: "40.5" });
   await storage.createPlayerStats({ playerId: scw5.id, season: "2020-21", team: "Fort Wayne Mad Ants", league: "G League", gamesPlayed: 15, pointsPerGame: "9.8", reboundsPerGame: "2.7", assistsPerGame: "3.1", stealsPerGame: "0.8", blocksPerGame: "0.2", fieldGoalPct: "38.7" });
 
+  // Victor Wembanyama
+  const wemby = await storage.createPlayer({
+    name: "Victor Wembanyama",
+    position: "C",
+    team: "San Antonio Spurs",
+    height: "7'4\"",
+    weight: "210 lbs",
+    jerseyNumber: 1,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/1641705.png",
+    bio: "Victor Wembanyama is a French professional basketball player for the San Antonio Spurs. The #1 overall pick in the 2023 NBA Draft, he won unanimous Rookie of the Year and became the first rookie ever named to the All-Defensive First Team.",
+    hometown: "Le Chesnay, France",
+    birthDate: "2004-01-04",
+  });
+  await storage.createPlayerStats({ playerId: wemby.id, season: "2025-26", team: "San Antonio Spurs", gamesPlayed: 40, pointsPerGame: "24.0", reboundsPerGame: "11.1", assistsPerGame: "2.8", stealsPerGame: "1.0", blocksPerGame: "2.7", fieldGoalPct: "50.8" });
+  await storage.createPlayerStats({ playerId: wemby.id, season: "2024-25", team: "San Antonio Spurs", gamesPlayed: 46, pointsPerGame: "24.3", reboundsPerGame: "11.0", assistsPerGame: "2.8", stealsPerGame: "1.0", blocksPerGame: "3.8", fieldGoalPct: "47.8" });
+  await storage.createPlayerStats({ playerId: wemby.id, season: "2023-24", team: "San Antonio Spurs", gamesPlayed: 71, pointsPerGame: "21.4", reboundsPerGame: "10.6", assistsPerGame: "3.9", stealsPerGame: "1.2", blocksPerGame: "3.6", fieldGoalPct: "46.5" });
+  await storage.createPlayerStats({ playerId: wemby.id, season: "2022-23", team: "Metropolitans 92", league: "EuroLeague", gamesPlayed: 33, pointsPerGame: "21.6", reboundsPerGame: "10.4", assistsPerGame: "2.4", stealsPerGame: "1.2", blocksPerGame: "3.0", fieldGoalPct: "54.4" });
+
   // Cooper Flagg
   const flagg = await storage.createPlayer({
     name: "Cooper Flagg",
