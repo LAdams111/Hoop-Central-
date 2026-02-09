@@ -55,7 +55,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* HERO SECTION */}
-      <section className="relative h-[80vh] flex items-center justify-center overflow-hidden border-b border-border/40 z-20">
+      <section className="relative h-[80vh] flex items-center justify-center overflow-visible border-b border-border/40 z-20">
         {/* Background Overlay */}
         <div className="absolute inset-0 bg-background z-0">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
