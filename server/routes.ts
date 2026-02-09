@@ -71,7 +71,7 @@ export async function registerRoutes(
 
   // Prospects (under 19, sorted by views)
   app.get("/api/players/prospects", async (req, res) => {
-    const results = await storage.getProspects(19, 50);
+    const results = await storage.getProspects(20, 50);
     res.json(results);
   });
 

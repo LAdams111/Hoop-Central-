@@ -47,7 +47,7 @@ export default function Prospects() {
               <h1 className="text-4xl md:text-6xl font-display text-foreground uppercase tracking-tighter">
                 Hottest <span className="text-primary">Prospects</span>
               </h1>
-              <p className="text-muted-foreground font-mono text-sm">Top 50 most viewed players under 19</p>
+              <p className="text-muted-foreground font-mono text-sm">Top 50 most viewed players under 20</p>
             </div>
           </div>
         </div>
