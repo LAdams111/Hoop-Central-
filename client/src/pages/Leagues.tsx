@@ -54,34 +54,34 @@ const LEAGUES = [
 export default function Leagues() {
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-12">
-        <h1 className="font-display text-5xl font-bold mb-4">Leagues</h1>
-        <p className="text-muted-foreground text-lg">Browse leagues and explore team rosters.</p>
+      <div className="mb-6 md:mb-12">
+        <h1 className="font-display text-3xl md:text-5xl font-bold mb-2 md:mb-4">Leagues</h1>
+        <p className="text-muted-foreground text-sm md:text-lg">Browse leagues and explore team rosters.</p>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-3 md:space-y-6">
         {LEAGUES.map((league) => (
           <Link key={league.name} href={`/leagues/${league.slug}`} data-testid={`link-league-${league.slug.toLowerCase()}`}>
             <Card className="overflow-hidden border-border transition-all cursor-pointer hover:border-primary/50">
-              <div className="flex flex-col md:flex-row items-center p-6 gap-6">
-                <div className="w-20 h-20 flex items-center justify-center flex-shrink-0">
+              <div className="flex flex-row items-center p-3 md:p-6 gap-3 md:gap-6">
+                <div className="w-10 h-10 md:w-20 md:h-20 flex items-center justify-center flex-shrink-0">
                   {league.logoUrl ? (
                     <img src={league.logoUrl} alt={league.name} className="max-w-full max-h-full object-contain" />
                   ) : (
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-display text-2xl font-bold">
+                    <div className="w-10 h-10 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-display text-base md:text-2xl font-bold">
                       {league.name.charAt(0)}
                     </div>
                   )}
                 </div>
-                <div className="flex-1 text-center md:text-left">
-                  <div className="text-xs font-mono text-primary uppercase tracking-widest mb-1">{league.tier}</div>
-                  <div className="flex items-center justify-center md:justify-start gap-3">
-                    <CardTitle className="font-display text-3xl">{league.name}</CardTitle>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[9px] md:text-xs font-mono text-primary uppercase tracking-widest mb-0.5 md:mb-1">{league.tier}</div>
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <CardTitle className="font-display text-lg md:text-3xl truncate">{league.name}</CardTitle>
+                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground flex-shrink-0" />
                   </div>
-                  <p className="text-muted-foreground text-sm max-w-2xl mt-2">{league.description}</p>
+                  <p className="text-muted-foreground text-xs md:text-sm max-w-2xl mt-1 md:mt-2 line-clamp-1 md:line-clamp-none">{league.description}</p>
                 </div>
-                <div className="flex-shrink-0 bg-muted px-4 py-2 rounded-xl border border-border">
+                <div className="hidden md:block flex-shrink-0 bg-muted px-4 py-2 rounded-xl border border-border">
                   <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Region</div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {league.regions.map((region) => (
