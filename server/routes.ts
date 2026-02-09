@@ -471,6 +471,25 @@ async function seedDatabase() {
   await storage.createPlayerStats({ playerId: wemby.id, season: "2023-24", team: "San Antonio Spurs", gamesPlayed: 71, pointsPerGame: "21.4", reboundsPerGame: "10.6", assistsPerGame: "3.9", stealsPerGame: "1.2", blocksPerGame: "3.6", fieldGoalPct: "46.5" });
   await storage.createPlayerStats({ playerId: wemby.id, season: "2022-23", team: "Metropolitans 92", league: "EuroLeague", gamesPlayed: 33, pointsPerGame: "21.6", reboundsPerGame: "10.4", assistsPerGame: "2.4", stealsPerGame: "1.2", blocksPerGame: "3.0", fieldGoalPct: "54.4" });
 
+  // Mike James (International)
+  const mikeJames = await storage.createPlayer({
+    name: "Mike James",
+    position: "PG",
+    team: "AS Monaco",
+    height: "6'1\"",
+    weight: "185 lbs",
+    jerseyNumber: 55,
+    headshotUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/1631244.png",
+    bio: "Mike James is an American professional basketball player for AS Monaco in the EuroLeague. He is the EuroLeague all-time leading scorer and was named the 2023-24 EuroLeague MVP. Known for his elite scoring and playmaking, James has led Monaco to multiple Final Four appearances.",
+    hometown: "Portland, OR",
+    birthDate: "1990-08-18",
+  });
+  await storage.createPlayerStats({ playerId: mikeJames.id, season: "2025-26", team: "AS Monaco", league: "EuroLeague", gamesPlayed: 27, pointsPerGame: "17.2", reboundsPerGame: "3.2", assistsPerGame: "6.6", stealsPerGame: "1.0", blocksPerGame: "0.1", fieldGoalPct: "46.8" });
+  await storage.createPlayerStats({ playerId: mikeJames.id, season: "2024-25", team: "AS Monaco", league: "EuroLeague", gamesPlayed: 41, pointsPerGame: "18.4", reboundsPerGame: "3.5", assistsPerGame: "5.3", stealsPerGame: "1.1", blocksPerGame: "0.1", fieldGoalPct: "46.3" });
+  await storage.createPlayerStats({ playerId: mikeJames.id, season: "2023-24", team: "AS Monaco", league: "EuroLeague", gamesPlayed: 39, pointsPerGame: "17.9", reboundsPerGame: "4.9", assistsPerGame: "5.1", stealsPerGame: "1.0", blocksPerGame: "0.1", fieldGoalPct: "45.8" });
+  await storage.createPlayerStats({ playerId: mikeJames.id, season: "2022-23", team: "AS Monaco", league: "EuroLeague", gamesPlayed: 38, pointsPerGame: "15.9", reboundsPerGame: "3.4", assistsPerGame: "5.3", stealsPerGame: "0.9", blocksPerGame: "0.1", fieldGoalPct: "44.9" });
+  await storage.createPlayerStats({ playerId: mikeJames.id, season: "2021-22", team: "AS Monaco", league: "EuroLeague", gamesPlayed: 38, pointsPerGame: "16.4", reboundsPerGame: "3.2", assistsPerGame: "4.9", stealsPerGame: "1.0", blocksPerGame: "0.1", fieldGoalPct: "45.6" });
+
   // Cooper Flagg
   const flagg = await storage.createPlayer({
     name: "Cooper Flagg",
