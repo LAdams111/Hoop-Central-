@@ -30,7 +30,7 @@ export default function Home() {
     .slice(0, 5) || [];
 
   // Get featured players (excluding Jalen Green)
-  const featuredPlayers = players?.filter(p => p.name !== "Jalen Green").slice(0, 3) || [];
+  const featuredPlayers = players?.filter(p => p.name !== "Jalen Green").slice(0, 5) || [];
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -163,13 +163,13 @@ export default function Home() {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-6 md:gap-8">
-              {[1, 2, 3, 4].map((n) => (
+            <div className="grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-6 md:gap-8">
+              {[1, 2, 3, 4, 5].map((n) => (
                 <div key={n} className="aspect-[3/4] rounded-xl bg-card/50 animate-pulse border border-white/5" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-6 md:gap-8">
+            <div className="grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-6 md:gap-8">
               {featuredPlayers.map((player) => (
                 <PlayerCard key={player.id} player={player} />
               ))}
@@ -201,15 +201,15 @@ export default function Home() {
           </div>
 
           {isLoadingTrending ? (
-            <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-6 md:gap-8">
-              {[1, 2, 3].map((n) => (
+            <div className="grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-6 md:gap-8">
+              {[1, 2, 3, 4, 5].map((n) => (
                 <div key={n} className="aspect-[3/4] rounded-xl bg-card/50 animate-pulse border border-border" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-6 md:gap-8">
+            <div className="grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-6 md:gap-8">
               {trendingPlayers
-                ?.slice(0, 3)
+                ?.slice(0, 5)
                 .map((player) => (
                   <PlayerCard key={player.id} player={player} />
                 ))}
