@@ -198,7 +198,7 @@ export default function PlayerProfile() {
           <div className="flex justify-center -mb-4">
             <div className="flex items-center gap-3 text-muted-foreground bg-card w-fit px-6 py-3 rounded-2xl border border-border shadow-sm">
               <Eye className="w-6 h-6 text-primary" />
-              <span className="font-display text-2xl uppercase tracking-wider font-bold">{player.profileViews} Profile Views</span>
+              <span className="font-display text-2xl uppercase tracking-wider font-bold"><span className="text-black dark:text-white">{player.profileViews}</span> Profile Views</span>
             </div>
           </div>
 
