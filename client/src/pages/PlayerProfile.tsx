@@ -135,7 +135,7 @@ export default function PlayerProfile() {
             <div className="flex-1 pb-4 md:pb-8 pt-2 md:pt-0 flex flex-col justify-end items-center md:items-start">
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4 md:mb-6 w-full">
                 <div className="text-center md:text-left">
-                  <Link href={`/roster/${encodeURIComponent(player.team)}/2023-24`}>
+                  <Link href={`/roster/${encodeURIComponent(player.team)}`}>
                     <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
                       <h3 className="text-primary font-mono text-sm md:text-lg uppercase tracking-widest mb-1 hover:text-primary/80 transition-colors cursor-pointer">{player.team}</h3>
                     </Button>

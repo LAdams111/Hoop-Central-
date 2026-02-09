@@ -15,13 +15,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const AVAILABLE_SEASONS = ["2024-25", "2023-24", "2022-23", "2021-22", "2020-21", "2018-19", "1997-98", "1995-96", "1992-93", "1987-88"];
-
 export default function Roster() {
-  const [, params] = useRoute("/roster/:team/:season");
+  const [matchWithSeason, paramsWithSeason] = useRoute("/roster/:team/:season");
+  const [, paramsWithoutSeason] = useRoute("/roster/:team");
   const [, setLocation] = useLocation();
-  const team = decodeURIComponent(params?.team || "");
-  const season = decodeURIComponent(params?.season || "");
+
+  const team = decodeURIComponent(
+    (matchWithSeason ? paramsWithSeason?.team : paramsWithoutSeason?.team) || ""
+  );
+  const urlSeason = matchWithSeason ? decodeURIComponent(paramsWithSeason?.season || "") : "";
+
+  const { data: availableSeasons, isLoading: isSeasonsLoading } = useQuery<string[]>({
+    queryKey: ['/api/teams', team, 'seasons'],
+    queryFn: async () => {
+      const res = await fetch(`/api/teams/${encodeURIComponent(team)}/seasons`);
+      if (!res.ok) throw new Error("Failed to fetch seasons");
+      return res.json();
+    },
+    enabled: !!team,
+  });
+
+  const season = urlSeason || (availableSeasons?.[0] ?? "");
 
   const { data: rosterPlayers, isLoading } = useQuery<Player[]>({
     queryKey: ['/api/teams', team, 'roster', season],
@@ -47,7 +61,7 @@ export default function Roster() {
     setLocation(`/roster/${encodeURIComponent(team)}/${encodeURIComponent(newSeason)}`);
   };
 
-  if (isLoading) {
+  if (isSeasonsLoading || (isLoading && !!season)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -56,6 +70,7 @@ export default function Roster() {
   }
 
   const players = rosterPlayers || [];
+  const seasons = availableSeasons || [];
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -81,24 +96,26 @@ export default function Roster() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 min-w-[200px]">
-              <div className="flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-widest">
-                <Calendar className="w-3 h-3" />
-                <span>Select Season</span>
+            {seasons.length > 0 && (
+              <div className="flex flex-col gap-3 min-w-[200px]">
+                <div className="flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-widest">
+                  <Calendar className="w-3 h-3" />
+                  <span>Select Season</span>
+                </div>
+                <Select value={season} onValueChange={handleSeasonChange}>
+                  <SelectTrigger className="w-full bg-background border-2 border-border h-12 rounded-xl text-lg font-mono" data-testid="select-season">
+                    <SelectValue placeholder="Choose Season" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {seasons.map((s) => (
+                      <SelectItem key={s} value={s} className="font-mono" data-testid={`option-season-${s}`}>
+                        {s} Season
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Select value={season} onValueChange={handleSeasonChange}>
-                <SelectTrigger className="w-full bg-background border-2 border-border h-12 rounded-xl text-lg font-mono" data-testid="select-season">
-                  <SelectValue placeholder="Choose Season" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AVAILABLE_SEASONS.map((s) => (
-                    <SelectItem key={s} value={s} className="font-mono" data-testid={`option-season-${s}`}>
-                      {s} Season
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            )}
           </div>
         </div>
       </div>

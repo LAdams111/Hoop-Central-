@@ -26,6 +26,7 @@ export interface IStorage {
   // League Teams
   getTeamsByLeague(league: string): Promise<{ team: string; season: string }[]>;
   getAllTeamsWithLeague(): Promise<{ team: string; league: string; season: string }[]>;
+  getTeamSeasons(team: string): Promise<string[]>;
   getTotalTeamCount(): Promise<number>;
 }
 
@@ -131,6 +132,16 @@ export class DatabaseStorage implements IStorage {
   async createTeamRecord(record: InsertTeamRecord): Promise<TeamRecord> {
     const [created] = await db.insert(teamRecords).values(record).returning();
     return created;
+  }
+
+  async getTeamSeasons(team: string): Promise<string[]> {
+    const results = await db
+      .select({ season: playerStats.season })
+      .from(playerStats)
+      .where(eq(playerStats.team, team))
+      .groupBy(playerStats.season)
+      .orderBy(sql`${playerStats.season} DESC`);
+    return results.map(r => r.season);
   }
 
   async getAllTeamsWithLeague(): Promise<{ team: string; league: string; season: string }[]> {
