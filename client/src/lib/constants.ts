@@ -1,1 +1,1 @@
-export const DEFAULT_HEADSHOT = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400' fill='%236b7280'%3E%3Crect width='400' height='400' fill='%231a1a2e'/%3E%3Ccircle cx='200' cy='140' r='70' fill='%234b5563'/%3E%3Cellipse cx='200' cy='340' rx='120' ry='100' fill='%234b5563'/%3E%3C/svg%3E";
+export const DEFAULT_HEADSHOT = "/images/default-silhouette.png";
