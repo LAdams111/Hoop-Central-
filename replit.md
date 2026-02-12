@@ -56,6 +56,17 @@ The project follows a monorepo pattern with three main directories:
 - `GET /api/players/:id` — Get player details with all season stats, increments profile view count
 - `GET /api/teams/:team/roster/:season` — Get players who played for a team in a specific season
 - `POST /api/players/:id/view` — Increment player profile view count
+- `POST /api/scraper/nba` — Trigger NBA data scraper (fetches all current NBA players and stats)
+- `GET /api/scraper/status` — Check if scraper is currently running
+
+### NBA Data Scraper (`server/scraper.ts`)
+- **Data Source**: nbaStats API (api.server.nbaapi.com) — free, no auth required
+- **Scraper Page**: Available at `/scraper` in the app UI
+- **Behavior**: Fetches all current NBA players with season totals, calculates per-game averages, and inserts/updates players and stats in the database
+- **Player Matching**: Uses case-insensitive name matching to find existing players
+- **Default headshot**: New scraped players get Lester Quinones' headshot (NBA ID 1631244) as default
+- **Default profile views**: New scraped players start with 50 views
+- **Season detection**: Automatically determines current NBA season based on current date
 
 ## External Dependencies
 

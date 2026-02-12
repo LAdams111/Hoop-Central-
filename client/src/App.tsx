@@ -12,6 +12,7 @@ import Prospects from "@/pages/Prospects";
 import PlayerDirectory from "@/pages/PlayerDirectory";
 import PlayerProfile from "@/pages/PlayerProfile";
 import TeamRoster from "@/pages/Roster";
+import Scraper from "@/pages/Scraper";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/players" component={PlayerDirectory} />
       <Route path="/players/:id" component={PlayerProfile} />
       <Route path="/roster/:team/:season" component={TeamRoster} />
+      <Route path="/scraper" component={Scraper} />
       <Route component={NotFound} />
     </Switch>
   );

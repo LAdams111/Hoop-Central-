@@ -2,6 +2,7 @@ import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
+import { scrapeNBAPlayers } from "./scraper";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -89,6 +90,27 @@ export async function registerRoutes(
     }
     const results = await storage.getPlayersByBirthYear(year);
     res.json(results);
+  });
+
+  // NBA Scraper endpoint
+  let scraperRunning = false;
+  app.post("/api/scraper/nba", async (req, res) => {
+    if (scraperRunning) {
+      return res.status(409).json({ message: "Scraper is already running. Please wait." });
+    }
+    scraperRunning = true;
+    try {
+      const result = await scrapeNBAPlayers();
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: "Scraper failed", error: err.message });
+    } finally {
+      scraperRunning = false;
+    }
+  });
+
+  app.get("/api/scraper/status", (req, res) => {
+    res.json({ running: scraperRunning });
   });
 
   // Seed Data function
