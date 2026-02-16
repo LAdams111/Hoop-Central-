@@ -73,4 +73,6 @@ The project follows a monorepo pattern with three main directories:
 - **PostgreSQL** — Primary database, connected via `DATABASE_URL` environment variable using `pg` (node-postgres) connection pool
 - **Google Fonts** — Teko, Outfit, JetBrains Mono fonts loaded via CDN in `index.html` and `index.css`
 - **Replit Plugins** — Development-only Vite plugins for error overlay, cartographer, and dev banner (conditionally loaded when `REPL_ID` is set)
-- **No authentication** — Currently no auth system; the navigation has a placeholder comment for future user profile/auth
+- **Replit Object Storage** — Used for storing admin-uploaded player headshot images
+- **Admin Authentication** — Simple token-based admin auth using SESSION_SECRET as password. Admin can log in on player profiles to upload custom headshots. Admin login UI appears as a small lock icon in the bottom-right corner of player profile pages
+- **No user authentication** — Currently no user-facing auth system; the navigation has a placeholder comment for future user profile/auth

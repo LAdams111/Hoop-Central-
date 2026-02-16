@@ -3,11 +3,58 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers } from "./scraper";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+
+export const adminSessions = new Set<string>();
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  app.post("/api/admin/login", (req, res) => {
+    const { password } = req.body;
+    const adminPassword = process.env.SESSION_SECRET;
+    if (!adminPassword || password !== adminPassword) {
+      return res.status(401).json({ error: "Invalid password" });
+    }
+    const crypto = require("crypto");
+    const token = crypto.randomBytes(32).toString("hex");
+    adminSessions.add(token);
+    res.json({ token });
+  });
+
+  app.get("/api/admin/check", (req, res) => {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ authenticated: false });
+    }
+    res.json({ authenticated: true });
+  });
+
+  app.post("/api/players/:id/headshot", async (req, res) => {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const id = Number(req.params.id);
+    const { objectPath } = req.body;
+    if (!objectPath) {
+      return res.status(400).json({ error: "Missing objectPath" });
+    }
+    await storage.updatePlayerHeadshot(id, objectPath);
+    res.json({ success: true });
+  });
+
+  app.use("/api/uploads", (req, res, next) => {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    next();
+  });
+
+  registerObjectStorageRoutes(app);
 
   // Players List
   app.get(api.players.list.path, async (req, res) => {

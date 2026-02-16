@@ -23,6 +23,9 @@ export interface IStorage {
   getTeamRecord(team: string, season: string): Promise<TeamRecord | undefined>;
   createTeamRecord(record: InsertTeamRecord): Promise<TeamRecord>;
 
+  // Player Updates
+  updatePlayerHeadshot(id: number, headshotUrl: string): Promise<void>;
+
   // League Teams
   getTeamsByLeague(league: string): Promise<{ team: string; season: string }[]>;
   getAllTeamsWithLeague(): Promise<{ team: string; league: string; season: string }[]>;
@@ -117,6 +120,10 @@ export class DatabaseStorage implements IStorage {
   async createAward(insertAward: InsertAward): Promise<Award> {
     const [award] = await db.insert(awards).values(insertAward).returning();
     return award;
+  }
+
+  async updatePlayerHeadshot(id: number, headshotUrl: string): Promise<void> {
+    await db.update(players).set({ headshotUrl }).where(eq(players.id, id));
   }
 
   async getTeamRecord(team: string, season: string): Promise<TeamRecord | undefined> {

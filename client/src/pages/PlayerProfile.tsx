@@ -1,18 +1,24 @@
 import { useRoute } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { usePlayer } from "@/hooks/use-players";
 import { StatsChart } from "@/components/StatsChart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { DEFAULT_HEADSHOT } from "@/lib/constants";
+import { useUpload } from "@/hooks/use-upload";
 import { 
   ArrowLeft, 
   Trophy, 
   Target, 
   Activity, 
   Eye,
-  Flag
+  Flag,
+  Camera,
+  Lock,
+  Upload,
+  Loader2,
+  X
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -21,6 +27,73 @@ export default function PlayerProfile() {
   const id = parseInt(params?.id || "0");
   const { data: player, isLoading } = usePlayer(id);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminError, setAdminError] = useState("");
+  const [isUploadingHeadshot, setIsUploadingHeadshot] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("admin_token");
+    if (token) {
+      fetch("/api/admin/check", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => r.json())
+        .then((d) => { if (d.authenticated) setIsAdmin(true); else localStorage.removeItem("admin_token"); })
+        .catch(() => localStorage.removeItem("admin_token"));
+    }
+  }, []);
+
+  const handleAdminLogin = async () => {
+    setAdminError("");
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: adminPassword }),
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        localStorage.setItem("admin_token", data.token);
+        setIsAdmin(true);
+        setShowAdminLogin(false);
+        setAdminPassword("");
+      } else {
+        setAdminError("Wrong password");
+      }
+    } catch {
+      setAdminError("Login failed");
+    }
+  };
+
+  const handleHeadshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingHeadshot(true);
+    try {
+      const token = localStorage.getItem("admin_token");
+      const urlRes = await fetch("/api/uploads/request-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+      });
+      const { uploadURL, objectPath } = await urlRes.json();
+      await fetch(uploadURL, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      await fetch(`/api/players/${id}/headshot`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ objectPath }),
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/players", id] });
+    } catch (err) {
+      console.error("Upload failed:", err);
+    } finally {
+      setIsUploadingHeadshot(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -104,7 +177,7 @@ export default function PlayerProfile() {
         {/* Background Image (blurred) */}
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-10 z-0 grayscale"
-          style={{ backgroundImage: `url(${player.headshotUrl || DEFAULT_HEADSHOT})` }}
+          style={{ backgroundImage: `url(${player.headshotUrl?.startsWith("/objects/") ? player.headshotUrl : (player.headshotUrl || DEFAULT_HEADSHOT)})` }}
         />
         
         <div className="container mx-auto px-4 h-full relative z-20 flex flex-col justify-between py-8">
@@ -118,7 +191,7 @@ export default function PlayerProfile() {
             <div className="relative flex-shrink-0 z-30 mt-4 md:mt-0 md:mb-[-160px] md:-translate-y-[120px]">
               <div className="w-36 h-36 md:w-64 md:h-64 rounded-2xl overflow-hidden border-4 border-background shadow-2xl bg-muted">
                 <img 
-                  src={player.headshotUrl || DEFAULT_HEADSHOT} 
+                  src={player.headshotUrl?.startsWith("/objects/") ? player.headshotUrl : (player.headshotUrl || DEFAULT_HEADSHOT)} 
                   alt={player.name} 
                   className="w-full h-full object-cover object-top"
                   onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }}
@@ -127,6 +200,28 @@ export default function PlayerProfile() {
               <div className="absolute -top-3 -right-3 md:-top-4 md:-right-4 bg-primary text-white w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-lg font-display text-2xl md:text-3xl font-bold border-4 border-background shadow-lg">
                 #{player.jerseyNumber}
               </div>
+              {isAdmin && (
+                <div className="absolute -bottom-2 -left-2 md:-bottom-3 md:-left-3">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleHeadshotUpload}
+                    data-testid="input-headshot-file"
+                  />
+                  <Button
+                    size="icon"
+                    variant="default"
+                    className="rounded-full border-4 border-background shadow-lg"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingHeadshot}
+                    data-testid="button-upload-headshot"
+                  >
+                    {isUploadingHeadshot ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Player Info */}
@@ -326,6 +421,52 @@ export default function PlayerProfile() {
           </section>
         </div>
       </div>
+
+      {!isAdmin && !showAdminLogin && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            size="icon"
+            variant="outline"
+            className="rounded-full opacity-30 hover:opacity-100 transition-opacity"
+            onClick={() => setShowAdminLogin(true)}
+            data-testid="button-admin-login-toggle"
+          >
+            <Lock className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
+      {showAdminLogin && (
+        <div className="fixed bottom-6 right-6 z-50 bg-card border border-border rounded-xl p-4 shadow-2xl w-72">
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-display text-sm uppercase tracking-wider">Admin Login</span>
+            <Button size="icon" variant="ghost" onClick={() => { setShowAdminLogin(false); setAdminError(""); }} data-testid="button-admin-close">
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          <input
+            type="password"
+            value={adminPassword}
+            onChange={(e) => setAdminPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAdminLogin()}
+            placeholder="Password"
+            className="w-full px-3 py-2 bg-muted border border-border rounded-md text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            data-testid="input-admin-password"
+          />
+          {adminError && <p className="text-destructive text-xs mb-2">{adminError}</p>}
+          <Button className="w-full" onClick={handleAdminLogin} data-testid="button-admin-submit">
+            Login
+          </Button>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <Badge variant="outline" className="bg-card border-primary/30 text-primary px-3 py-1">
+            <Lock className="w-3 h-3 mr-1" /> Admin
+          </Badge>
+        </div>
+      )}
     </div>
   );
 }
