@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import type { Server } from "http";
+import crypto from "crypto";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers } from "./scraper";
@@ -18,7 +19,6 @@ export async function registerRoutes(
     if (!adminPassword || password !== adminPassword) {
       return res.status(401).json({ error: "Invalid password" });
     }
-    const crypto = require("crypto");
     const token = crypto.randomBytes(32).toString("hex");
     adminSessions.add(token);
     res.json({ token });
