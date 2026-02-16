@@ -3,7 +3,7 @@ import type { Server } from "http";
 import crypto from "crypto";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
-import { scrapeNBAPlayers } from "./scraper";
+import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 export const adminSessions = new Set<string>();
@@ -180,7 +180,19 @@ export async function registerRoutes(
   });
 
   app.get("/api/scraper/status", (req, res) => {
-    res.json({ running: scraperRunning });
+    res.json({ running: scraperRunning, bioRunning: isBioScraperRunning() });
+  });
+
+  app.post("/api/scraper/bios", async (req, res) => {
+    if (isBioScraperRunning()) {
+      return res.status(409).json({ message: "Bio scraper is already running. Please wait." });
+    }
+    res.json({ message: "Bio scraper started. This will take a while (~30 minutes for 500+ players)." });
+    updatePlayerBios().then(result => {
+      console.log("[Bio Scraper] Final result:", JSON.stringify(result));
+    }).catch(err => {
+      console.error("[Bio Scraper] Failed:", err.message);
+    });
   });
 
   // Seed Data function

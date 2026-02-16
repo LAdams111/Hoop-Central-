@@ -14,6 +14,8 @@ export default function Scraper() {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<ScrapeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [bioRunning, setBioRunning] = useState(false);
+  const [bioMessage, setBioMessage] = useState<string | null>(null);
 
   const runNBAScraper = async () => {
     setRunning(true);
@@ -92,22 +94,51 @@ export default function Scraper() {
             </Button>
           </Card>
 
-          <Card className="p-6 opacity-50">
+          <Card className="p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                <Download className="w-6 h-6 text-muted-foreground" />
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Download className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h2 className="font-display text-2xl font-bold uppercase tracking-tight">More Leagues</h2>
-                <p className="text-xs text-muted-foreground font-mono">Coming Soon</p>
+                <h2 className="font-display text-2xl font-bold uppercase tracking-tight" data-testid="text-bio-scraper">Height / Weight</h2>
+                <p className="text-xs text-muted-foreground font-mono">basketball-reference.com</p>
               </div>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
-              Scrapers for G League, EuroLeague, NCAA, and other leagues will be added here as data sources become available.
+              Updates real height and weight for players currently showing default values (6'0" / 200 lbs). Fetches data from Basketball Reference using player IDs. Takes ~30 minutes.
             </p>
-            <Button disabled className="w-full" data-testid="button-more-leagues">
-              Coming Soon
+            <Button
+              onClick={async () => {
+                setBioRunning(true);
+                setBioMessage(null);
+                try {
+                  const res = await fetch("/api/scraper/bios", { method: "POST" });
+                  const data = await res.json();
+                  setBioMessage(data.message || "Bio scraper started.");
+                } catch (err: any) {
+                  setBioMessage(err.message || "Failed to start bio scraper");
+                  setBioRunning(false);
+                }
+              }}
+              disabled={bioRunning}
+              className="w-full"
+              data-testid="button-run-bio-scraper"
+            >
+              {bioRunning ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Updating Heights / Weights...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Run Bio Scraper
+                </>
+              )}
             </Button>
+            {bioMessage && (
+              <p className="text-xs text-muted-foreground mt-3 font-mono" data-testid="text-bio-message">{bioMessage}</p>
+            )}
           </Card>
         </div>
 
