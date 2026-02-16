@@ -537,53 +537,51 @@ export default function PlayerProfile() {
             </div>
           </section>
         </div>
-      </div>
 
-      {!isAdmin && !showAdminLogin && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <Button
-            size="icon"
-            variant="outline"
-            className="rounded-full opacity-30 hover:opacity-100 transition-opacity"
-            onClick={() => setShowAdminLogin(true)}
-            data-testid="button-admin-login-toggle"
-          >
-            <Lock className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
-
-      {showAdminLogin && (
-        <div className="fixed bottom-6 right-6 z-50 bg-card border border-border rounded-xl p-4 shadow-2xl w-72">
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-display text-sm uppercase tracking-wider">Admin Login</span>
-            <Button size="icon" variant="ghost" onClick={() => { setShowAdminLogin(false); setAdminError(""); }} data-testid="button-admin-close">
-              <X className="w-4 h-4" />
+        <div className="flex justify-center py-8">
+          {!isAdmin && !showAdminLogin && (
+            <Button
+              size="icon"
+              variant="outline"
+              className="rounded-full opacity-30 hover:opacity-100 transition-opacity"
+              onClick={() => setShowAdminLogin(true)}
+              data-testid="button-admin-login-toggle"
+            >
+              <Lock className="w-4 h-4" />
             </Button>
-          </div>
-          <input
-            type="password"
-            value={adminPassword}
-            onChange={(e) => setAdminPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAdminLogin()}
-            placeholder="Password"
-            className="w-full px-3 py-2 bg-muted border border-border rounded-md text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-primary"
-            data-testid="input-admin-password"
-          />
-          {adminError && <p className="text-destructive text-xs mb-2">{adminError}</p>}
-          <Button className="w-full" onClick={handleAdminLogin} data-testid="button-admin-submit">
-            Login
-          </Button>
-        </div>
-      )}
+          )}
 
-      {isAdmin && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <Badge variant="outline" className="bg-card border-primary/30 text-primary px-3 py-1">
-            <Lock className="w-3 h-3 mr-1" /> Admin
-          </Badge>
+          {showAdminLogin && (
+            <div className="bg-card border border-border rounded-xl p-4 shadow-2xl w-72">
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-display text-sm uppercase tracking-wider">Admin Login</span>
+                <Button size="icon" variant="ghost" onClick={() => { setShowAdminLogin(false); setAdminError(""); }} data-testid="button-admin-close">
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <input
+                type="password"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAdminLogin()}
+                placeholder="Password"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-md text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                data-testid="input-admin-password"
+              />
+              {adminError && <p className="text-destructive text-xs mb-2">{adminError}</p>}
+              <Button className="w-full" onClick={handleAdminLogin} data-testid="button-admin-submit">
+                Login
+              </Button>
+            </div>
+          )}
+
+          {isAdmin && (
+            <Badge variant="outline" className="bg-card border-primary/30 text-primary px-3 py-1">
+              <Lock className="w-3 h-3 mr-1" /> Admin
+            </Badge>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
