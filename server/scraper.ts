@@ -168,150 +168,195 @@ interface ScrapeResult {
   statsUpdated: number;
   errors: string[];
   season: string;
+  seasonsProcessed: string[];
+}
+
+const NUM_SEASONS = 5;
+
+async function fetchSeasonData(seasonYear: number): Promise<any[]> {
+  let page = 1;
+  let totalPages = 1;
+  const allPlayerData: any[] = [];
+
+  while (page <= totalPages) {
+    const url = `https://api.server.nbaapi.com/api/playertotals?season=${seasonYear}&pageSize=100&page=${page}&isPlayoff=false`;
+    console.log(`[NBA Scraper] Fetching season ${seasonYear} page ${page}...`);
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`API returned ${res.status}: ${res.statusText}`);
+    }
+
+    const json = await res.json();
+    if (!json.data || !Array.isArray(json.data)) {
+      throw new Error("Invalid API response format");
+    }
+
+    allPlayerData.push(...json.data);
+    totalPages = json.pagination?.pages || 1;
+    page++;
+
+    if (page <= totalPages) {
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
+
+  return allPlayerData;
 }
 
 export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
-  const seasonYear = getCurrentNBASeason();
-  const seasonDisplay = seasonToDisplay(seasonYear);
-  const result: ScrapeResult = { playersAdded: 0, playersUpdated: 0, statsUpdated: 0, errors: [], season: seasonDisplay };
+  const currentSeasonYear = getCurrentNBASeason();
+  const result: ScrapeResult = {
+    playersAdded: 0,
+    playersUpdated: 0,
+    statsUpdated: 0,
+    errors: [],
+    season: seasonToDisplay(currentSeasonYear),
+    seasonsProcessed: [],
+  };
 
-  console.log(`[NBA Scraper] Starting scrape for season ${seasonDisplay} (API season=${seasonYear})...`);
+  const seasonYears: number[] = [];
+  for (let i = 0; i < NUM_SEASONS; i++) {
+    seasonYears.push(currentSeasonYear - i);
+  }
+
+  console.log(`[NBA Scraper] Starting scrape for ${NUM_SEASONS} seasons: ${seasonYears.map(s => seasonToDisplay(s)).join(', ')}...`);
+
+  const playerCache = new Map<string, number>();
 
   try {
-    let page = 1;
-    let totalPages = 1;
-    const allPlayerData: any[] = [];
+    for (const seasonYear of seasonYears) {
+      const seasonDisplay = seasonToDisplay(seasonYear);
+      console.log(`[NBA Scraper] --- Processing season ${seasonDisplay} (API season=${seasonYear}) ---`);
 
-    while (page <= totalPages) {
-      const url = `https://api.server.nbaapi.com/api/playertotals?season=${seasonYear}&pageSize=100&page=${page}&isPlayoff=false`;
-      console.log(`[NBA Scraper] Fetching page ${page}...`);
-
-      const res = await fetch(url);
-      if (!res.ok) {
-        throw new Error(`API returned ${res.status}: ${res.statusText}`);
-      }
-
-      const json = await res.json();
-      if (!json.data || !Array.isArray(json.data)) {
-        throw new Error("Invalid API response format");
-      }
-
-      allPlayerData.push(...json.data);
-      totalPages = json.pagination?.pages || 1;
-      page++;
-
-      if (page <= totalPages) {
-        await new Promise(r => setTimeout(r, 500));
-      }
-    }
-
-    console.log(`[NBA Scraper] Fetched ${allPlayerData.length} player records`);
-
-    for (const p of allPlayerData) {
+      let allPlayerData: any[];
       try {
-        const playerName = p.playerName;
-        const teamAbbr = p.team;
-        const teamFull = NBA_TEAM_MAP[teamAbbr] || teamAbbr;
-        const gamesPlayed = p.games || 0;
-
-        if (gamesPlayed === 0) continue;
-
-        const ppg = (p.points / gamesPlayed).toFixed(1);
-        const rpg = (p.totalRb / gamesPlayed).toFixed(1);
-        const apg = (p.assists / gamesPlayed).toFixed(1);
-        const spg = (p.steals / gamesPlayed).toFixed(1);
-        const bpg = (p.blocks / gamesPlayed).toFixed(1);
-        const fgPct = p.fieldPercent ? (p.fieldPercent * 100).toFixed(1) : "0.0";
-
-        const position = p.position || "SF";
-        const posMap: Record<string, string> = {
-          "PG": "PG", "SG": "SG", "SF": "SF", "PF": "PF", "C": "C",
-          "G": "PG", "F": "SF", "G-F": "SF", "F-G": "SG", "F-C": "PF", "C-F": "PF",
-        };
-        const mappedPos = posMap[position] || "SF";
-
-        const defaultHeadshotUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/1631244.png";
-
-        let birthDate: string | null = null;
-        if (p.age) {
-          const now = new Date();
-          const birthYear = now.getFullYear() - p.age;
-          birthDate = `${birthYear}-01-01`;
-        }
-
-        const existingPlayers = await db.select().from(players).where(
-          sql`LOWER(${players.name}) = ${playerName.toLowerCase()}`
-        );
-
-        let playerId: number;
-
-        if (existingPlayers.length > 0) {
-          playerId = existingPlayers[0].id;
-          await db.update(players).set({
-            team: teamFull,
-          }).where(eq(players.id, playerId));
-          result.playersUpdated++;
-        } else {
-          const newPlayer = await storage.createPlayer({
-            name: playerName,
-            position: mappedPos,
-            team: teamFull,
-            height: "6'0\"",
-            weight: "200 lbs",
-            jerseyNumber: 0,
-            headshotUrl: defaultHeadshotUrl,
-            bio: `${playerName} is a professional basketball player for the ${teamFull}.`,
-            profileViews: 50,
-            hometown: null,
-            birthDate: birthDate,
-          });
-          playerId = newPlayer.id;
-          result.playersAdded++;
-        }
-
-        const existingStats = await db.select().from(playerStats).where(
-          and(
-            eq(playerStats.playerId, playerId),
-            eq(playerStats.season, seasonDisplay),
-            eq(playerStats.league, "NBA")
-          )
-        );
-
-        if (existingStats.length > 0) {
-          await db.update(playerStats).set({
-            team: teamFull,
-            gamesPlayed: gamesPlayed,
-            pointsPerGame: ppg,
-            reboundsPerGame: rpg,
-            assistsPerGame: apg,
-            stealsPerGame: spg,
-            blocksPerGame: bpg,
-            fieldGoalPct: fgPct,
-          }).where(eq(playerStats.id, existingStats[0].id));
-        } else {
-          await storage.createPlayerStats({
-            playerId: playerId,
-            season: seasonDisplay,
-            team: teamFull,
-            league: "NBA",
-            gamesPlayed: gamesPlayed,
-            pointsPerGame: ppg,
-            reboundsPerGame: rpg,
-            assistsPerGame: apg,
-            stealsPerGame: spg,
-            blocksPerGame: bpg,
-            fieldGoalPct: fgPct,
-          });
-        }
-
-        result.statsUpdated++;
-      } catch (playerErr: any) {
-        result.errors.push(`Error processing ${p.playerName}: ${playerErr.message}`);
-        console.error(`[NBA Scraper] Error processing ${p.playerName}:`, playerErr.message);
+        allPlayerData = await fetchSeasonData(seasonYear);
+      } catch (fetchErr: any) {
+        result.errors.push(`Failed to fetch season ${seasonDisplay}: ${fetchErr.message}`);
+        console.error(`[NBA Scraper] Failed to fetch season ${seasonDisplay}:`, fetchErr.message);
+        continue;
       }
+
+      console.log(`[NBA Scraper] Fetched ${allPlayerData.length} player records for ${seasonDisplay}`);
+      result.seasonsProcessed.push(seasonDisplay);
+
+      for (const p of allPlayerData) {
+        try {
+          const playerName = p.playerName;
+          const teamAbbr = p.team;
+          const teamFull = NBA_TEAM_MAP[teamAbbr] || teamAbbr;
+          const gamesPlayed = p.games || 0;
+
+          if (gamesPlayed === 0) continue;
+
+          const ppg = (p.points / gamesPlayed).toFixed(1);
+          const rpg = (p.totalRb / gamesPlayed).toFixed(1);
+          const apg = (p.assists / gamesPlayed).toFixed(1);
+          const spg = (p.steals / gamesPlayed).toFixed(1);
+          const bpg = (p.blocks / gamesPlayed).toFixed(1);
+          const fgPct = p.fieldPercent ? (p.fieldPercent * 100).toFixed(1) : "0.0";
+
+          const position = p.position || "SF";
+          const posMap: Record<string, string> = {
+            "PG": "PG", "SG": "SG", "SF": "SF", "PF": "PF", "C": "C",
+            "G": "PG", "F": "SF", "G-F": "SF", "F-G": "SG", "F-C": "PF", "C-F": "PF",
+          };
+          const mappedPos = posMap[position] || "SF";
+
+          const defaultHeadshotUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/1631244.png";
+
+          let birthDate: string | null = null;
+          if (p.age) {
+            const ageSeasonEnd = seasonYear;
+            const birthYear = ageSeasonEnd - p.age;
+            birthDate = `${birthYear}-01-01`;
+          }
+
+          const nameLower = playerName.toLowerCase();
+          let playerId = playerCache.get(nameLower);
+
+          if (!playerId) {
+            const existingPlayers = await db.select().from(players).where(
+              sql`LOWER(${players.name}) = ${nameLower}`
+            );
+
+            if (existingPlayers.length > 0) {
+              playerId = existingPlayers[0].id;
+              if (seasonYear === currentSeasonYear) {
+                await db.update(players).set({
+                  team: teamFull,
+                }).where(eq(players.id, playerId));
+                result.playersUpdated++;
+              }
+            } else {
+              const newPlayer = await storage.createPlayer({
+                name: playerName,
+                position: mappedPos,
+                team: teamFull,
+                height: "6'0\"",
+                weight: "200 lbs",
+                jerseyNumber: 0,
+                headshotUrl: defaultHeadshotUrl,
+                bio: `${playerName} is a professional basketball player for the ${teamFull}.`,
+                profileViews: 50,
+                hometown: null,
+                birthDate: birthDate,
+              });
+              playerId = newPlayer.id;
+              result.playersAdded++;
+            }
+            playerCache.set(nameLower, playerId);
+          }
+
+          const existingStats = await db.select().from(playerStats).where(
+            and(
+              eq(playerStats.playerId, playerId),
+              eq(playerStats.season, seasonDisplay),
+              eq(playerStats.league, "NBA")
+            )
+          );
+
+          if (existingStats.length > 0) {
+            await db.update(playerStats).set({
+              team: teamFull,
+              gamesPlayed: gamesPlayed,
+              pointsPerGame: ppg,
+              reboundsPerGame: rpg,
+              assistsPerGame: apg,
+              stealsPerGame: spg,
+              blocksPerGame: bpg,
+              fieldGoalPct: fgPct,
+            }).where(eq(playerStats.id, existingStats[0].id));
+          } else {
+            await storage.createPlayerStats({
+              playerId: playerId,
+              season: seasonDisplay,
+              team: teamFull,
+              league: "NBA",
+              gamesPlayed: gamesPlayed,
+              pointsPerGame: ppg,
+              reboundsPerGame: rpg,
+              assistsPerGame: apg,
+              stealsPerGame: spg,
+              blocksPerGame: bpg,
+              fieldGoalPct: fgPct,
+            });
+          }
+
+          result.statsUpdated++;
+        } catch (playerErr: any) {
+          result.errors.push(`Error processing ${p.playerName} (${seasonDisplay}): ${playerErr.message}`);
+          console.error(`[NBA Scraper] Error processing ${p.playerName}:`, playerErr.message);
+        }
+      }
+
+      console.log(`[NBA Scraper] Season ${seasonDisplay} done. Running totals - Added: ${result.playersAdded}, Updated: ${result.playersUpdated}, Stats: ${result.statsUpdated}`);
+
+      await new Promise(r => setTimeout(r, 1000));
     }
 
-    console.log(`[NBA Scraper] Complete! Added: ${result.playersAdded}, Updated: ${result.playersUpdated}, Stats: ${result.statsUpdated}`);
+    console.log(`[NBA Scraper] All ${NUM_SEASONS} seasons complete! Added: ${result.playersAdded}, Updated: ${result.playersUpdated}, Stats: ${result.statsUpdated}`);
   } catch (err: any) {
     result.errors.push(`Scraper error: ${err.message}`);
     console.error("[NBA Scraper] Fatal error:", err.message);
