@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { scrapeNBAPlayers } from "./scraper";
 
 const app = express();
 const httpServer = createServer(app);
@@ -98,6 +99,45 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
+      startWeeklyScraperSchedule();
     },
   );
 })();
+
+function startWeeklyScraperSchedule() {
+  function msUntilNextSunday6AM(): number {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    let daysUntilSunday = (7 - dayOfWeek) % 7;
+    if (daysUntilSunday === 0) {
+      const sixAM = new Date(now);
+      sixAM.setHours(6, 0, 0, 0);
+      if (now >= sixAM) {
+        daysUntilSunday = 7;
+      }
+    }
+    const nextSunday = new Date(now);
+    nextSunday.setDate(now.getDate() + daysUntilSunday);
+    nextSunday.setHours(6, 0, 0, 0);
+    return nextSunday.getTime() - now.getTime();
+  }
+
+  function scheduleNext() {
+    const ms = msUntilNextSunday6AM();
+    const hours = Math.round(ms / 1000 / 60 / 60 * 10) / 10;
+    log(`Next auto-scrape scheduled in ${hours} hours (Sunday 6:00 AM)`, "scheduler");
+
+    setTimeout(async () => {
+      log("Starting scheduled weekly NBA scrape...", "scheduler");
+      try {
+        const result = await scrapeNBAPlayers();
+        log(`Scheduled scrape complete! Added: ${result.playersAdded}, Updated: ${result.playersUpdated}, Stats: ${result.statsUpdated}, Seasons: ${result.seasonsProcessed.join(', ')}`, "scheduler");
+      } catch (err: any) {
+        log(`Scheduled scrape failed: ${err.message}`, "scheduler");
+      }
+      scheduleNext();
+    }, ms);
+  }
+
+  scheduleNext();
+}
