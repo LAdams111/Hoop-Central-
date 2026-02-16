@@ -492,18 +492,21 @@ export default function PlayerProfile() {
                       if (!seasonLeagueIndex[slKey]) seasonLeagueIndex[slKey] = 0;
                       seasonLeagueIndex[slKey]++;
                       const teamIndex = seasonLeagueIndex[slKey];
-                      const isFirstOfSeason = teamIndex === 1;
+                      const isFirstRow = teamIndex === 1;
+                      const isLastRow = teamIndex === seasonLeagueCounts[slKey];
                       return (
                         <tr key={stat.id} className={`hover:bg-muted/50 transition-colors ${isMultiTeamSeason ? 'bg-muted/20' : ''}`}>
                           <td className="px-6 py-4 font-mono font-medium">
                             <div className="flex items-center gap-2">
-                              {isMultiTeamSeason && !isFirstOfSeason ? (
+                              {isMultiTeamSeason && isFirstRow ? (
                                 <span className="text-muted-foreground/50 pl-3">↰</span>
                               ) : (
-                                stat.season
-                              )}
-                              {isMultiTeamSeason && isFirstOfSeason && (
-                                <span className="text-[10px] font-sans bg-yellow-600/20 text-yellow-500 px-1.5 py-0.5 rounded no-default-hover-elevate no-default-active-elevate" data-testid={`badge-traded-${stat.id}`}>TRADED</span>
+                                <>
+                                  {stat.season}
+                                  {isMultiTeamSeason && isLastRow && (
+                                    <span className="text-[10px] font-sans bg-yellow-600/20 text-yellow-500 px-1.5 py-0.5 rounded no-default-hover-elevate no-default-active-elevate" data-testid={`badge-traded-${stat.id}`}>TRADED</span>
+                                  )}
+                                </>
                               )}
                             </div>
                           </td>
