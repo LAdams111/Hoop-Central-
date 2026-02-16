@@ -15,6 +15,48 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const NBA_TEAM_IDS: Record<string, string> = {
+  "Atlanta Hawks": "1610612737",
+  "Boston Celtics": "1610612738",
+  "Brooklyn Nets": "1610612751",
+  "Charlotte Hornets": "1610612766",
+  "Chicago Bulls": "1610612741",
+  "Cleveland Cavaliers": "1610612739",
+  "Dallas Mavericks": "1610612742",
+  "Denver Nuggets": "1610612743",
+  "Detroit Pistons": "1610612765",
+  "Golden State Warriors": "1610612744",
+  "Houston Rockets": "1610612745",
+  "Indiana Pacers": "1610612754",
+  "LA Clippers": "1610612746",
+  "Los Angeles Clippers": "1610612746",
+  "Los Angeles Lakers": "1610612747",
+  "Memphis Grizzlies": "1610612763",
+  "Miami Heat": "1610612748",
+  "Milwaukee Bucks": "1610612749",
+  "Minnesota Timberwolves": "1610612750",
+  "New Orleans Pelicans": "1610612740",
+  "New York Knicks": "1610612752",
+  "Oklahoma City Thunder": "1610612760",
+  "Orlando Magic": "1610612753",
+  "Philadelphia 76ers": "1610612755",
+  "Phoenix Suns": "1610612756",
+  "Portland Trail Blazers": "1610612757",
+  "Sacramento Kings": "1610612758",
+  "San Antonio Spurs": "1610612759",
+  "Toronto Raptors": "1610612761",
+  "Utah Jazz": "1610612762",
+  "Washington Wizards": "1610612764",
+};
+
+function getTeamLogoUrl(teamName: string): string | null {
+  const teamId = NBA_TEAM_IDS[teamName];
+  if (teamId) {
+    return `https://cdn.nba.com/logos/nba/${teamId}/primary/L/logo.svg`;
+  }
+  return null;
+}
+
 const AVAILABLE_SEASONS = ["2025-26", "2024-25", "2023-24", "2022-23", "2021-22", "2020-21", "2018-19", "1997-98", "1995-96", "1992-93", "1987-88"];
 
 export default function Roster() {
@@ -68,9 +110,20 @@ export default function Roster() {
           
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div className="flex items-center gap-6">
-              <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                <Users className="w-10 h-10" />
-              </div>
+              {getTeamLogoUrl(team) ? (
+                <div className="w-20 h-20 flex items-center justify-center flex-shrink-0">
+                  <img
+                    src={getTeamLogoUrl(team)!}
+                    alt={`${team} logo`}
+                    className="max-w-full max-h-full object-contain"
+                    data-testid="img-team-logo"
+                  />
+                </div>
+              ) : (
+                <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                  <Users className="w-10 h-10" />
+                </div>
+              )}
               <div>
                 <h1 className="font-display text-5xl md:text-7xl font-bold tracking-tighter uppercase" data-testid="text-team-name">
                   {team}

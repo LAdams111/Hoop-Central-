@@ -7,6 +7,48 @@ import { Link } from "wouter";
 import { Player } from "@shared/schema";
 import { useState, useEffect } from "react";
 
+const NBA_TEAM_IDS: Record<string, string> = {
+  "Atlanta Hawks": "1610612737",
+  "Boston Celtics": "1610612738",
+  "Brooklyn Nets": "1610612751",
+  "Charlotte Hornets": "1610612766",
+  "Chicago Bulls": "1610612741",
+  "Cleveland Cavaliers": "1610612739",
+  "Dallas Mavericks": "1610612742",
+  "Denver Nuggets": "1610612743",
+  "Detroit Pistons": "1610612765",
+  "Golden State Warriors": "1610612744",
+  "Houston Rockets": "1610612745",
+  "Indiana Pacers": "1610612754",
+  "LA Clippers": "1610612746",
+  "Los Angeles Clippers": "1610612746",
+  "Los Angeles Lakers": "1610612747",
+  "Memphis Grizzlies": "1610612763",
+  "Miami Heat": "1610612748",
+  "Milwaukee Bucks": "1610612749",
+  "Minnesota Timberwolves": "1610612750",
+  "New Orleans Pelicans": "1610612740",
+  "New York Knicks": "1610612752",
+  "Oklahoma City Thunder": "1610612760",
+  "Orlando Magic": "1610612753",
+  "Philadelphia 76ers": "1610612755",
+  "Phoenix Suns": "1610612756",
+  "Portland Trail Blazers": "1610612757",
+  "Sacramento Kings": "1610612758",
+  "San Antonio Spurs": "1610612759",
+  "Toronto Raptors": "1610612761",
+  "Utah Jazz": "1610612762",
+  "Washington Wizards": "1610612764",
+};
+
+function getTeamLogoUrl(teamName: string): string | null {
+  const teamId = NBA_TEAM_IDS[teamName];
+  if (teamId) {
+    return `https://cdn.nba.com/logos/nba/${teamId}/primary/L/logo.svg`;
+  }
+  return null;
+}
+
 export default function TeamRoster() {
   const [, params] = useRoute("/roster/:team/:season");
   const team = params?.team || "";
@@ -71,9 +113,20 @@ export default function TeamRoster() {
           </div>
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                <Users className="w-8 h-8" />
-              </div>
+              {getTeamLogoUrl(team) ? (
+                <div className="w-16 h-16 flex items-center justify-center flex-shrink-0">
+                  <img
+                    src={getTeamLogoUrl(team)!}
+                    alt={`${team} logo`}
+                    className="max-w-full max-h-full object-contain"
+                    data-testid="img-team-logo"
+                  />
+                </div>
+              ) : (
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                  <Users className="w-8 h-8" />
+                </div>
+              )}
               <div>
                 <h1 className="text-4xl md:text-6xl font-display text-foreground uppercase tracking-tighter">
                   {team} <span className="text-primary">Roster</span>
