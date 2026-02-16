@@ -1,6 +1,7 @@
 import { useRoute } from "wouter";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { usePlayer } from "@/hooks/use-players";
+import { api } from "@shared/routes";
 import { StatsChart } from "@/components/StatsChart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -97,7 +98,7 @@ export default function PlayerProfile() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ objectPath }),
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/players", id] });
+      queryClient.invalidateQueries({ queryKey: [api.players.get.path, id] });
     } catch (err) {
       console.error("Upload failed:", err);
     } finally {
@@ -127,7 +128,7 @@ export default function PlayerProfile() {
         body: JSON.stringify(editForm),
       });
       if (res.ok) {
-        queryClient.invalidateQueries({ queryKey: ["/api/players", id] });
+        queryClient.invalidateQueries({ queryKey: [api.players.get.path, id] });
         setIsEditing(false);
         toast({ title: "Player updated", description: "Changes saved successfully." });
       } else {
