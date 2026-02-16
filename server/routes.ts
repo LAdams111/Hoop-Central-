@@ -162,7 +162,6 @@ export async function registerRoutes(
     res.json(results);
   });
 
-  // NBA Scraper endpoint
   let scraperRunning = false;
   app.post("/api/scraper/nba", async (req, res) => {
     if (scraperRunning) {
@@ -170,7 +169,8 @@ export async function registerRoutes(
     }
     scraperRunning = true;
     try {
-      const result = await scrapeNBAPlayers();
+      const fullHistory = req.body?.fullHistory === true;
+      const result = await scrapeNBAPlayers({ fullHistory });
       res.json(result);
     } catch (err: any) {
       res.status(500).json({ message: "Scraper failed", error: err.message });
