@@ -32,6 +32,29 @@ export async function registerRoutes(
     res.json({ authenticated: true });
   });
 
+  app.get("/api/featured-players", async (_req, res) => {
+    const featuredPlayers = await storage.getFeaturedPlayers();
+    res.json(featuredPlayers);
+  });
+
+  app.get("/api/featured-player-ids", async (_req, res) => {
+    const ids = await storage.getFeaturedPlayerIds();
+    res.json(ids);
+  });
+
+  app.post("/api/featured-players", async (req, res) => {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.some((id: any) => typeof id !== "number")) {
+      return res.status(400).json({ error: "ids must be an array of numbers" });
+    }
+    await storage.setFeaturedPlayerIds(ids);
+    res.json({ success: true });
+  });
+
   app.post("/api/players/:id/headshot", async (req, res) => {
     const token = req.headers.authorization?.replace("Bearer ", "");
     if (!token || !adminSessions.has(token)) {

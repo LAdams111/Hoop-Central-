@@ -1,6 +1,6 @@
-import { players, playerStats, awards, teamRecords, type Player, type InsertPlayer, type PlayerStats, type InsertPlayerStats, type Award, type InsertAward, type TeamRecord, type InsertTeamRecord } from "@shared/schema";
+import { players, playerStats, awards, teamRecords, siteSettings, type Player, type InsertPlayer, type PlayerStats, type InsertPlayerStats, type Award, type InsertAward, type TeamRecord, type InsertTeamRecord } from "@shared/schema";
 import { db } from "./db";
-import { eq, ilike, or, sql, and } from "drizzle-orm";
+import { eq, ilike, or, sql, and, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Players
@@ -31,6 +31,11 @@ export interface IStorage {
   getTeamsByLeague(league: string): Promise<{ team: string; season: string }[]>;
   getAllTeamsWithLeague(): Promise<{ team: string; league: string; season: string }[]>;
   getTotalTeamCount(): Promise<number>;
+
+  // Site Settings (Featured Players)
+  getFeaturedPlayerIds(): Promise<number[]>;
+  setFeaturedPlayerIds(ids: number[]): Promise<void>;
+  getFeaturedPlayers(): Promise<Player[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -190,6 +195,25 @@ export class DatabaseStorage implements IStorage {
       .from(playerStats);
     const allTeams = new Set([...NBA_TEAMS, ...G_LEAGUE_TEAMS, ...dbTeams.map(t => t.team)]);
     return allTeams.size;
+  }
+
+  async getFeaturedPlayerIds(): Promise<number[]> {
+    const row = await db.select().from(siteSettings).where(eq(siteSettings.key, "featured_players")).limit(1);
+    if (row.length === 0) return [];
+    try { return JSON.parse(row[0].value); } catch { return []; }
+  }
+
+  async setFeaturedPlayerIds(ids: number[]): Promise<void> {
+    const value = JSON.stringify(ids);
+    await db.insert(siteSettings).values({ key: "featured_players", value })
+      .onConflictDoUpdate({ target: siteSettings.key, set: { value } });
+  }
+
+  async getFeaturedPlayers(): Promise<Player[]> {
+    const ids = await this.getFeaturedPlayerIds();
+    if (ids.length === 0) return [];
+    const result = await db.select().from(players).where(inArray(players.id, ids));
+    return ids.map(id => result.find(p => p.id === id)).filter(Boolean) as Player[];
   }
 }
 

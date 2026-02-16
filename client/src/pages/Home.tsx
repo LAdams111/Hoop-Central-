@@ -1,22 +1,91 @@
 import { Link } from "wouter";
-import { ArrowRight, Search, Activity, Users, Trophy } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, Search, Activity, Users, Trophy, Lock, X, Plus, Minus } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { usePlayers } from "@/hooks/use-players";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { DEFAULT_HEADSHOT, NBA_TEAMS, G_LEAGUE_TEAMS, LEAGUE_DEFAULT_SEASONS } from "@/lib/constants";
+import { queryClient } from "@/lib/queryClient";
+import type { Player } from "@shared/schema";
 
 export default function Home() {
   const { data: players, isLoading } = usePlayers();
   const { data: trendingPlayers, isLoading: isLoadingTrending } = usePlayers({ sortBy: "views" });
+  const { data: featuredPlayers, isLoading: isLoadingFeatured } = useQuery<Player[]>({ queryKey: ['/api/featured-players'] });
   const { data: teamCountData } = useQuery<{ count: number }>({ queryKey: ['/api/teams/count'] });
   const { data: dbTeams } = useQuery<{ team: string; league: string; season: string }[]>({ queryKey: ['/api/teams/all'] });
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminError, setAdminError] = useState("");
+  const [showFeaturedPicker, setShowFeaturedPicker] = useState(false);
+  const [featuredSearch, setFeaturedSearch] = useState("");
+
+  const { data: featuredIds } = useQuery<number[]>({ queryKey: ['/api/featured-player-ids'] });
+
+  useEffect(() => {
+    const token = localStorage.getItem("admin_token");
+    if (token) {
+      fetch("/api/admin/check", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => r.json())
+        .then((d) => { if (d.authenticated) setIsAdmin(true); else localStorage.removeItem("admin_token"); })
+        .catch(() => localStorage.removeItem("admin_token"));
+    }
+  }, []);
+
+  const handleAdminLogin = async () => {
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: adminPassword }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem("admin_token", data.token);
+        setIsAdmin(true);
+        setShowAdminLogin(false);
+        setAdminPassword("");
+        setAdminError("");
+      } else {
+        setAdminError(data.error || "Login failed");
+      }
+    } catch { setAdminError("Login failed"); }
+  };
+
+  const featuredMutation = useMutation({
+    mutationFn: async (ids: number[]) => {
+      const token = localStorage.getItem("admin_token");
+      const res = await fetch("/api/featured-players", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) throw new Error("Failed to update featured players");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/featured-players'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/featured-player-ids'] });
+    },
+  });
+
+  const toggleFeatured = (playerId: number) => {
+    const current = featuredIds || [];
+    const newIds = current.includes(playerId)
+      ? current.filter(id => id !== playerId)
+      : [...current, playerId].slice(0, 10);
+    featuredMutation.mutate(newIds);
+  };
 
   const LEAGUE_TIER: Record<string, number> = {
     "NBA": 1, "G-League": 2, "NCAA": 3, "OTE": 4, "HS": 5, "AAU": 5,
@@ -65,17 +134,24 @@ export default function Home() {
 
   const hasSuggestions = combined.length > 0;
 
-  // Get featured players (excluding Jalen Green)
-  const featuredPlayers = players?.filter(p => p.name !== "Jalen Green").slice(0, 5) || [];
+  const displayFeatured = (featuredPlayers && featuredPlayers.length > 0)
+    ? featuredPlayers
+    : players?.slice(0, 5) || [];
+
+  const featuredPickerResults = featuredSearch.trim().length > 0
+    ? (players?.filter(p => {
+        const searchWords = featuredSearch.toLowerCase().trim().split(/\s+/);
+        const nameWords = p.name.toLowerCase().split(' ');
+        return searchWords.every(sw => nameWords.some(nw => nw.startsWith(sw)));
+      }).slice(0, 8) || [])
+    : [];
 
   return (
     <div className="flex flex-col min-h-screen">
       {/* HERO SECTION */}
       <section className="relative h-[80vh] flex items-center justify-center overflow-visible border-b border-border/40 z-20">
-        {/* Background Overlay */}
         <div className="absolute inset-0 bg-background z-0">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
-          {/* Subtle grid pattern */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,black_70%,transparent_100%)]" />
         </div>
 
@@ -108,13 +184,13 @@ export default function Home() {
                   setShowSuggestions(true);
                 }}
                 onFocus={() => setShowSuggestions(true)}
+                data-testid="input-hero-search"
               />
-              <Button type="submit" className="absolute right-2 top-2 rounded-full h-10 w-10 p-0" variant="default">
+              <Button type="submit" className="absolute right-2 top-2 rounded-full h-10 w-10 p-0" variant="default" data-testid="button-hero-search-submit">
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </form>
 
-            {/* Suggestions Pop-up */}
             {showSuggestions && hasSuggestions && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-2xl shadow-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="py-2">
@@ -122,7 +198,7 @@ export default function Home() {
                     item.type === "player" ? (
                       <button
                         key={`player-${item.data.id}`}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-left transition-colors group"
+                        className="w-full flex items-center gap-3 px-4 py-3 hover-elevate text-left transition-colors group"
                         data-testid={`suggestion-player-${item.data.id}`}
                         onClick={() => {
                           setLocation(`/players/${item.data.id}`);
@@ -149,7 +225,7 @@ export default function Home() {
                     ) : (
                       <button
                         key={`team-${item.data.name}`}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-left transition-colors group"
+                        className="w-full flex items-center gap-3 px-4 py-3 hover-elevate text-left transition-colors group"
                         data-testid={`suggestion-team-${item.data.name}`}
                         onClick={() => {
                           const season = item.data.season || "2025-26";
@@ -175,7 +251,6 @@ export default function Home() {
               </div>
             )}
             
-            {/* Click away listener */}
             {showSuggestions && (
               <div 
                 className="fixed inset-0 z-40" 
@@ -245,20 +320,104 @@ export default function Home() {
       {/* FEATURED PLAYERS */}
       <section className="py-24 bg-muted relative overflow-hidden border-t border-border">
         <div className="container mx-auto px-4">
-          <div className="flex items-end justify-between mb-12">
+          <div className="flex items-end justify-between gap-4 mb-12 flex-wrap">
             <div>
               <h2 className="text-4xl md:text-5xl text-foreground mb-2">Featured <span className="text-primary">Athletes</span></h2>
               <p className="text-muted-foreground">Top performers from the current season</p>
             </div>
-            <Link href="/players">
-              <Button variant="outline" className="hidden md:flex gap-2">
-                View All Players
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFeaturedPicker(!showFeaturedPicker)}
+                  data-testid="button-featured-picker-toggle"
+                >
+                  {showFeaturedPicker ? <X className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                  {showFeaturedPicker ? "Close" : "Edit Featured"}
+                </Button>
+              )}
+              <Link href="/players">
+                <Button variant="outline" className="hidden md:flex gap-2">
+                  View All Players
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
 
-          {isLoading ? (
+          {isAdmin && showFeaturedPicker && (
+            <div className="mb-8 bg-card border border-border rounded-md p-4" data-testid="featured-picker-panel">
+              <div className="flex items-center gap-2 mb-3">
+                <Lock className="w-4 h-4 text-primary" />
+                <span className="font-display text-sm uppercase tracking-wider">Admin: Select Featured Players (max 10)</span>
+              </div>
+
+              {featuredIds && featuredIds.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {featuredIds.map(id => {
+                    const p = players?.find(pl => pl.id === id);
+                    if (!p) return null;
+                    return (
+                      <Badge key={id} variant="secondary" className="gap-1 pr-1" data-testid={`featured-badge-${id}`}>
+                        <img src={p.headshotUrl || DEFAULT_HEADSHOT} alt="" className="w-5 h-5 rounded-full object-cover object-top" onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }} />
+                        {p.name}
+                        <button
+                          className="ml-1 inline-flex items-center justify-center"
+                          onClick={() => toggleFeatured(id)}
+                          data-testid={`button-remove-featured-${id}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={featuredSearch}
+                  onChange={(e) => setFeaturedSearch(e.target.value)}
+                  placeholder="Search players to add..."
+                  className="w-full pl-9 pr-3 py-2 bg-muted border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  data-testid="input-featured-search"
+                />
+              </div>
+
+              {featuredPickerResults.length > 0 && (
+                <div className="mt-2 border border-border rounded-md overflow-hidden max-h-64 overflow-y-auto">
+                  {featuredPickerResults.map(p => {
+                    const isFeatured = featuredIds?.includes(p.id);
+                    return (
+                      <button
+                        key={p.id}
+                        className="w-full flex items-center gap-3 px-3 py-2 hover-elevate text-left transition-colors"
+                        onClick={() => toggleFeatured(p.id)}
+                        data-testid={`featured-option-${p.id}`}
+                      >
+                        <div className="w-8 h-8 rounded-full overflow-hidden border border-border flex-shrink-0">
+                          <img src={p.headshotUrl || DEFAULT_HEADSHOT} alt={p.name} className="w-full h-full object-cover object-top" onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-display font-bold text-sm text-foreground truncate">{p.name}</div>
+                          <div className="text-xs text-muted-foreground font-mono uppercase">{p.team} • #{p.jerseyNumber}</div>
+                        </div>
+                        {isFeatured ? (
+                          <Badge variant="default" className="flex-shrink-0"><Minus className="w-3 h-3 mr-1" />Remove</Badge>
+                        ) : (
+                          <Badge variant="outline" className="flex-shrink-0"><Plus className="w-3 h-3 mr-1" />Add</Badge>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {(isLoadingFeatured || isLoading) ? (
             <div className="grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-6 md:gap-8">
               {[1, 2, 3, 4, 5].map((n) => (
                 <div key={n} className="aspect-[3/4] rounded-xl bg-card/50 animate-pulse border border-white/5" />
@@ -266,7 +425,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-6 md:gap-8">
-              {featuredPlayers.map((player) => (
+              {displayFeatured.map((player) => (
                 <PlayerCard key={player.id} player={player} />
               ))}
             </div>
@@ -282,6 +441,51 @@ export default function Home() {
 
       {/* FAVORITES SECTION */}
       <FavoritesBar players={players} />
+
+      {/* ADMIN LOGIN - Fixed bottom-right */}
+      <div className="fixed bottom-6 right-6 z-50">
+        {!isAdmin && !showAdminLogin && (
+          <Button
+            size="icon"
+            variant="outline"
+            className="rounded-full opacity-30 hover:opacity-100 transition-opacity"
+            onClick={() => setShowAdminLogin(true)}
+            data-testid="button-home-admin-login-toggle"
+          >
+            <Lock className="w-4 h-4" />
+          </Button>
+        )}
+
+        {showAdminLogin && (
+          <div className="bg-card border border-border rounded-md p-4 shadow-2xl w-72">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="font-display text-sm uppercase tracking-wider">Admin Login</span>
+              <Button size="icon" variant="ghost" onClick={() => { setShowAdminLogin(false); setAdminError(""); }} data-testid="button-home-admin-close">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <input
+              type="password"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAdminLogin()}
+              placeholder="Password"
+              className="w-full px-3 py-2 bg-muted border border-border rounded-md text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-primary"
+              data-testid="input-home-admin-password"
+            />
+            {adminError && <p className="text-destructive text-xs mb-2">{adminError}</p>}
+            <Button className="w-full" onClick={handleAdminLogin} data-testid="button-home-admin-submit">
+              Login
+            </Button>
+          </div>
+        )}
+
+        {isAdmin && !showAdminLogin && (
+          <Badge variant="outline" className="bg-card border-primary/30 text-primary px-3 py-1">
+            <Lock className="w-3 h-3 mr-1" /> Admin
+          </Badge>
+        )}
+      </div>
     </div>
   );
 }

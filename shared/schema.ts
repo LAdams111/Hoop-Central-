@@ -68,6 +68,11 @@ export const awardsRelations = relations(awards, ({ one }) => ({
   }),
 }));
 
+export const siteSettings = pgTable("site_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+});
+
 export const insertPlayerSchema = createInsertSchema(players).omit({ id: true });
 export const insertPlayerStatsSchema = createInsertSchema(playerStats).omit({ id: true });
 export const insertAwardSchema = createInsertSchema(awards).omit({ id: true });
