@@ -31,6 +31,14 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
     apiKey: "NCAA",
     defaultSeason: "2025-26",
   },
+  "USports": {
+    display: "U Sports",
+    tier: "Collegiate",
+    description: "Canada's national governing body for university sport, featuring top collegiate basketball programs across the country.",
+    logoUrl: "https://upload.wikimedia.org/wikipedia/commons/3/34/U_Sports_Logo.svg",
+    apiKey: "USports",
+    defaultSeason: "2025-26",
+  },
   "OTE": {
     display: "Overtime Elite (OTE)",
     tier: "Professional",

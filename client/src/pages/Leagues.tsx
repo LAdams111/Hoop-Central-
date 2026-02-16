@@ -28,6 +28,14 @@ const LEAGUES = [
     regions: ["US"]
   },
   {
+    name: "U Sports",
+    slug: "USports",
+    tier: "Collegiate",
+    description: "Canada's national governing body for university sport, featuring top collegiate basketball programs across the country.",
+    logoUrl: "https://upload.wikimedia.org/wikipedia/commons/3/34/U_Sports_Logo.svg",
+    regions: ["CA"]
+  },
+  {
     name: "Overtime Elite (OTE)",
     slug: "OTE",
     tier: "Professional",
