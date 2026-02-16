@@ -474,26 +474,58 @@ export default function PlayerProfile() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {[...player.stats].sort((a, b) => b.season.localeCompare(a.season)).map((stat) => (
-                    <tr key={stat.id} className="hover:bg-muted/50 transition-colors">
-                      <td className="px-6 py-4 font-mono font-medium">{stat.season}</td>
-                      <td className="px-6 py-4 font-mono text-muted-foreground whitespace-nowrap">{stat.league || "NBA"}</td>
-                      <td className="px-6 py-4 uppercase font-mono">
-                        <Link href={`/roster/${stat.team}/${stat.season}`}>
-                          <Button variant="ghost" className="p-0 h-auto text-primary hover:text-primary/80 whitespace-nowrap">
-                            {stat.team}
-                          </Button>
-                        </Link>
-                      </td>
-                      <td className="px-6 py-4 text-base text-muted-foreground">{stat.gamesPlayed}</td>
-                      <td className="px-6 py-4 text-base font-bold text-foreground">{stat.pointsPerGame}</td>
-                      <td className="px-6 py-4 text-base text-muted-foreground">{stat.reboundsPerGame}</td>
-                      <td className="px-6 py-4 text-base text-muted-foreground">{stat.assistsPerGame}</td>
-                      <td className="px-6 py-4 text-base text-muted-foreground">{stat.blocksPerGame}</td>
-                      <td className="px-6 py-4 text-base text-muted-foreground">{stat.stealsPerGame}</td>
-                      <td className="px-6 py-4 text-base font-mono text-accent">{stat.fieldGoalPct}%</td>
-                    </tr>
-                  ))}
+                  {(() => {
+                    const sorted = [...player.stats].sort((a, b) => {
+                      const seasonCmp = b.season.localeCompare(a.season);
+                      if (seasonCmp !== 0) return seasonCmp;
+                      return a.id - b.id;
+                    });
+                    const seasonLeagueCounts: Record<string, number> = {};
+                    sorted.forEach((s) => {
+                      const key = `${s.season}-${s.league || "NBA"}`;
+                      seasonLeagueCounts[key] = (seasonLeagueCounts[key] || 0) + 1;
+                    });
+                    const seasonLeagueIndex: Record<string, number> = {};
+                    return sorted.map((stat) => {
+                      const slKey = `${stat.season}-${stat.league || "NBA"}`;
+                      const isMultiTeamSeason = seasonLeagueCounts[slKey] > 1;
+                      if (!seasonLeagueIndex[slKey]) seasonLeagueIndex[slKey] = 0;
+                      seasonLeagueIndex[slKey]++;
+                      const teamIndex = seasonLeagueIndex[slKey];
+                      const isFirstOfSeason = teamIndex === 1;
+                      return (
+                        <tr key={stat.id} className={`hover:bg-muted/50 transition-colors ${isMultiTeamSeason ? 'bg-muted/20' : ''}`}>
+                          <td className="px-6 py-4 font-mono font-medium">
+                            <div className="flex items-center gap-2">
+                              {isMultiTeamSeason && !isFirstOfSeason ? (
+                                <span className="text-muted-foreground/50 pl-3">↳</span>
+                              ) : (
+                                stat.season
+                              )}
+                              {isMultiTeamSeason && isFirstOfSeason && (
+                                <span className="text-[10px] font-sans bg-yellow-600/20 text-yellow-500 px-1.5 py-0.5 rounded no-default-hover-elevate no-default-active-elevate" data-testid={`badge-traded-${stat.id}`}>TRADED</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 font-mono text-muted-foreground whitespace-nowrap">{stat.league || "NBA"}</td>
+                          <td className="px-6 py-4 uppercase font-mono">
+                            <Link href={`/roster/${stat.team}/${stat.season}`}>
+                              <Button variant="ghost" className="p-0 h-auto text-primary whitespace-nowrap" data-testid={`link-team-${stat.id}`}>
+                                {stat.team}
+                              </Button>
+                            </Link>
+                          </td>
+                          <td className="px-6 py-4 text-base text-muted-foreground">{stat.gamesPlayed}</td>
+                          <td className="px-6 py-4 text-base font-bold text-foreground">{stat.pointsPerGame}</td>
+                          <td className="px-6 py-4 text-base text-muted-foreground">{stat.reboundsPerGame}</td>
+                          <td className="px-6 py-4 text-base text-muted-foreground">{stat.assistsPerGame}</td>
+                          <td className="px-6 py-4 text-base text-muted-foreground">{stat.blocksPerGame}</td>
+                          <td className="px-6 py-4 text-base text-muted-foreground">{stat.stealsPerGame}</td>
+                          <td className="px-6 py-4 text-base font-mono text-accent">{stat.fieldGoalPct}%</td>
+                        </tr>
+                      );
+                    });
+                  })()}
                 </tbody>
               </table>
             </div>

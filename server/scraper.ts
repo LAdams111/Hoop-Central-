@@ -259,29 +259,19 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
       for (const nameLower of Object.keys(playerEntriesMap)) {
         const entries = playerEntriesMap[nameLower];
         try {
-          const multiTeamEntry = entries.find((e: any) => isMultiTeamAbbr(e.team));
           const individualEntries = entries.filter((e: any) => !isMultiTeamAbbr(e.team));
+          const hasMultiTeam = entries.some((e: any) => isMultiTeamAbbr(e.team));
 
-          const statsEntry = multiTeamEntry || entries[0];
-          const lastTeamEntry = individualEntries.length > 0
-            ? individualEntries[individualEntries.length - 1]
-            : statsEntry;
+          const teamEntries = individualEntries.length > 0 ? individualEntries : [entries[0]];
 
-          const playerName = statsEntry.playerName;
-          const teamAbbr = lastTeamEntry.team;
-          const teamFull = NBA_TEAM_MAP[teamAbbr] || teamAbbr;
-          const gamesPlayed = statsEntry.games || 0;
+          const firstEntry = entries[0];
+          const playerName = firstEntry.playerName;
 
-          if (gamesPlayed === 0) continue;
+          const lastTeamEntry = teamEntries[teamEntries.length - 1];
+          const currentTeamAbbr = lastTeamEntry.team;
+          const currentTeamFull = isMultiTeamAbbr(currentTeamAbbr) ? currentTeamAbbr : (NBA_TEAM_MAP[currentTeamAbbr] || currentTeamAbbr);
 
-          const ppg = (statsEntry.points / gamesPlayed).toFixed(1);
-          const rpg = (statsEntry.totalRb / gamesPlayed).toFixed(1);
-          const apg = (statsEntry.assists / gamesPlayed).toFixed(1);
-          const spg = (statsEntry.steals / gamesPlayed).toFixed(1);
-          const bpg = (statsEntry.blocks / gamesPlayed).toFixed(1);
-          const fgPct = statsEntry.fieldPercent ? (statsEntry.fieldPercent * 100).toFixed(1) : "0.0";
-
-          const position = statsEntry.position || "SF";
+          const position = firstEntry.position || "SF";
           const posMap: Record<string, string> = {
             "PG": "PG", "SG": "SG", "SF": "SF", "PF": "PF", "C": "C",
             "G": "PG", "F": "SF", "G-F": "SF", "F-G": "SG", "F-C": "PF", "C-F": "PF",
@@ -291,9 +281,9 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
           const defaultHeadshotUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/1631244.png";
 
           let birthDate: string | null = null;
-          if (statsEntry.age) {
+          if (firstEntry.age) {
             const ageSeasonEnd = seasonYear;
-            const birthYear = ageSeasonEnd - statsEntry.age;
+            const birthYear = ageSeasonEnd - firstEntry.age;
             birthDate = `${birthYear}-01-01`;
           }
 
@@ -308,7 +298,7 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
               playerId = existingPlayers[0].id;
               if (seasonYear === currentSeasonYear) {
                 await db.update(players).set({
-                  team: teamFull,
+                  team: currentTeamFull,
                 }).where(eq(players.id, playerId));
                 result.playersUpdated++;
               }
@@ -316,12 +306,12 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
               const newPlayer = await storage.createPlayer({
                 name: playerName,
                 position: mappedPos,
-                team: teamFull,
+                team: currentTeamFull,
                 height: "6'0\"",
                 weight: "200 lbs",
                 jerseyNumber: 0,
                 headshotUrl: defaultHeadshotUrl,
-                bio: `${playerName} is a professional basketball player for the ${teamFull}.`,
+                bio: `${playerName} is a professional basketball player for the ${currentTeamFull}.`,
                 profileViews: 50,
                 hometown: null,
                 birthDate: birthDate,
@@ -332,7 +322,7 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
             playerCache.set(nameLower, playerId);
           }
 
-          const existingStats = await db.select().from(playerStats).where(
+          const existingSeasonStats = await db.select().from(playerStats).where(
             and(
               eq(playerStats.playerId, playerId),
               eq(playerStats.season, seasonDisplay),
@@ -340,34 +330,65 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
             )
           );
 
-          if (existingStats.length > 0) {
-            await db.update(playerStats).set({
-              team: teamFull,
-              gamesPlayed: gamesPlayed,
-              pointsPerGame: ppg,
-              reboundsPerGame: rpg,
-              assistsPerGame: apg,
-              stealsPerGame: spg,
-              blocksPerGame: bpg,
-              fieldGoalPct: fgPct,
-            }).where(eq(playerStats.id, existingStats[0].id));
-          } else {
-            await storage.createPlayerStats({
-              playerId: playerId,
-              season: seasonDisplay,
-              team: teamFull,
-              league: "NBA",
-              gamesPlayed: gamesPlayed,
-              pointsPerGame: ppg,
-              reboundsPerGame: rpg,
-              assistsPerGame: apg,
-              stealsPerGame: spg,
-              blocksPerGame: bpg,
-              fieldGoalPct: fgPct,
-            });
-          }
+          if (hasMultiTeam && individualEntries.length > 1) {
+            for (const oldStat of existingSeasonStats) {
+              await db.delete(playerStats).where(eq(playerStats.id, oldStat.id));
+            }
 
-          result.statsUpdated++;
+            for (const te of individualEntries) {
+              const teTeamFull = NBA_TEAM_MAP[te.team] || te.team;
+              const teGP = te.games || 0;
+              if (teGP === 0) continue;
+
+              await storage.createPlayerStats({
+                playerId: playerId,
+                season: seasonDisplay,
+                team: teTeamFull,
+                league: "NBA",
+                gamesPlayed: teGP,
+                pointsPerGame: (te.points / teGP).toFixed(1),
+                reboundsPerGame: (te.totalRb / teGP).toFixed(1),
+                assistsPerGame: (te.assists / teGP).toFixed(1),
+                stealsPerGame: (te.steals / teGP).toFixed(1),
+                blocksPerGame: (te.blocks / teGP).toFixed(1),
+                fieldGoalPct: te.fieldPercent ? (te.fieldPercent * 100).toFixed(1) : "0.0",
+              });
+              result.statsUpdated++;
+            }
+          } else {
+            const te = teamEntries[0];
+            const teTeamFull = isMultiTeamAbbr(te.team) ? te.team : (NBA_TEAM_MAP[te.team] || te.team);
+            const teGP = te.games || 0;
+            if (teGP === 0) continue;
+
+            if (existingSeasonStats.length > 0) {
+              await db.update(playerStats).set({
+                team: teTeamFull,
+                gamesPlayed: teGP,
+                pointsPerGame: (te.points / teGP).toFixed(1),
+                reboundsPerGame: (te.totalRb / teGP).toFixed(1),
+                assistsPerGame: (te.assists / teGP).toFixed(1),
+                stealsPerGame: (te.steals / teGP).toFixed(1),
+                blocksPerGame: (te.blocks / teGP).toFixed(1),
+                fieldGoalPct: te.fieldPercent ? (te.fieldPercent * 100).toFixed(1) : "0.0",
+              }).where(eq(playerStats.id, existingSeasonStats[0].id));
+            } else {
+              await storage.createPlayerStats({
+                playerId: playerId,
+                season: seasonDisplay,
+                team: teTeamFull,
+                league: "NBA",
+                gamesPlayed: teGP,
+                pointsPerGame: (te.points / teGP).toFixed(1),
+                reboundsPerGame: (te.totalRb / teGP).toFixed(1),
+                assistsPerGame: (te.assists / teGP).toFixed(1),
+                stealsPerGame: (te.steals / teGP).toFixed(1),
+                blocksPerGame: (te.blocks / teGP).toFixed(1),
+                fieldGoalPct: te.fieldPercent ? (te.fieldPercent * 100).toFixed(1) : "0.0",
+              });
+            }
+            result.statsUpdated++;
+          }
         } catch (playerErr: any) {
           result.errors.push(`Error processing ${nameLower} (${seasonDisplay}): ${playerErr.message}`);
           console.error(`[NBA Scraper] Error processing ${nameLower}:`, playerErr.message);
