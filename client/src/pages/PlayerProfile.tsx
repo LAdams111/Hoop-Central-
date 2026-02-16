@@ -18,9 +18,13 @@ import {
   Lock,
   Upload,
   Loader2,
-  X
+  X,
+  Pencil,
+  Save,
+  Check
 } from "lucide-react";
 import { Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PlayerProfile() {
   const [, params] = useRoute("/players/:id");
@@ -32,7 +36,14 @@ export default function PlayerProfile() {
   const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState("");
   const [isUploadingHeadshot, setIsUploadingHeadshot] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "", position: "", team: "", height: "", weight: "",
+    jerseyNumber: 0, bio: "", hometown: "", birthDate: "",
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
@@ -92,6 +103,40 @@ export default function PlayerProfile() {
     } finally {
       setIsUploadingHeadshot(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const startEditing = () => {
+    if (!player) return;
+    setEditForm({
+      name: player.name, position: player.position, team: player.team,
+      height: player.height, weight: player.weight, jerseyNumber: player.jerseyNumber,
+      bio: player.bio || "", hometown: player.hometown || "",
+      birthDate: player.birthDate || "",
+    });
+    setIsEditing(true);
+  };
+
+  const saveChanges = async () => {
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem("admin_token");
+      const res = await fetch(`/api/players/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(editForm),
+      });
+      if (res.ok) {
+        queryClient.invalidateQueries({ queryKey: ["/api/players", id] });
+        setIsEditing(false);
+        toast({ title: "Player updated", description: "Changes saved successfully." });
+      } else {
+        toast({ title: "Error", description: "Failed to save changes.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to save changes.", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -238,6 +283,17 @@ export default function PlayerProfile() {
                   </h1>
                 </div>
                 <div className="flex flex-col gap-3">
+                  {isAdmin && !isEditing && (
+                    <Button
+                      variant="outline"
+                      className="w-full flex items-center justify-center gap-2 rounded-xl"
+                      onClick={startEditing}
+                      data-testid="button-edit-player"
+                    >
+                      <Pencil className="w-4 h-4" />
+                      <span className="font-display font-bold uppercase tracking-tight">Edit Player</span>
+                    </Button>
+                  )}
                   <Button 
                     variant={isFavorited ? "default" : "secondary"} 
                     className={`w-full h-12 flex items-center justify-center gap-2 border-2 ${isFavorited ? 'border-primary' : 'border-border'} rounded-xl transition-all`}
@@ -296,6 +352,67 @@ export default function PlayerProfile() {
               <span className="font-display text-2xl uppercase tracking-wider font-bold"><span className="text-black dark:text-white">{player.profileViews}</span><span className="ml-3">Profile Views</span></span>
             </div>
           </div>
+
+          {isEditing && (
+            <section className="bg-card rounded-2xl border border-border p-6 shadow-xl" data-testid="section-edit-player">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-display text-2xl">Edit Player Info</h3>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving} data-testid="button-cancel-edit">
+                    <X className="w-4 h-4 mr-2" /> Cancel
+                  </Button>
+                  <Button onClick={saveChanges} disabled={isSaving} data-testid="button-save-player">
+                    {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+                    Save Changes
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Name</label>
+                  <input className="px-3 py-2 bg-muted border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} data-testid="input-edit-name" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Position</label>
+                  <select className="px-3 py-2 bg-muted border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" value={editForm.position} onChange={(e) => setEditForm({ ...editForm, position: e.target.value })} data-testid="input-edit-position">
+                    <option value="PG">PG</option>
+                    <option value="SG">SG</option>
+                    <option value="SF">SF</option>
+                    <option value="PF">PF</option>
+                    <option value="C">C</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Team</label>
+                  <input className="px-3 py-2 bg-muted border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" value={editForm.team} onChange={(e) => setEditForm({ ...editForm, team: e.target.value })} data-testid="input-edit-team" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Height</label>
+                  <input className="px-3 py-2 bg-muted border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="6'6&quot;" value={editForm.height} onChange={(e) => setEditForm({ ...editForm, height: e.target.value })} data-testid="input-edit-height" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Weight</label>
+                  <input className="px-3 py-2 bg-muted border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="220 lbs" value={editForm.weight} onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })} data-testid="input-edit-weight" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Jersey #</label>
+                  <input type="number" className="px-3 py-2 bg-muted border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" value={editForm.jerseyNumber} onChange={(e) => setEditForm({ ...editForm, jerseyNumber: parseInt(e.target.value) || 0 })} data-testid="input-edit-jersey" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Date of Birth</label>
+                  <input type="date" className="px-3 py-2 bg-muted border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" value={editForm.birthDate} onChange={(e) => setEditForm({ ...editForm, birthDate: e.target.value })} data-testid="input-edit-dob" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Hometown</label>
+                  <input className="px-3 py-2 bg-muted border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="City, State" value={editForm.hometown} onChange={(e) => setEditForm({ ...editForm, hometown: e.target.value })} data-testid="input-edit-hometown" />
+                </div>
+                <div className="flex flex-col gap-1.5 md:col-span-2 lg:col-span-3">
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Bio</label>
+                  <textarea rows={3} className="px-3 py-2 bg-muted border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" value={editForm.bio} onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })} data-testid="input-edit-bio" />
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Top Row: Quick Stats & Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -56,6 +56,29 @@ export async function registerRoutes(
 
   registerObjectStorageRoutes(app);
 
+  app.patch("/api/players/:id", async (req, res) => {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const id = Number(req.params.id);
+    const allowedFields = ['name', 'position', 'team', 'height', 'weight', 'jerseyNumber', 'bio', 'hometown', 'birthDate'] as const;
+    const data: Record<string, any> = {};
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        data[field] = field === 'jerseyNumber' ? Number(req.body[field]) : req.body[field];
+      }
+    }
+    if (Object.keys(data).length === 0) {
+      return res.status(400).json({ error: "No valid fields to update" });
+    }
+    const updated = await storage.updatePlayer(id, data);
+    if (!updated) {
+      return res.status(404).json({ error: "Player not found" });
+    }
+    res.json(updated);
+  });
+
   // Players List
   app.get(api.players.list.path, async (req, res) => {
     const search = req.query.search as string | undefined;

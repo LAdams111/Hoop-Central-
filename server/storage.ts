@@ -25,6 +25,7 @@ export interface IStorage {
 
   // Player Updates
   updatePlayerHeadshot(id: number, headshotUrl: string): Promise<void>;
+  updatePlayer(id: number, data: Partial<Pick<Player, 'name' | 'position' | 'team' | 'height' | 'weight' | 'jerseyNumber' | 'bio' | 'hometown' | 'birthDate'>>): Promise<Player | undefined>;
 
   // League Teams
   getTeamsByLeague(league: string): Promise<{ team: string; season: string }[]>;
@@ -124,6 +125,11 @@ export class DatabaseStorage implements IStorage {
 
   async updatePlayerHeadshot(id: number, headshotUrl: string): Promise<void> {
     await db.update(players).set({ headshotUrl }).where(eq(players.id, id));
+  }
+
+  async updatePlayer(id: number, data: Partial<Pick<Player, 'name' | 'position' | 'team' | 'height' | 'weight' | 'jerseyNumber' | 'bio' | 'hometown' | 'birthDate'>>): Promise<Player | undefined> {
+    const [updated] = await db.update(players).set(data).where(eq(players.id, id)).returning();
+    return updated;
   }
 
   async getTeamRecord(team: string, season: string): Promise<TeamRecord | undefined> {
