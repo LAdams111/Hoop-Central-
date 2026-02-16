@@ -8,6 +8,26 @@ import { ArrowLeft, ArrowRight, Search } from "lucide-react";
 import { Link } from "wouter";
 import { NBA_TEAMS, G_LEAGUE_TEAMS, EUROLEAGUE_TEAMS, EUROLEAGUE_LOGOS } from "@/lib/constants";
 
+const NBA_TEAM_IDS: Record<string, string> = {
+  "Atlanta Hawks": "1610612737", "Boston Celtics": "1610612738", "Brooklyn Nets": "1610612751",
+  "Charlotte Hornets": "1610612766", "Chicago Bulls": "1610612741", "Cleveland Cavaliers": "1610612739",
+  "Dallas Mavericks": "1610612742", "Denver Nuggets": "1610612743", "Detroit Pistons": "1610612765",
+  "Golden State Warriors": "1610612744", "Houston Rockets": "1610612745", "Indiana Pacers": "1610612754",
+  "LA Clippers": "1610612746", "Los Angeles Lakers": "1610612747", "Memphis Grizzlies": "1610612763",
+  "Miami Heat": "1610612748", "Milwaukee Bucks": "1610612749", "Minnesota Timberwolves": "1610612750",
+  "New Orleans Pelicans": "1610612740", "New York Knicks": "1610612752", "Oklahoma City Thunder": "1610612760",
+  "Orlando Magic": "1610612753", "Philadelphia 76ers": "1610612755", "Phoenix Suns": "1610612756",
+  "Portland Trail Blazers": "1610612757", "Sacramento Kings": "1610612758", "San Antonio Spurs": "1610612759",
+  "Toronto Raptors": "1610612761", "Utah Jazz": "1610612762", "Washington Wizards": "1610612764",
+};
+
+function getTeamLogo(teamName: string): string | null {
+  const nbaId = NBA_TEAM_IDS[teamName];
+  if (nbaId) return `https://cdn.nba.com/logos/nba/${nbaId}/primary/L/logo.svg`;
+  if (EUROLEAGUE_LOGOS[teamName]) return EUROLEAGUE_LOGOS[teamName];
+  return null;
+}
+
 const LEAGUE_INFO: Record<string, { display: string; tier: string; description: string; logoUrl?: string; apiKey?: string; defaultSeason: string }> = {
   "NBA": {
     display: "NBA",
@@ -228,20 +248,22 @@ export default function LeagueDetail() {
         ) : teams.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" data-testid="teams-grid">
             {teams.map((team) => {
-              const teamLogo = EUROLEAGUE_LOGOS[team.name];
+              const logo = getTeamLogo(team.name);
               return (
                 <Link key={team.name} href={`/roster/${encodeURIComponent(team.name)}/${encodeURIComponent(team.season)}`} data-testid={`link-team-${team.name.replace(/\s+/g, '-').toLowerCase()}`}>
                   <Card className="p-3 hover-elevate border-border hover:border-primary/40 cursor-pointer bg-card/50 backdrop-blur-sm">
-                    <div className="flex items-center gap-2 mb-1">
-                      {teamLogo && (
-                        <img src={teamLogo} alt={team.name} className="w-6 h-6 object-contain flex-shrink-0" />
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-[10px] font-mono uppercase tracking-widest mb-1 truncate ${accentClass}`}>{info.display}</div>
+                        <div className="text-sm font-bold truncate">{team.name}</div>
+                        <div className="flex items-center justify-between gap-1 mt-2">
+                          <span className="text-[9px] text-muted-foreground font-mono">{team.season}</span>
+                          <ArrowRight className={`w-3 h-3 ${arrowAccent}`} />
+                        </div>
+                      </div>
+                      {logo && (
+                        <img src={logo} alt={team.name} className="w-8 h-8 object-contain flex-shrink-0 opacity-60" />
                       )}
-                      <div className={`text-[10px] font-mono uppercase tracking-widest truncate ${accentClass}`}>{info.display}</div>
-                    </div>
-                    <div className="text-sm font-bold truncate">{team.name}</div>
-                    <div className="flex items-center justify-between gap-1 mt-2">
-                      <span className="text-[9px] text-muted-foreground font-mono">{team.season}</span>
-                      <ArrowRight className={`w-3 h-3 ${arrowAccent}`} />
                     </div>
                   </Card>
                 </Link>
