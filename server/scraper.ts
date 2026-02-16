@@ -312,7 +312,7 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
                 jerseyNumber: 0,
                 headshotUrl: defaultHeadshotUrl,
                 bio: `${playerName} is a professional basketball player for the ${currentTeamFull}.`,
-                profileViews: 50,
+                profileViews: Math.floor(Math.random() * 5001) + 10000,
                 hometown: null,
                 birthDate: birthDate,
               });
