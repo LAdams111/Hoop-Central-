@@ -11,21 +11,21 @@ import { NBA_TEAMS, G_LEAGUE_TEAMS } from "@/lib/constants";
 const LEAGUE_INFO: Record<string, { display: string; tier: string; description: string; logoUrl?: string; apiKey?: string; defaultSeason: string }> = {
   "NBA": {
     display: "NBA",
-    tier: "Tier 1: Professional",
+    tier: "Professional",
     description: "The National Basketball Association - the premier professional basketball league in the world.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/0/03/National_Basketball_Association_logo.svg",
     defaultSeason: "2025-26",
   },
   "G-League": {
     display: "NBA G League",
-    tier: "Tier 2: Professional",
+    tier: "Professional",
     description: "The official minor league organization of the NBA.",
     logoUrl: "https://cdn.nba.com/logos/leagues/logo-gleague.svg",
     defaultSeason: "2025-26",
   },
   "NCAA": {
     display: "NCAA Division I",
-    tier: "Tier 3: Collegiate",
+    tier: "Collegiate",
     description: "The highest level of intercollegiate athletics sanctioned by the NCAA.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/commons/d/dd/NCAA_logo.svg",
     apiKey: "NCAA",
@@ -33,7 +33,7 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
   },
   "OTE": {
     display: "Overtime Elite (OTE)",
-    tier: "Tier 4: Professional",
+    tier: "Professional",
     description: "A professional basketball league for late-stage high school and early college-level players.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/commons/7/73/OvertimeEliteLogo.png",
     apiKey: "OTE",
@@ -41,14 +41,14 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
   },
   "High-School": {
     display: "High School",
-    tier: "Tier 5: Amateur",
+    tier: "Amateur",
     description: "Varsity high school basketball programs across the country producing top collegiate and professional talent.",
     apiKey: "HS",
     defaultSeason: "2025-26",
   },
   "AAU": {
     display: "AAU",
-    tier: "Tier 5: Amateur",
+    tier: "Amateur",
     description: "The Amateur Athletic Union organizes competitive club basketball for youth and high school players nationwide.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/f/f6/Amateur_Athletic_Union_%28logo%29.png",
     apiKey: "AAU",
@@ -56,7 +56,7 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
   },
   "EuroLeague": {
     display: "EuroLeague",
-    tier: "Tier 1: Professional",
+    tier: "Professional",
     description: "The top-tier European professional basketball club competition, featuring the best teams from across the continent.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/f/fb/Euroleague_Basketball_logo.svg",
     apiKey: "EuroLeague",
@@ -64,7 +64,7 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
   },
   "ACB": {
     display: "Liga ACB",
-    tier: "Tier 1: Professional",
+    tier: "Professional",
     description: "Spain's premier professional basketball league and one of the strongest domestic leagues in the world.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/commons/e/e7/Liga_Endesa_2019_logo.svg",
     apiKey: "ACB",
@@ -72,7 +72,7 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
   },
   "NBL": {
     display: "NBL Australia",
-    tier: "Tier 1: Professional",
+    tier: "Professional",
     description: "Australia's top professional basketball league, increasingly a pathway for NBA-bound international talent.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/b/b2/NBL_%28Australia%29_logo.svg",
     apiKey: "NBL",
@@ -80,7 +80,7 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
   },
   "BAL": {
     display: "Basketball Africa League",
-    tier: "Tier 2: Professional",
+    tier: "Professional",
     description: "The premier professional basketball league on the African continent, backed by the NBA and FIBA.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/b/b0/Basketball_Africa_League.svg",
     apiKey: "BAL",
@@ -88,7 +88,7 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
   },
   "CBA": {
     display: "Chinese Basketball Association",
-    tier: "Tier 1: Professional",
+    tier: "Professional",
     description: "China's top professional basketball league with a growing international presence.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/5/53/Chinese_Basketball_Association.svg",
     apiKey: "CBA",
@@ -96,7 +96,7 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
   },
   "BLeague": {
     display: "B.League (Japan)",
-    tier: "Tier 1: Professional",
+    tier: "Professional",
     description: "Japan's top professional basketball league, known for its passionate fanbase and rising talent development.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/commons/7/7a/B.League_logo.svg",
     apiKey: "BLeague",

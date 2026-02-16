@@ -6,7 +6,7 @@ const LEAGUES = [
   {
     name: "NBA",
     slug: "NBA",
-    tier: "Tier 1: Professional",
+    tier: "Professional",
     description: "The National Basketball Association - the premier professional basketball league in the world.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/0/03/National_Basketball_Association_logo.svg",
     regions: ["US", "CA"]
@@ -14,7 +14,7 @@ const LEAGUES = [
   {
     name: "NBA G League",
     slug: "G-League",
-    tier: "Tier 2: Professional",
+    tier: "Professional",
     description: "The official minor league organization of the NBA.",
     logoUrl: "https://cdn.nba.com/logos/leagues/logo-gleague.svg",
     regions: ["US", "CA", "MX"]
@@ -22,7 +22,7 @@ const LEAGUES = [
   {
     name: "NCAA Division I",
     slug: "NCAA",
-    tier: "Tier 3: Collegiate",
+    tier: "Collegiate",
     description: "The highest level of intercollegiate athletics sanctioned by the NCAA.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/commons/d/dd/NCAA_logo.svg",
     regions: ["US"]
@@ -30,7 +30,7 @@ const LEAGUES = [
   {
     name: "Overtime Elite (OTE)",
     slug: "OTE",
-    tier: "Tier 4: Professional",
+    tier: "Professional",
     description: "A professional basketball league for late-stage high school and early college-level players.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/commons/7/73/OvertimeEliteLogo.png",
     regions: ["US"]
@@ -38,14 +38,14 @@ const LEAGUES = [
   {
     name: "High School",
     slug: "High-School",
-    tier: "Tier 5: Amateur",
+    tier: "Amateur",
     description: "Varsity high school basketball programs across the country producing top collegiate and professional talent.",
     regions: ["US", "CA"]
   },
   {
     name: "AAU",
     slug: "AAU",
-    tier: "Tier 5: Amateur",
+    tier: "Amateur",
     description: "The Amateur Athletic Union organizes competitive club basketball for youth and high school players nationwide.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/f/f6/Amateur_Athletic_Union_%28logo%29.png",
     regions: ["US"]
@@ -56,7 +56,7 @@ const INTERNATIONAL_LEAGUES = [
   {
     name: "EuroLeague",
     slug: "EuroLeague",
-    tier: "Tier 1: Professional",
+    tier: "Professional",
     description: "The top-tier European professional basketball club competition, featuring the best teams from across the continent.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/f/fb/Euroleague_Basketball_logo.svg",
     regions: ["EU"]
@@ -64,7 +64,7 @@ const INTERNATIONAL_LEAGUES = [
   {
     name: "Liga ACB",
     slug: "ACB",
-    tier: "Tier 1: Professional",
+    tier: "Professional",
     description: "Spain's premier professional basketball league and one of the strongest domestic leagues in the world.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/commons/e/e7/Liga_Endesa_2019_logo.svg",
     regions: ["ES"]
@@ -72,7 +72,7 @@ const INTERNATIONAL_LEAGUES = [
   {
     name: "NBL Australia",
     slug: "NBL",
-    tier: "Tier 1: Professional",
+    tier: "Professional",
     description: "Australia's top professional basketball league, increasingly a pathway for NBA-bound international talent.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/b/b2/NBL_%28Australia%29_logo.svg",
     regions: ["AU"]
@@ -80,7 +80,7 @@ const INTERNATIONAL_LEAGUES = [
   {
     name: "Basketball Africa League",
     slug: "BAL",
-    tier: "Tier 2: Professional",
+    tier: "Professional",
     description: "The premier professional basketball league on the African continent, backed by the NBA and FIBA.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/b/b0/Basketball_Africa_League.svg",
     regions: ["ZA"]
@@ -88,7 +88,7 @@ const INTERNATIONAL_LEAGUES = [
   {
     name: "Chinese Basketball Association",
     slug: "CBA",
-    tier: "Tier 1: Professional",
+    tier: "Professional",
     description: "China's top professional basketball league with a growing international presence.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/5/53/Chinese_Basketball_Association.svg",
     regions: ["CN"]
@@ -96,7 +96,7 @@ const INTERNATIONAL_LEAGUES = [
   {
     name: "B.League (Japan)",
     slug: "BLeague",
-    tier: "Tier 1: Professional",
+    tier: "Professional",
     description: "Japan's top professional basketball league, known for its passionate fanbase and rising talent development.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/commons/7/7a/B.League_logo.svg",
     regions: ["JP"]
