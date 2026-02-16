@@ -499,7 +499,7 @@ export default function PlayerProfile() {
                           <td className="px-6 py-4 font-mono font-medium">
                             <div className="flex items-center gap-2">
                               {isMultiTeamSeason && isFirstRow ? (
-                                <span className="text-muted-foreground/50 pl-4">↱</span>
+                                <span className="text-muted-foreground/50 text-lg pl-6">↱</span>
                               ) : (
                                 <>
                                   {stat.season}
