@@ -6,6 +6,7 @@ import { ArrowLeft, Users, Flag, Trophy } from "lucide-react";
 import { Link } from "wouter";
 import { Player } from "@shared/schema";
 import { useState, useEffect } from "react";
+import { EUROLEAGUE_LOGOS } from "@/lib/constants";
 
 const NBA_TEAM_IDS: Record<string, string> = {
   "Atlanta Hawks": "1610612737",
@@ -79,6 +80,9 @@ function getTeamLogoUrl(teamName: string): string | null {
   }
   if (G_LEAGUE_LOGOS[teamName]) {
     return G_LEAGUE_LOGOS[teamName];
+  }
+  if (EUROLEAGUE_LOGOS[teamName]) {
+    return EUROLEAGUE_LOGOS[teamName];
   }
   return null;
 }

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, ArrowRight, Search } from "lucide-react";
 import { Link } from "wouter";
-import { NBA_TEAMS, G_LEAGUE_TEAMS } from "@/lib/constants";
+import { NBA_TEAMS, G_LEAGUE_TEAMS, EUROLEAGUE_TEAMS, EUROLEAGUE_LOGOS } from "@/lib/constants";
 
 const LEAGUE_INFO: Record<string, { display: string; tier: string; description: string; logoUrl?: string; apiKey?: string; defaultSeason: string }> = {
   "NBA": {
@@ -67,7 +67,6 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
     tier: "Professional",
     description: "The top-tier European professional basketball club competition, featuring the best teams from across the continent.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/f/fb/Euroleague_Basketball_logo.svg",
-    apiKey: "EuroLeague",
     defaultSeason: "2025-26",
   },
   "ACB": {
@@ -143,6 +142,8 @@ export default function LeagueDetail() {
     staticTeams = NBA_TEAMS.map(t => ({ name: t, season: info.defaultSeason }));
   } else if (leagueSlug === "G-League") {
     staticTeams = G_LEAGUE_TEAMS.map(t => ({ name: t, season: info.defaultSeason }));
+  } else if (leagueSlug === "EuroLeague") {
+    staticTeams = EUROLEAGUE_TEAMS.map(t => ({ name: t, season: info.defaultSeason }));
   }
 
   const groupedDynamic = dynamicTeams
@@ -226,18 +227,26 @@ export default function LeagueDetail() {
           </div>
         ) : teams.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" data-testid="teams-grid">
-            {teams.map((team) => (
-              <Link key={team.name} href={`/roster/${encodeURIComponent(team.name)}/${encodeURIComponent(team.season)}`} data-testid={`link-team-${team.name.replace(/\s+/g, '-').toLowerCase()}`}>
-                <Card className="p-3 hover-elevate border-border hover:border-primary/40 cursor-pointer bg-card/50 backdrop-blur-sm">
-                  <div className={`text-[10px] font-mono uppercase tracking-widest mb-1 truncate ${accentClass}`}>{info.display}</div>
-                  <div className="text-sm font-bold truncate">{team.name}</div>
-                  <div className="flex items-center justify-between gap-1 mt-2">
-                    <span className="text-[9px] text-muted-foreground font-mono">{team.season}</span>
-                    <ArrowRight className={`w-3 h-3 ${arrowAccent}`} />
-                  </div>
-                </Card>
-              </Link>
-            ))}
+            {teams.map((team) => {
+              const teamLogo = EUROLEAGUE_LOGOS[team.name];
+              return (
+                <Link key={team.name} href={`/roster/${encodeURIComponent(team.name)}/${encodeURIComponent(team.season)}`} data-testid={`link-team-${team.name.replace(/\s+/g, '-').toLowerCase()}`}>
+                  <Card className="p-3 hover-elevate border-border hover:border-primary/40 cursor-pointer bg-card/50 backdrop-blur-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      {teamLogo && (
+                        <img src={teamLogo} alt={team.name} className="w-6 h-6 object-contain flex-shrink-0" />
+                      )}
+                      <div className={`text-[10px] font-mono uppercase tracking-widest truncate ${accentClass}`}>{info.display}</div>
+                    </div>
+                    <div className="text-sm font-bold truncate">{team.name}</div>
+                    <div className="flex items-center justify-between gap-1 mt-2">
+                      <span className="text-[9px] text-muted-foreground font-mono">{team.season}</span>
+                      <ArrowRight className={`w-3 h-3 ${arrowAccent}`} />
+                    </div>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         ) : (
           <div className="py-20 text-center border-2 border-dashed border-border rounded-2xl flex flex-col items-center gap-6" data-testid="empty-teams-state">
