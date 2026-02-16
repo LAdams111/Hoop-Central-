@@ -49,10 +49,44 @@ const NBA_TEAM_IDS: Record<string, string> = {
   "Washington Wizards": "1610612764",
 };
 
+const G_LEAGUE_LOGOS: Record<string, string> = {
+  "Austin Spurs": "https://upload.wikimedia.org/wikipedia/en/6/6c/Austin_Spurs_logo.svg",
+  "Birmingham Squadron": "https://upload.wikimedia.org/wikipedia/en/1/15/Birmingham_Squadron_logo.svg",
+  "Capital City Go-Go": "https://upload.wikimedia.org/wikipedia/en/8/87/Capital_City_Go-Go_logo.svg",
+  "Cleveland Charge": "https://upload.wikimedia.org/wikipedia/en/b/be/Cleveland_Charge_logo.svg",
+  "College Park Skyhawks": "https://upload.wikimedia.org/wikipedia/en/4/44/College_Park_Skyhawks_logo.svg",
+  "Delaware Blue Coats": "https://upload.wikimedia.org/wikipedia/en/6/62/Delaware_Blue_Coats_logo.svg",
+  "Grand Rapids Gold": "https://upload.wikimedia.org/wikipedia/en/8/84/Grand_Rapids_Gold_logo.svg",
+  "Greensboro Swarm": "https://upload.wikimedia.org/wikipedia/en/e/e1/Greensboro_Swarm_logo.svg",
+  "Iowa Wolves": "https://upload.wikimedia.org/wikipedia/en/b/b5/Iowa_Wolves_logo.svg",
+  "Long Island Nets": "https://upload.wikimedia.org/wikipedia/en/f/f0/Long_Island_Nets_logo.svg",
+  "Maine Celtics": "https://upload.wikimedia.org/wikipedia/en/6/65/Maine_Celtics_logo.svg",
+  "Memphis Hustle": "https://upload.wikimedia.org/wikipedia/en/a/a8/Memphis_Hustle_logo.svg",
+  "Mexico City Capitanes": "https://upload.wikimedia.org/wikipedia/en/e/e6/Capitanes_Ciudad_de_M%C3%A9xico_logo.svg",
+  "Motor City Cruise": "https://upload.wikimedia.org/wikipedia/en/5/51/Motor_City_Cruise_logo.svg",
+  "Oklahoma City Blue": "https://upload.wikimedia.org/wikipedia/en/d/d6/Oklahoma_City_Blue_logo.svg",
+  "Osceola Magic": "https://upload.wikimedia.org/wikipedia/en/9/9a/Osceola_Magic_Logo.svg",
+  "Raptors 905": "https://upload.wikimedia.org/wikipedia/en/4/4b/Raptors_905_logo.svg",
+  "Rip City Remix": "https://upload.wikimedia.org/wikipedia/en/1/17/Rip_City_Remix_logo.svg",
+  "Salt Lake City Stars": "https://upload.wikimedia.org/wikipedia/en/3/37/Salt_Lake_City_Stars_logo.svg",
+  "San Diego Clippers": "https://upload.wikimedia.org/wikipedia/en/a/ac/Ontario_Clippers_logo.svg",
+  "Santa Cruz Warriors": "https://upload.wikimedia.org/wikipedia/en/6/64/Santa_Cruz_Warriors_logo.svg",
+  "Sioux Falls Skyforce": "https://upload.wikimedia.org/wikipedia/en/9/98/Sioux_Falls_Skyforce_logo.svg",
+  "South Bay Lakers": "https://upload.wikimedia.org/wikipedia/en/9/90/South_Bay_Lakers_logo.svg",
+  "Stockton Kings": "https://upload.wikimedia.org/wikipedia/en/d/d9/Stockton_Kings_logo.svg",
+  "Texas Legends": "https://upload.wikimedia.org/wikipedia/en/c/c8/Texas_Legends_logo.svg",
+  "Westchester Knicks": "https://upload.wikimedia.org/wikipedia/en/5/50/Westchester_Knicks_logo.svg",
+  "Windy City Bulls": "https://upload.wikimedia.org/wikipedia/en/e/e5/Windy_City_Bulls_logo.svg",
+  "Wisconsin Herd": "https://upload.wikimedia.org/wikipedia/en/e/e0/Wisconsin_Herd_logo.svg",
+};
+
 function getTeamLogoUrl(teamName: string): string | null {
   const teamId = NBA_TEAM_IDS[teamName];
   if (teamId) {
     return `https://cdn.nba.com/logos/nba/${teamId}/primary/L/logo.svg`;
+  }
+  if (G_LEAGUE_LOGOS[teamName]) {
+    return G_LEAGUE_LOGOS[teamName];
   }
   return null;
 }
