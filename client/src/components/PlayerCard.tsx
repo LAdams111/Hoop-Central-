@@ -43,8 +43,13 @@ export function PlayerCard({ player }: PlayerCardProps) {
             <div className="text-[8px] md:text-[10px] font-mono text-primary uppercase tracking-widest mb-0.5 md:mb-1 truncate">
               {player.team}
             </div>
-            <h3 className="font-display text-sm md:text-2xl font-bold leading-tight text-foreground group-hover:text-primary transition-colors line-clamp-2">
-              {player.name}
+            <h3 className="font-display text-sm md:text-2xl leading-tight text-foreground group-hover:text-primary transition-colors line-clamp-2">
+              {(() => {
+                const parts = player.name.trim().split(/\s+/);
+                if (parts.length <= 1) return <span className="font-bold">{player.name}</span>;
+                const lastName = parts.pop();
+                return <>{parts.join(" ")} <span className="font-bold">{lastName}</span></>;
+              })()}
             </h3>
           </div>
           

@@ -177,7 +177,11 @@ export default function TeamRoster() {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-            {players.map((player) => (
+            {[...players].sort((a, b) => {
+              const lastA = a.name.trim().split(/\s+/).pop() || "";
+              const lastB = b.name.trim().split(/\s+/).pop() || "";
+              return lastA.localeCompare(lastB);
+            }).map((player) => (
               <PlayerCard key={player.id} player={player} />
             ))}
           </div>
