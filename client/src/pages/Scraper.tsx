@@ -1,17 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Download, Loader2, CheckCircle, AlertCircle, History, Zap, UserCheck, Globe } from "lucide-react";
+import { ArrowLeft, Download, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
 interface ScrapeResult {
   playersAdded: number;
   playersUpdated: number;
   statsUpdated: number;
-  bioMatches: number;
-  wikiFallbacks: number;
-  seasonsScraped: number;
   errors: string[];
-  season: string;
 }
 
 export default function Scraper() {
@@ -19,16 +15,12 @@ export default function Scraper() {
   const [result, setResult] = useState<ScrapeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const runNBAScraper = async (fullHistory: boolean) => {
+  const runNBAScraper = async () => {
     setRunning(true);
     setResult(null);
     setError(null);
     try {
-      const res = await fetch("/api/scraper/nba", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullHistory }),
-      });
+      const res = await fetch("/api/scraper/nba", { method: "POST" });
       if (res.status === 409) {
         setError("Scraper is already running. Please wait for it to finish.");
         return;
@@ -60,7 +52,7 @@ export default function Scraper() {
             Data Scraper
           </h1>
           <p className="text-muted-foreground text-sm max-w-2xl mt-2">
-            Fetch real player data, stats, and personal details from multiple sources.
+            Fetch real player data and stats from live sources and add them to Hoop Central.
           </p>
         </div>
       </div>
@@ -70,18 +62,18 @@ export default function Scraper() {
           <Card className="p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Zap className="w-6 h-6 text-primary" />
+                <Download className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h2 className="font-display text-2xl font-bold uppercase tracking-tight" data-testid="text-nba-scraper">NBA Current</h2>
-                <p className="text-xs text-muted-foreground font-mono">2025-26 Season</p>
+                <h2 className="font-display text-2xl font-bold uppercase tracking-tight" data-testid="text-nba-scraper">NBA</h2>
+                <p className="text-xs text-muted-foreground font-mono">stats.nba.com</p>
               </div>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
-              Fetches all current NBA players with this season's stats. Enriches player profiles with real height, weight, DOB, and jersey numbers from Wikidata and Wikipedia.
+              Fetches all current NBA players with their season averages including points, rebounds, assists, steals, blocks, and field goal percentage.
             </p>
             <Button
-              onClick={() => runNBAScraper(false)}
+              onClick={runNBAScraper}
               disabled={running}
               className="w-full"
               data-testid="button-run-nba-scraper"
@@ -89,48 +81,32 @@ export default function Scraper() {
               {running ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Scraping...
+                  Scraping NBA Data...
                 </>
               ) : (
                 <>
                   <Download className="w-4 h-4 mr-2" />
-                  Current Season
+                  Run NBA Scraper
                 </>
               )}
             </Button>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-6 opacity-50">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <History className="w-6 h-6 text-primary" />
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                <Download className="w-6 h-6 text-muted-foreground" />
               </div>
               <div>
-                <h2 className="font-display text-2xl font-bold uppercase tracking-tight" data-testid="text-full-history">Full History</h2>
-                <p className="text-xs text-muted-foreground font-mono">2002-03 to Present</p>
+                <h2 className="font-display text-2xl font-bold uppercase tracking-tight">More Leagues</h2>
+                <p className="text-xs text-muted-foreground font-mono">Coming Soon</p>
               </div>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
-              Fetches all NBA seasons from 2002-03 through today. Gives every player their full career stats history. Takes several minutes.
+              Scrapers for G League, EuroLeague, NCAA, and other leagues will be added here as data sources become available.
             </p>
-            <Button
-              onClick={() => runNBAScraper(true)}
-              disabled={running}
-              variant="outline"
-              className="w-full"
-              data-testid="button-run-full-history"
-            >
-              {running ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Scraping History...
-                </>
-              ) : (
-                <>
-                  <History className="w-4 h-4 mr-2" />
-                  Full Career History
-                </>
-              )}
+            <Button disabled className="w-full" data-testid="button-more-leagues">
+              Coming Soon
             </Button>
           </Card>
         </div>
@@ -141,7 +117,7 @@ export default function Scraper() {
               <Loader2 className="w-5 h-5 text-primary animate-spin" />
               <div>
                 <p className="font-medium">Scraper is running...</p>
-                <p className="text-sm text-muted-foreground">Fetching player data, stats, and enriching profiles from Wikidata + Wikipedia. This may take a few minutes.</p>
+                <p className="text-sm text-muted-foreground">This may take a minute or two. Fetching data for all current NBA players.</p>
               </div>
             </div>
           </Card>
@@ -165,7 +141,7 @@ export default function Scraper() {
               <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
               <p className="font-medium text-green-500">Scrape Complete</p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-3 gap-4 mb-4">
               <div className="bg-background rounded-lg p-4 text-center border border-border">
                 <div className="font-display text-3xl font-bold" data-testid="text-players-added">{result.playersAdded}</div>
                 <div className="text-xs text-muted-foreground uppercase tracking-widest">New Players</div>
@@ -178,26 +154,6 @@ export default function Scraper() {
                 <div className="font-display text-3xl font-bold" data-testid="text-stats-updated">{result.statsUpdated}</div>
                 <div className="text-xs text-muted-foreground uppercase tracking-widest">Stat Lines</div>
               </div>
-              <div className="bg-background rounded-lg p-4 text-center border border-border">
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <UserCheck className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <div className="font-display text-3xl font-bold" data-testid="text-bio-matches">{result.bioMatches}</div>
-                <div className="text-xs text-muted-foreground uppercase tracking-widest">Wikidata Bios</div>
-              </div>
-              <div className="bg-background rounded-lg p-4 text-center border border-border">
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <Globe className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <div className="font-display text-3xl font-bold" data-testid="text-wiki-fallbacks">{result.wikiFallbacks}</div>
-                <div className="text-xs text-muted-foreground uppercase tracking-widest">Wikipedia Fills</div>
-              </div>
-              {result.seasonsScraped > 1 && (
-                <div className="bg-background rounded-lg p-4 text-center border border-border">
-                  <div className="font-display text-3xl font-bold" data-testid="text-seasons-scraped">{result.seasonsScraped}</div>
-                  <div className="text-xs text-muted-foreground uppercase tracking-widest">Seasons</div>
-                </div>
-              )}
             </div>
             {result.errors.length > 0 && (
               <div className="mt-4">
