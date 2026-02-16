@@ -262,7 +262,7 @@ export default function LeagueDetail() {
                         </div>
                       </div>
                       {logo && (
-                        <img src={logo} alt={team.name} className="w-8 h-8 object-contain flex-shrink-0 opacity-60" />
+                        <img src={logo} alt={team.name} className="w-8 h-8 object-contain flex-shrink-0" />
                       )}
                     </div>
                   </Card>
