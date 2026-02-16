@@ -135,18 +135,24 @@ export async function updatePlayerBios(): Promise<BioUpdateResult> {
 
 const NBA_TEAM_MAP: Record<string, string> = {
   "ATL": "Atlanta Hawks", "BOS": "Boston Celtics", "BKN": "Brooklyn Nets",
-  "CHA": "Charlotte Hornets", "CHI": "Chicago Bulls", "CLE": "Cleveland Cavaliers",
+  "BRK": "Brooklyn Nets", "CHA": "Charlotte Hornets", "CHO": "Charlotte Hornets",
+  "CHI": "Chicago Bulls", "CLE": "Cleveland Cavaliers",
   "DAL": "Dallas Mavericks", "DEN": "Denver Nuggets", "DET": "Detroit Pistons",
   "GSW": "Golden State Warriors", "HOU": "Houston Rockets", "IND": "Indiana Pacers",
   "LAC": "LA Clippers", "LAL": "Los Angeles Lakers", "MEM": "Memphis Grizzlies",
   "MIA": "Miami Heat", "MIL": "Milwaukee Bucks", "MIN": "Minnesota Timberwolves",
   "NOP": "New Orleans Pelicans", "NYK": "New York Knicks", "OKC": "Oklahoma City Thunder",
   "ORL": "Orlando Magic", "PHI": "Philadelphia 76ers", "PHX": "Phoenix Suns",
+  "PHO": "Phoenix Suns",
   "POR": "Portland Trail Blazers", "SAC": "Sacramento Kings", "SAS": "San Antonio Spurs",
   "TOR": "Toronto Raptors", "UTA": "Utah Jazz", "WAS": "Washington Wizards",
   "NJN": "Brooklyn Nets", "NOH": "New Orleans Pelicans", "SEA": "Oklahoma City Thunder",
   "VAN": "Memphis Grizzlies", "CHH": "Charlotte Hornets", "WSB": "Washington Wizards",
 };
+
+function isMultiTeamAbbr(abbr: string): boolean {
+  return /^\d+TM$/.test(abbr);
+}
 
 function getCurrentNBASeason(): number {
   const now = new Date();
@@ -241,23 +247,41 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
       console.log(`[NBA Scraper] Fetched ${allPlayerData.length} player records for ${seasonDisplay}`);
       result.seasonsProcessed.push(seasonDisplay);
 
+      const playerEntriesMap: Record<string, any[]> = {};
       for (const p of allPlayerData) {
+        const nameLower = p.playerName.toLowerCase();
+        if (!playerEntriesMap[nameLower]) {
+          playerEntriesMap[nameLower] = [];
+        }
+        playerEntriesMap[nameLower].push(p);
+      }
+
+      for (const nameLower of Object.keys(playerEntriesMap)) {
+        const entries = playerEntriesMap[nameLower];
         try {
-          const playerName = p.playerName;
-          const teamAbbr = p.team;
+          const multiTeamEntry = entries.find((e: any) => isMultiTeamAbbr(e.team));
+          const individualEntries = entries.filter((e: any) => !isMultiTeamAbbr(e.team));
+
+          const statsEntry = multiTeamEntry || entries[0];
+          const lastTeamEntry = individualEntries.length > 0
+            ? individualEntries[individualEntries.length - 1]
+            : statsEntry;
+
+          const playerName = statsEntry.playerName;
+          const teamAbbr = lastTeamEntry.team;
           const teamFull = NBA_TEAM_MAP[teamAbbr] || teamAbbr;
-          const gamesPlayed = p.games || 0;
+          const gamesPlayed = statsEntry.games || 0;
 
           if (gamesPlayed === 0) continue;
 
-          const ppg = (p.points / gamesPlayed).toFixed(1);
-          const rpg = (p.totalRb / gamesPlayed).toFixed(1);
-          const apg = (p.assists / gamesPlayed).toFixed(1);
-          const spg = (p.steals / gamesPlayed).toFixed(1);
-          const bpg = (p.blocks / gamesPlayed).toFixed(1);
-          const fgPct = p.fieldPercent ? (p.fieldPercent * 100).toFixed(1) : "0.0";
+          const ppg = (statsEntry.points / gamesPlayed).toFixed(1);
+          const rpg = (statsEntry.totalRb / gamesPlayed).toFixed(1);
+          const apg = (statsEntry.assists / gamesPlayed).toFixed(1);
+          const spg = (statsEntry.steals / gamesPlayed).toFixed(1);
+          const bpg = (statsEntry.blocks / gamesPlayed).toFixed(1);
+          const fgPct = statsEntry.fieldPercent ? (statsEntry.fieldPercent * 100).toFixed(1) : "0.0";
 
-          const position = p.position || "SF";
+          const position = statsEntry.position || "SF";
           const posMap: Record<string, string> = {
             "PG": "PG", "SG": "SG", "SF": "SF", "PF": "PF", "C": "C",
             "G": "PG", "F": "SF", "G-F": "SF", "F-G": "SG", "F-C": "PF", "C-F": "PF",
@@ -267,13 +291,12 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
           const defaultHeadshotUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/1631244.png";
 
           let birthDate: string | null = null;
-          if (p.age) {
+          if (statsEntry.age) {
             const ageSeasonEnd = seasonYear;
-            const birthYear = ageSeasonEnd - p.age;
+            const birthYear = ageSeasonEnd - statsEntry.age;
             birthDate = `${birthYear}-01-01`;
           }
 
-          const nameLower = playerName.toLowerCase();
           let playerId = playerCache.get(nameLower);
 
           if (!playerId) {
@@ -346,8 +369,8 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
 
           result.statsUpdated++;
         } catch (playerErr: any) {
-          result.errors.push(`Error processing ${p.playerName} (${seasonDisplay}): ${playerErr.message}`);
-          console.error(`[NBA Scraper] Error processing ${p.playerName}:`, playerErr.message);
+          result.errors.push(`Error processing ${nameLower} (${seasonDisplay}): ${playerErr.message}`);
+          console.error(`[NBA Scraper] Error processing ${nameLower}:`, playerErr.message);
         }
       }
 
