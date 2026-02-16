@@ -14,7 +14,7 @@ export async function registerRoutes(
 
   app.post("/api/admin/login", (req, res) => {
     const { password } = req.body;
-    const adminPassword = process.env.SESSION_SECRET;
+    const adminPassword = process.env.ADMIN_PASSWORD || process.env.SESSION_SECRET;
     if (!adminPassword || password !== adminPassword) {
       return res.status(401).json({ error: "Invalid password" });
     }
