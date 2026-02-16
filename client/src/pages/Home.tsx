@@ -208,8 +208,42 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURED PLAYERS */}
+      {/* TRENDING SECTION */}
       <section className="py-24 bg-background relative overflow-hidden">
+        <div className="container mx-auto px-4">
+          <div className="flex items-end justify-between mb-12">
+            <div>
+              <h2 className="text-4xl md:text-5xl text-foreground mb-2">Most <span className="text-primary text-glow">Viewed</span></h2>
+              <p className="text-muted-foreground">Trending athletes this week</p>
+            </div>
+            <Link href="/players">
+              <Button variant="ghost" className="hidden md:flex gap-2">
+                Explore Trends
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+
+          {isLoadingTrending ? (
+            <div className="grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-6 md:gap-8">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <div key={n} className="aspect-[3/4] rounded-xl bg-card/50 animate-pulse border border-border" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-6 md:gap-8">
+              {trendingPlayers
+                ?.slice(0, 5)
+                .map((player) => (
+                  <PlayerCard key={player.id} player={player} />
+                ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* FEATURED PLAYERS */}
+      <section className="py-24 bg-muted relative overflow-hidden border-t border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-end justify-between mb-12">
             <div>
@@ -243,40 +277,6 @@ export default function Home() {
               <Button variant="outline" className="w-full">View Directory</Button>
             </Link>
           </div>
-        </div>
-      </section>
-
-      {/* TRENDING SECTION */}
-      <section className="py-24 bg-muted relative overflow-hidden border-t border-border">
-        <div className="container mx-auto px-4">
-          <div className="flex items-end justify-between mb-12">
-            <div>
-              <h2 className="text-4xl md:text-5xl text-foreground mb-2">Most <span className="text-primary text-glow">Viewed</span></h2>
-              <p className="text-muted-foreground">Trending athletes this week</p>
-            </div>
-            <Link href="/players">
-              <Button variant="ghost" className="hidden md:flex gap-2">
-                Explore Trends
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
-
-          {isLoadingTrending ? (
-            <div className="grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-6 md:gap-8">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <div key={n} className="aspect-[3/4] rounded-xl bg-card/50 animate-pulse border border-border" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-6 md:gap-8">
-              {trendingPlayers
-                ?.slice(0, 5)
-                .map((player) => (
-                  <PlayerCard key={player.id} player={player} />
-                ))}
-            </div>
-          )}
         </div>
       </section>
 
