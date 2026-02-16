@@ -478,7 +478,7 @@ export default function PlayerProfile() {
                     const sorted = [...player.stats].sort((a, b) => {
                       const seasonCmp = b.season.localeCompare(a.season);
                       if (seasonCmp !== 0) return seasonCmp;
-                      return a.id - b.id;
+                      return b.id - a.id;
                     });
                     const seasonLeagueCounts: Record<string, number> = {};
                     sorted.forEach((s) => {
@@ -498,7 +498,7 @@ export default function PlayerProfile() {
                           <td className="px-6 py-4 font-mono font-medium">
                             <div className="flex items-center gap-2">
                               {isMultiTeamSeason && !isFirstOfSeason ? (
-                                <span className="text-muted-foreground/50 pl-3">↳</span>
+                                <span className="text-muted-foreground/50 pl-3">↰</span>
                               ) : (
                                 stat.season
                               )}
