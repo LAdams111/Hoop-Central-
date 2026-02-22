@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, insertPlayerStatsRow } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, insertPlayerStatsRow, insertIntoPlayerInfo } from "./syncPlayerInfo";
 
 export const adminSessions = new Set<string>();
 
@@ -272,6 +272,77 @@ export async function registerRoutes(
       }
     }
     res.json({ inserted, errors });
+  });
+
+  app.post("/api/ingest/player-with-stats", async (req, res) => {
+    if (ingestSecret) {
+      const provided = req.headers["x-ingest-secret"] || req.query.secret;
+      if (provided !== ingestSecret) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+    }
+    const get = (o: Record<string, unknown>, ...keys: string[]) => {
+      for (const k of keys) if (o[k] != null) return o[k];
+      return undefined;
+    };
+    const raw = req.body?.players ?? req.body;
+    const list = Array.isArray(raw) ? raw : [raw].filter(Boolean);
+    if (list.length === 0) {
+      return res.status(400).json({ error: "Expected { players: [ { player_id, name, team, ..., stats: [ ... ] } ] } or single player object." });
+    }
+    let playersInserted = 0;
+    let statsInserted = 0;
+    const errors: string[] = [];
+    for (const body of list) {
+      const o = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+      const player_id = get(o, "player_id", "playerId") as string | undefined;
+      const name = get(o, "name", "player_name", "playerName") as string | undefined;
+      if (!player_id || !name) {
+        errors.push("Missing player_id or name");
+        continue;
+      }
+      try {
+        await insertIntoPlayerInfo({
+          player_id: String(player_id),
+          name: String(name),
+          team: get(o, "team", "team_name", "teamName") as string | undefined,
+          position: get(o, "position", "pos") as string | undefined,
+          height: get(o, "height", "ht") as string | undefined,
+          weight: get(o, "weight", "weig", "wt") as string | number | undefined,
+        });
+        playersInserted++;
+      } catch (err: unknown) {
+        errors.push(err instanceof Error ? err.message : String(err));
+        continue;
+      }
+      const statsRaw = o.stats ?? o.seasons ?? [];
+      const statsList = Array.isArray(statsRaw) ? statsRaw : [];
+      for (const s of statsList) {
+        const statObj = s && typeof s === "object" ? (s as Record<string, unknown>) : {};
+        try {
+          await insertPlayerStatsRow({
+            player_id: String(player_id),
+            season: get(statObj, "season", "year_id", "year") as string | undefined,
+            team: get(statObj, "team", "team_name_abbr", "teamName") as string | undefined,
+            league: get(statObj, "league", "comp_name_abbr", "league") as string | undefined,
+            games: Number(get(statObj, "games", "gp", "g")) || 0,
+            games_started: Number(get(statObj, "games_started", "gs")) || 0,
+            pts_per_g: get(statObj, "pts_per_g", "ppg", "pts"),
+            trb_per_g: get(statObj, "trb_per_g", "rpg", "reb"),
+            ast_per_g: get(statObj, "ast_per_g", "apg", "ast"),
+            stl_per_g: get(statObj, "stl_per_g", "spg", "stl"),
+            blk_per_g: get(statObj, "blk_per_g", "bpg", "blk"),
+            fg_pct: get(statObj, "fg_pct", "fg%"),
+            fg3_pct: get(statObj, "fg3_pct", "fg3%"),
+            ft_pct: get(statObj, "ft_pct", "ft%"),
+          });
+          statsInserted++;
+        } catch (err: unknown) {
+          errors.push(err instanceof Error ? err.message : String(err));
+        }
+      }
+    }
+    res.json({ playersInserted, statsInserted, errors });
   });
 
   app.post("/api/featured-players", async (req, res) => {

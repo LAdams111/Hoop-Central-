@@ -325,6 +325,35 @@ export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; u
   return result;
 }
 
+/** Ingest: insert one row into "Player info" (same table scraper uses). */
+export async function insertIntoPlayerInfo(row: {
+  player_id: string;
+  name: string;
+  team?: string;
+  position?: string;
+  height?: string;
+  weight?: string | number;
+}): Promise<void> {
+  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE];
+  const name = (row.name || "").trim();
+  const team = (row.team || "").trim();
+  const position = normalizePosition(row.position || "");
+  const height = formatHeight(row.height || "");
+  const weight = formatWeight(row.weight ?? "—");
+  for (const table of tables) {
+    try {
+      await pool.query(
+        `INSERT INTO ${table} (player_id, name, team, position, height, weig) VALUES ($1, $2, $3, $4, $5, $6)`,
+        [row.player_id, name, team, position, height, weight]
+      );
+      return;
+    } catch {
+      continue;
+    }
+  }
+  throw new Error("Could not insert into Player info (tried both table names)");
+}
+
 /** Ingest: insert one row into user's player_stats table (scraper calls after inserting into "Player info"). */
 export async function insertPlayerStatsRow(row: {
   player_id: string;
