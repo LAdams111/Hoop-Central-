@@ -68,60 +68,132 @@ export async function registerRoutes(
     }
   });
 
-  const playersPath = process.env.RAILWAY_SCRAPER_PLAYERS_PATH || "/api/players";
-  const fallbackBbrefIds: string[] = (
-    process.env.RAILWAY_SCRAPER_PLAYER_IDS
-      ? process.env.RAILWAY_SCRAPER_PLAYER_IDS.split(",").map((s) => s.trim()).filter(Boolean)
-      : [
-          "jamesle01", "curryst01", "durantke01", "antetgi01", "jokicni01", "embiidjo01", "doncilu01",
-          "tatumja01", "moranja01", "butleji01", "leonaka01", "georgpa01", "hardeja01", "lillada01",
-          "irvinky01", "adebaba01", "bookede01", "murrajam01", "mitrodo01", "sabondo01", "foxde01",
-          "halibty01", "edwaran01", "banede01", "maxeyty01", "brunajo01", "randoju01", "ingrabr01",
-          "wembavi01", "holidru01", "portemi01", "allenja01", "mccolcj01", "markkla01", "barnesc01",
-          "wagnemo01", "cunnica01", "coopeam01", "flaggco01", "knuepko01",
-        ]
-  );
+  const ingestSecret = process.env.INGEST_SECRET;
 
-  app.get("/api/railway/players", async (_req, res) => {
-    try {
-      const direct = await fetch(`${railwayScraperBase}${playersPath}`);
-      if (direct.ok) {
-        const data = await direct.json();
-        const list = Array.isArray(data) ? data : (data?.players ?? data?.data ?? []);
-        if (Array.isArray(list) && list.length > 0) {
-          return res.json(list);
-        }
+  app.post("/api/ingest/players", async (req, res) => {
+    if (ingestSecret) {
+      const provided = req.headers["x-ingest-secret"] || req.query.secret;
+      if (provided !== ingestSecret) {
+        return res.status(401).json({ error: "Unauthorized" });
       }
-
-      const ids = fallbackBbrefIds.length > 0 ? fallbackBbrefIds : [];
-      if (ids.length === 0) {
-        return res.status(502).json({
-          message: "Scraper has no GET /api/players and RAILWAY_SCRAPER_PLAYER_IDS is not set",
-        });
-      }
-
-      const CONCURRENCY = 10;
-      const results: unknown[] = [];
-      for (let i = 0; i < ids.length; i += CONCURRENCY) {
-        const chunk = ids.slice(i, i + CONCURRENCY);
-        const fetched = await Promise.all(
-          chunk.map(async (id) => {
-            try {
-              const r = await fetch(`${railwayScraperBase}/api/player/${encodeURIComponent(id)}`);
-              if (!r.ok) return null;
-              return r.json();
-            } catch {
-              return null;
-            }
-          })
-        );
-        results.push(...fetched.filter((x): x is unknown => x != null));
-      }
-      res.json(results);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to reach Railway scraper";
-      res.status(502).json({ message });
     }
+    const raw = req.body?.players ?? req.body;
+    const list = Array.isArray(raw) ? raw : [];
+    if (list.length === 0) {
+      return res.status(400).json({ error: "Expected { players: [ ... ] } with at least one player" });
+    }
+    const DEFAULT_HEADSHOT = "https://cdn.nba.com/headshots/nba/latest/1040x760/1631244.png";
+    const get = (o: any, ...keys: string[]) => {
+      for (const k of keys) if (o[k] != null) return String(o[k]);
+      return "";
+    };
+    const getNum = (o: any, ...keys: string[]) => {
+      for (const k of keys) {
+        const v = o[k];
+        if (typeof v === "number" && !Number.isNaN(v)) return v;
+        if (typeof v === "string") { const n = parseInt(v, 10); if (!Number.isNaN(n)) return n; }
+      }
+      return 0;
+    };
+    let created = 0;
+    let updated = 0;
+    const errors: string[] = [];
+    for (const item of list) {
+      try {
+        const name = get(item, "name", "player_name", "playerName") || "Unknown";
+        const team = get(item, "team", "team_name", "teamName") || "—";
+        const position = get(item, "position", "pos") || "—";
+        const height = get(item, "height", "ht") || "—";
+        const weight = get(item, "weight", "wt", "weight_lbs") || "—";
+        const jerseyNumber = getNum(item, "jerseyNumber", "jersey_number", "number", "num", "jersey");
+        const headshotUrl = get(item, "headshotUrl", "headshot_url", "image", "img") || DEFAULT_HEADSHOT;
+        const bio = get(item, "bio", "description") || null;
+        const hometown = get(item, "hometown", "birth_place", "birthPlace") || null;
+        const birthDate = get(item, "birthDate", "birth_date", "dob") || null;
+        const statsRaw = item.stats ?? item.seasons ?? item.career_stats ?? [];
+        const statsList = Array.isArray(statsRaw) ? statsRaw : [];
+
+        const existing = await storage.getPlayerByNameAndTeam(name, team);
+        if (existing) {
+          await storage.updatePlayer(existing.id, {
+            name, position, team, height, weight, jerseyNumber,
+            bio: bio || existing.bio,
+            hometown: hometown || existing.hometown,
+            birthDate: birthDate || existing.birthDate,
+          });
+          if (headshotUrl) await storage.updatePlayerHeadshot(existing.id, headshotUrl);
+          await storage.deletePlayerStats(existing.id);
+          updated++;
+          for (const s of statsList) {
+            const season = get(s, "season", "year", "season_year") || "—";
+            const statTeam = get(s, "team", "team_name", "teamName") || team;
+            const league = get(s, "league", "lg") || "NBA";
+            const gp = getNum(s, "gamesPlayed", "games_played", "gp", "g");
+            const ppg = get(s, "pointsPerGame", "ppg", "pts", "points_per_game") || "0";
+            const rpg = get(s, "reboundsPerGame", "rpg", "reb", "rebounds_per_game") || "0";
+            const apg = get(s, "assistsPerGame", "apg", "ast", "assists_per_game") || "0";
+            const spg = get(s, "stealsPerGame", "spg", "stl", "steals_per_game") || "0";
+            const bpg = get(s, "blocksPerGame", "bpg", "blk", "blocks_per_game") || "0";
+            const fg = get(s, "fieldGoalPct", "fg_pct", "fg%") || "0";
+            await storage.createPlayerStats({
+              playerId: existing.id,
+              season,
+              team: statTeam,
+              league,
+              gamesPlayed: gp || 0,
+              pointsPerGame: ppg,
+              reboundsPerGame: rpg,
+              assistsPerGame: apg,
+              stealsPerGame: spg,
+              blocksPerGame: bpg,
+              fieldGoalPct: fg,
+            });
+          }
+        } else {
+          const player = await storage.createPlayer({
+            name,
+            position,
+            team,
+            height,
+            weight,
+            jerseyNumber,
+            headshotUrl,
+            bio,
+            hometown,
+            birthDate,
+          });
+          created++;
+          for (const s of statsList) {
+            const season = get(s, "season", "year", "season_year") || "—";
+            const statTeam = get(s, "team", "team_name", "teamName") || team;
+            const league = get(s, "league", "lg") || "NBA";
+            const gp = getNum(s, "gamesPlayed", "games_played", "gp", "g");
+            const ppg = get(s, "pointsPerGame", "ppg", "pts", "points_per_game") || "0";
+            const rpg = get(s, "reboundsPerGame", "rpg", "reb", "rebounds_per_game") || "0";
+            const apg = get(s, "assistsPerGame", "apg", "ast", "assists_per_game") || "0";
+            const spg = get(s, "stealsPerGame", "spg", "stl", "steals_per_game") || "0";
+            const bpg = get(s, "blocksPerGame", "bpg", "blk", "blocks_per_game") || "0";
+            const fg = get(s, "fieldGoalPct", "fg_pct", "fg%") || "0";
+            await storage.createPlayerStats({
+              playerId: player.id,
+              season,
+              team: statTeam,
+              league,
+              gamesPlayed: gp || 0,
+              pointsPerGame: ppg,
+              reboundsPerGame: rpg,
+              assistsPerGame: apg,
+              stealsPerGame: spg,
+              blocksPerGame: bpg,
+              fieldGoalPct: fg,
+            });
+          }
+        }
+      } catch (err: unknown) {
+        errors.push(err instanceof Error ? err.message : String(err));
+      }
+    }
+    res.json({ created, updated, errors });
   });
 
   app.post("/api/featured-players", async (req, res) => {

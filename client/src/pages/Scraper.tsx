@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Link } from "wouter";
 import { ArrowLeft, Download, Loader2, CheckCircle, AlertCircle, Cloud, Search } from "lucide-react";
 import { useRailwayPlayer } from "@/hooks/use-railway-player";
 
@@ -61,15 +60,8 @@ export default function Scraper() {
             Data Scraper
           </h1>
           <p className="text-muted-foreground text-sm max-w-2xl mt-2">
-            Fetch real player data and stats from live sources and add them to Hoop Central.
+            Fetch real player data and stats from live sources and add them to Hoop Central. Your external scraper can push players to the database via <code className="bg-muted px-1 rounded">POST /api/ingest/players</code>.
           </p>
-          <div className="flex gap-3 mt-4">
-            <Link href="/players/railway">
-              <Button variant="secondary" size="sm" className="rounded-full font-mono" data-testid="link-railway-players">
-                View all scraper players
-              </Button>
-            </Link>
-          </div>
         </div>
       </div>
 
@@ -211,6 +203,9 @@ export default function Scraper() {
                 </pre>
               </div>
             )}
+            <p className="text-xs text-muted-foreground mt-4 pt-4 border-t border-border">
+              To push scraped players into Hoop Central’s database, have your scraper <strong>POST</strong> to <code className="bg-muted px-1 rounded">/api/ingest/players</code> with JSON body containing a <code className="bg-muted px-1 rounded">players</code> array (each item: name, position, team, height, weight, jerseyNumber, headshotUrl, optional stats array). Optionally set <code className="bg-muted px-1 rounded">INGEST_SECRET</code> and send as <code className="bg-muted px-1 rounded">X-Ingest-Secret</code> header.
+            </p>
           </Card>
         </div>
 

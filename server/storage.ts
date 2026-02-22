@@ -27,6 +27,9 @@ export interface IStorage {
   updatePlayerHeadshot(id: number, headshotUrl: string): Promise<void>;
   updatePlayer(id: number, data: Partial<Pick<Player, 'name' | 'position' | 'team' | 'height' | 'weight' | 'jerseyNumber' | 'bio' | 'hometown' | 'birthDate'>>): Promise<Player | undefined>;
 
+  getPlayerByNameAndTeam(name: string, team: string): Promise<Player | undefined>;
+  deletePlayerStats(playerId: number): Promise<void>;
+
   // League Teams
   getTeamsByLeague(league: string): Promise<{ team: string; season: string }[]>;
   getAllTeamsWithLeague(): Promise<{ team: string; league: string; season: string }[]>;
@@ -135,6 +138,19 @@ export class DatabaseStorage implements IStorage {
   async updatePlayer(id: number, data: Partial<Pick<Player, 'name' | 'position' | 'team' | 'height' | 'weight' | 'jerseyNumber' | 'bio' | 'hometown' | 'birthDate'>>): Promise<Player | undefined> {
     const [updated] = await db.update(players).set(data).where(eq(players.id, id)).returning();
     return updated;
+  }
+
+  async getPlayerByNameAndTeam(name: string, team: string): Promise<Player | undefined> {
+    const [p] = await db
+      .select()
+      .from(players)
+      .where(and(ilike(players.name, name), ilike(players.team, team)))
+      .limit(1);
+    return p;
+  }
+
+  async deletePlayerStats(playerId: number): Promise<void> {
+    await db.delete(playerStats).where(eq(playerStats.playerId, playerId));
   }
 
   async getTeamRecord(team: string, season: string): Promise<TeamRecord | undefined> {

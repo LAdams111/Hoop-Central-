@@ -1,26 +1,13 @@
-import { useState, useEffect, useMemo } from "react";
-import { useRailwayPlayers } from "@/hooks/use-railway-players";
+import { useState, useEffect } from "react";
+import { usePlayers } from "@/hooks/use-players";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Filter, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocation } from "wouter";
-import type { RailwayPlayerDisplay } from "@/lib/railwayPlayer";
 
 const POSITIONS = ["ALL", "PG", "SG", "SF", "PF", "C"];
-
-function filterPlayers(
-  players: RailwayPlayerDisplay[],
-  search: string,
-  position: string
-): RailwayPlayerDisplay[] {
-  let out = players;
-  const q = search.trim().toLowerCase();
-  if (q) out = out.filter((p) => p.name.toLowerCase().includes(q));
-  if (position !== "ALL") out = out.filter((p) => (p.position || "").toUpperCase() === position);
-  return out;
-}
 
 export default function PlayerDirectory() {
   const [location] = useLocation();
@@ -35,11 +22,10 @@ export default function PlayerDirectory() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const { data: players = [], isLoading } = useRailwayPlayers();
-  const filtered = useMemo(
-    () => filterPlayers(players, debouncedSearch, position),
-    [players, debouncedSearch, position]
-  );
+  const { data: players, isLoading } = usePlayers({
+    search: debouncedSearch,
+    position: position === "ALL" ? undefined : position,
+  });
 
   const clearFilters = () => {
     setSearch("");
@@ -103,7 +89,7 @@ export default function PlayerDirectory() {
               <div key={i} className="aspect-[4/5] bg-card/50 rounded-xl animate-pulse border border-border" />
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : players?.length === 0 ? (
           <div className="text-center py-24 bg-card/30 rounded-3xl border border-dashed border-border">
             <h3 className="font-display text-2xl text-muted-foreground mb-2">No players found</h3>
             <p className="text-sm text-muted-foreground/60">Try adjusting your search or filters</p>
@@ -111,12 +97,8 @@ export default function PlayerDirectory() {
           </div>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 md:gap-6">
-            {filtered.map((player) => (
-              <PlayerCard
-                key={(player as { bbrefId?: string }).bbrefId ?? player.id}
-                player={player}
-                href={(player as { bbrefId?: string }).bbrefId ? `/players/railway/${encodeURIComponent((player as { bbrefId: string }).bbrefId)}` : undefined}
-              />
+            {players?.map((player) => (
+              <PlayerCard key={player.id} player={player} />
             ))}
           </div>
         )}
