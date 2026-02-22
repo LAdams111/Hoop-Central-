@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { syncPlayerInfoFromPostgres } from "./syncPlayerInfo";
 
 export const adminSessions = new Set<string>();
 
@@ -30,6 +31,34 @@ export async function registerRoutes(
       return res.status(401).json({ authenticated: false });
     }
     res.json({ authenticated: true });
+  });
+
+  // Debug: verify app is reading from the same DB (table "players")
+  app.get("/api/debug/players-count", async (_req, res) => {
+    try {
+      const count = await storage.getPlayerCount();
+      res.json({ table: "players", count, ok: true });
+    } catch (e) {
+      res.status(500).json({ table: "players", count: null, ok: false, error: String(e) });
+    }
+  });
+
+  // Sync from Postgres "Player info" table into app's players table (creates/updates profiles)
+  app.post("/api/sync/player-info", async (_req, res) => {
+    try {
+      const result = await syncPlayerInfoFromPostgres();
+      res.json({ ok: true, ...result });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e), created: 0, updated: 0, errors: [] });
+    }
+  });
+  app.get("/api/sync/player-info", async (_req, res) => {
+    try {
+      const result = await syncPlayerInfoFromPostgres();
+      res.json({ ok: true, ...result });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e), created: 0, updated: 0, errors: [] });
+    }
   });
 
   app.get("/api/featured-players", async (_req, res) => {

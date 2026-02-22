@@ -6,6 +6,7 @@ export interface IStorage {
   // Players
   getPlayers(search?: string, position?: string, sortBy?: "views" | "name"): Promise<Player[]>;
   getPlayer(id: number): Promise<Player | undefined>;
+  getPlayerCount(): Promise<number>;
   incrementPlayerViews(id: number): Promise<void>;
   createPlayer(player: InsertPlayer): Promise<Player>;
   
@@ -65,6 +66,11 @@ export class DatabaseStorage implements IStorage {
   async getPlayer(id: number): Promise<Player | undefined> {
     const [player] = await db.select().from(players).where(eq(players.id, id));
     return player;
+  }
+
+  async getPlayerCount(): Promise<number> {
+    const [row] = await db.select({ count: sql<number>`count(*)::int` }).from(players);
+    return row?.count ?? 0;
   }
 
   async incrementPlayerViews(id: number): Promise<void> {

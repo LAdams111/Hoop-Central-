@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { scrapeNBAPlayers } from "./scraper";
+import { syncPlayerInfoFromPostgres } from "./syncPlayerInfo";
 
 const app = express();
 const httpServer = createServer(app);
@@ -99,6 +100,7 @@ app.use((req, res, next) => {
     () => {
       log(`serving on port ${port}`);
       startWeeklyScraperSchedule();
+      startPlayerInfoSyncSchedule();
     },
   );
 })();
@@ -141,4 +143,23 @@ function startWeeklyScraperSchedule() {
   }
 
   void scheduleNext();
+}
+
+/** Every 5 minutes, sync from Postgres "Player info" table into players (so new rows get profiles). */
+function startPlayerInfoSyncSchedule() {
+  const INTERVAL_MS = 5 * 60 * 1000;
+  setInterval(async () => {
+    try {
+      const result = await syncPlayerInfoFromPostgres();
+      if (result.created > 0 || result.updated > 0) {
+        log(`Player info sync: ${result.created} created, ${result.updated} updated`, "sync");
+      }
+      if (result.errors.length > 0) {
+        log(`Player info sync errors: ${result.errors.slice(0, 3).join("; ")}`, "sync");
+      }
+    } catch (err: any) {
+      log(`Player info sync failed: ${err?.message ?? String(err)}`, "sync");
+    }
+  }, INTERVAL_MS);
+  log("Player info sync scheduled every 5 minutes", "sync");
 }
