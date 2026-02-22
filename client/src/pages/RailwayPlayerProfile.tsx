@@ -129,7 +129,7 @@ export default function RailwayPlayerProfile() {
                   <span className="text-primary font-bold">HT</span> {player.height}
                 </span>
                 <span className="px-3 py-1 bg-muted rounded-full border border-border">
-                  <span className="text-primary font-bold">WT</span> {player.weight}
+                  <span className="text-primary font-bold">WT</span> {player.weight && player.weight !== "—" ? `${player.weight} lbs` : (player.weight ?? "—")}
                 </span>
                 {player.birthDate && (
                   <>

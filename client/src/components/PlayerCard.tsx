@@ -64,7 +64,7 @@ export function PlayerCard({ player, href }: PlayerCardProps) {
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <Weight className="w-3 h-3 text-primary" />
-              <span>{player.weight}</span>
+              <span>{player.weight && player.weight !== "—" ? `${player.weight} lbs` : (player.weight ?? "—")}</span>
             </div>
           </div>
         </CardContent>

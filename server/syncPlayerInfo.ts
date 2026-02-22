@@ -27,11 +27,12 @@ function formatHeight(height: string): string {
   return trimmed;
 }
 
+/** Return weight as number only (no "lbs") so frontend can add " lbs" once. */
 function formatWeight(weig: string | number): string {
   if (weig == null || weig === "") return "—";
-  const w = String(weig).trim();
-  if (w.endsWith(" lbs")) return w;
-  return `${w} lbs`;
+  let w = String(weig).trim();
+  w = w.replace(/\s*lb(s)?\s*$/i, "").trim();
+  return w || "—";
 }
 
 interface PlayerInfoRow {
