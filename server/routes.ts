@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById } from "./syncPlayerInfo";
 
 export const adminSessions = new Set<string>();
 
@@ -285,13 +285,34 @@ export async function registerRoutes(
     res.json(updated);
   });
 
-  // Players List
+  // Players List — read from "Player info" so profiles show when that table has data (Railway Postgres)
   app.get(api.players.list.path, async (req, res) => {
-    const search = req.query.search as string | undefined;
+    const search = (req.query.search as string | undefined)?.toLowerCase().trim();
     const position = req.query.position as string | undefined;
     const sortBy = req.query.sortBy as "views" | "name" | undefined;
-    const players = await storage.getPlayers(search, position, sortBy);
-    res.json(players);
+
+    let players: { id: number; name: string; position: string; team: string; height: string; weight: string; jerseyNumber: number; headshotUrl: string; profileViews: number }[];
+    try {
+      const fromPlayerInfo = await getPlayerInfoRows();
+      if (fromPlayerInfo.length > 0) {
+        players = fromPlayerInfo;
+      } else {
+        players = await storage.getPlayers(search, position, sortBy);
+        res.json(players);
+        return;
+      }
+    } catch {
+      players = await storage.getPlayers(search, position, sortBy);
+      res.json(players);
+      return;
+    }
+
+    let list = players;
+    if (search) list = list.filter((p) => p.name.toLowerCase().includes(search));
+    if (position && position !== "ALL") list = list.filter((p) => p.position === position);
+    if (sortBy === "views") list = [...list].sort((a, b) => (b.profileViews ?? 0) - (a.profileViews ?? 0));
+    else list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+    res.json(list);
   });
 
   // Prospects (under 20, sorted by views)
@@ -300,12 +321,20 @@ export async function registerRoutes(
     res.json(results);
   });
 
-  // Player Detail (with stats)
+  // Player Detail (with stats) — try "Player info" by id if not in players table
   app.get(api.players.get.path, async (req, res) => {
     const id = Number(req.params.id);
-    const player = await storage.getPlayer(id);
-    
+    let player = await storage.getPlayer(id);
+
     if (!player) {
+      try {
+        const fromPlayerInfo = await getPlayerInfoById(id);
+        if (fromPlayerInfo) {
+          return res.json({ ...fromPlayerInfo, stats: [], awards: [] });
+        }
+      } catch {
+        // ignore
+      }
       return res.status(404).json({ message: "Player not found" });
     }
 

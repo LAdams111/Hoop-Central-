@@ -99,6 +99,9 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
+      if (!process.env.DATABASE_URL && !process.env.RAILWAY_POSTGRESQL_URL) {
+        log("Warning: DATABASE_URL not set — connect to Railway Postgres and set DATABASE_URL in Variables", "startup");
+      }
       startWeeklyScraperSchedule();
       startPlayerInfoSyncSchedule();
     },

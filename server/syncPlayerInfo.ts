@@ -43,6 +43,57 @@ interface PlayerInfoRow {
   weig: string | number;
 }
 
+/** Shape the API returns for a player (matches frontend expectation). */
+export interface PlayerInfoMapped {
+  id: number;
+  name: string;
+  position: string;
+  team: string;
+  height: string;
+  weight: string;
+  jerseyNumber: number;
+  headshotUrl: string;
+  bio: string | null;
+  profileViews: number;
+  hometown: string | null;
+  birthDate: string | null;
+}
+
+function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
+  return {
+    id: row.id,
+    name: (row.name || "").trim(),
+    position: normalizePosition(row.position || ""),
+    team: (row.team || "").trim(),
+    height: formatHeight(row.height || ""),
+    weight: formatWeight(row.weig),
+    jerseyNumber: 0,
+    headshotUrl: "",
+    bio: null,
+    profileViews: 50,
+    hometown: null,
+    birthDate: null,
+  };
+}
+
+/**
+ * Read directly from "Player info" and return rows in API shape.
+ * Use this so the site shows players even when the `players` table is empty.
+ * Table name must be quoted: "Player info" (with space).
+ */
+export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
+  const res = await pool.query<PlayerInfoRow>(`SELECT * FROM "Player info"`);
+  const rows = res.rows || [];
+  return rows.map(mapRowToPlayer);
+}
+
+/** Get a single row from "Player info" by id (for profile page). */
+export async function getPlayerInfoById(id: number): Promise<PlayerInfoMapped | null> {
+  const res = await pool.query<PlayerInfoRow>(`SELECT * FROM "Player info" WHERE id = $1`, [id]);
+  const row = res.rows?.[0];
+  return row ? mapRowToPlayer(row) : null;
+}
+
 export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; updated: number; errors: string[] }> {
   const result = { created: 0, updated: 0, errors: [] as string[] };
 
