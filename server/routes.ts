@@ -338,7 +338,7 @@ export async function registerRoutes(
         try {
           const fromPlayerInfo = await getPlayerInfoById(idNum);
           if (fromPlayerInfo) {
-            return res.json({ ...fromPlayerInfo, stats: [], awards: [] });
+            return res.json({ ...fromPlayerInfo, stats: fromPlayerInfo.stats ?? [], awards: [] });
           }
         } catch {
           // ignore
@@ -355,7 +355,7 @@ export async function registerRoutes(
     try {
       const fromPlayerInfo = await getPlayerInfoByPlayerId(idParam);
       if (fromPlayerInfo) {
-        return res.json({ ...fromPlayerInfo, stats: [], awards: [] });
+        return res.json({ ...fromPlayerInfo, stats: fromPlayerInfo.stats ?? [], awards: [] });
       }
     } catch {
       // ignore

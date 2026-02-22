@@ -195,13 +195,15 @@ export default function PlayerProfile() {
     );
   }
 
-  const statsList = Array.isArray(player.stats) ? player.stats : [];
+  const rawStats = player.stats;
+  const statsList = Array.isArray(rawStats) ? rawStats : [];
+  const statsObj = rawStats && !Array.isArray(rawStats) && typeof rawStats === "object" ? (rawStats as Record<string, unknown>) : null;
   const latestSeason = [...statsList].sort((a, b) => b.season.localeCompare(a.season))[0];
   const currentStats = {
-    ppg: latestSeason?.pointsPerGame ?? "0.0",
-    rpg: latestSeason?.reboundsPerGame ?? "0.0",
-    apg: latestSeason?.assistsPerGame ?? "0.0",
-    season: latestSeason?.season ?? "N/A"
+    ppg: String(latestSeason?.pointsPerGame ?? statsObj?.pts_per_g ?? statsObj?.pointsPerGame ?? statsObj?.ppg ?? "0.0"),
+    rpg: String(latestSeason?.reboundsPerGame ?? statsObj?.trb_per_g ?? statsObj?.reboundsPerGame ?? statsObj?.rpg ?? "0.0"),
+    apg: String(latestSeason?.assistsPerGame ?? statsObj?.ast_per_g ?? statsObj?.assistsPerGame ?? statsObj?.apg ?? "0.0"),
+    season: String(latestSeason?.season ?? statsObj?.season ?? "N/A")
   };
 
   const calculateAge = (dob: string) => {

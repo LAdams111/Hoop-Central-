@@ -35,6 +35,21 @@ function formatWeight(weig: string | number): string {
   return w || "—";
 }
 
+/** One stat row for profile (matches player_stats shape). */
+export interface PlayerInfoStatRow {
+  id: number;
+  season: string;
+  team: string;
+  league: string;
+  gamesPlayed: number;
+  pointsPerGame: string;
+  reboundsPerGame: string;
+  assistsPerGame: string;
+  stealsPerGame: string;
+  blocksPerGame: string;
+  fieldGoalPct: string;
+}
+
 interface PlayerInfoRow {
   id: number;
   player_id: string;
@@ -44,6 +59,7 @@ interface PlayerInfoRow {
   height: string;
   weig?: string | number;
   weight?: string | number;
+  stats?: string | Record<string, unknown>;
 }
 
 /** Shape the API returns for a player (matches frontend expectation). */
@@ -61,9 +77,67 @@ export interface PlayerInfoMapped {
   profileViews: number;
   hometown: string | null;
   birthDate: string | null;
+  stats?: PlayerInfoStatRow[];
+}
+
+function getNum(o: Record<string, unknown>, ...keys: string[]): number {
+  for (const k of keys) {
+    const v = o[k];
+    if (v != null && v !== "") return Number(v);
+  }
+  return 0;
+}
+function getStr(o: Record<string, unknown>, ...keys: string[]): string {
+  for (const k of keys) {
+    const v = o[k];
+    if (v != null && v !== "") return String(v);
+  }
+  return "0";
+}
+
+/** Parse stats from JSON column (object with pts_per_g, trb_per_g, ast_per_g or camelCase). */
+function parseStatsFromRow(row: PlayerInfoRow): PlayerInfoStatRow[] {
+  const raw = row.stats;
+  if (raw == null) return [];
+  let o: Record<string, unknown>;
+  if (typeof raw === "string") {
+    try {
+      o = JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return [];
+    }
+  } else if (typeof raw === "object" && raw !== null) {
+    o = raw as Record<string, unknown>;
+  } else {
+    return [];
+  }
+  const ppg = getStr(o, "pts_per_g", "ppg", "pointsPerGame", "points_per_game");
+  const rpg = getStr(o, "trb_per_g", "rpg", "reboundsPerGame", "rebounds_per_game");
+  const apg = getStr(o, "ast_per_g", "apg", "assistsPerGame", "assists_per_game");
+  const spg = getStr(o, "stl_per_g", "spg", "stealsPerGame", "steals_per_game");
+  const bpg = getStr(o, "blk_per_g", "bpg", "blocksPerGame", "blocks_per_game");
+  const fg = getStr(o, "fg_pct", "fg_pct", "fieldGoalPct", "field_goal_pct");
+  const gp = getNum(o, "games_played", "gamesPlayed", "gp", "g");
+  const team = getStr(o, "team", "team_name") || (row.team || "NBA");
+  const season = getStr(o, "season", "year", "season_year") || "N/A";
+  const league = getStr(o, "league", "lg") || "NBA";
+  return [{
+    id: 0,
+    season,
+    team,
+    league,
+    gamesPlayed: gp || 1,
+    pointsPerGame: ppg || "0",
+    reboundsPerGame: rpg || "0",
+    assistsPerGame: apg || "0",
+    stealsPerGame: spg || "0",
+    blocksPerGame: bpg || "0",
+    fieldGoalPct: fg || "0",
+  }];
 }
 
 function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
+  const stats = parseStatsFromRow(row);
   return {
     id: row.id,
     player_id: String(row.player_id || "").trim(),
@@ -78,6 +152,7 @@ function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
     profileViews: 50,
     hometown: null,
     birthDate: null,
+    ...(stats.length > 0 ? { stats } : {}),
   };
 }
 
