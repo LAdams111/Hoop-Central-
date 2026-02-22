@@ -13,6 +13,8 @@ import PlayerDirectory from "@/pages/PlayerDirectory";
 import PlayerProfile from "@/pages/PlayerProfile";
 import TeamRoster from "@/pages/Roster";
 import Scraper from "@/pages/Scraper";
+import RailwayPlayers from "@/pages/RailwayPlayers";
+import RailwayPlayerProfile from "@/pages/RailwayPlayerProfile";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -23,6 +25,8 @@ function Router() {
       <Route path="/leagues/:league" component={LeagueDetail} />
       <Route path="/prospects" component={Prospects} />
       <Route path="/classes" component={Classes} />
+      <Route path="/players/railway/:bbrefId" component={RailwayPlayerProfile} />
+      <Route path="/players/railway" component={RailwayPlayers} />
       <Route path="/players" component={PlayerDirectory} />
       <Route path="/players/:id" component={PlayerProfile} />
       <Route path="/roster/:team/:season" component={TeamRoster} />

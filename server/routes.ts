@@ -42,6 +42,57 @@ export async function registerRoutes(
     res.json(ids);
   });
 
+  const railwayScraperBase = process.env.RAILWAY_SCRAPER_URL || "https://hoop-central-scraper-production.up.railway.app";
+
+  app.get("/api/railway/player/:bbrefId", async (req, res) => {
+    const bbrefId = (req.params.bbrefId || "").trim();
+    if (!bbrefId || !/^[a-z0-9]+$/i.test(bbrefId)) {
+      return res.status(400).json({ message: "Invalid player ID (use Basketball-Reference ID, e.g. jamesle01)" });
+    }
+    try {
+      const response = await fetch(`${railwayScraperBase}/api/player/${encodeURIComponent(bbrefId)}`);
+      if (!response.ok) {
+        const text = await response.text();
+        try {
+          const json = JSON.parse(text);
+          return res.status(response.status).json(json);
+        } catch {
+          return res.status(response.status).json({ message: text || "Scraper request failed" });
+        }
+      }
+      const data = await response.json();
+      res.json(data);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to reach Railway scraper";
+      res.status(502).json({ message });
+    }
+  });
+
+  const playersPath = process.env.RAILWAY_SCRAPER_PLAYERS_PATH || "/api/players";
+  app.get("/api/railway/players", async (_req, res) => {
+    try {
+      const response = await fetch(`${railwayScraperBase}${playersPath}`);
+      if (!response.ok) {
+        const text = await response.text();
+        try {
+          const json = JSON.parse(text);
+          return res.status(response.status).json(json);
+        } catch {
+          return res.status(response.status).json({ message: text || "Failed to fetch players list from scraper" });
+        }
+      }
+      const data = await response.json();
+      const list = Array.isArray(data) ? data : (data?.players ?? data?.data ?? []);
+      if (!Array.isArray(list)) {
+        return res.status(502).json({ message: "Scraper did not return an array of players" });
+      }
+      res.json(list);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to reach Railway scraper";
+      res.status(502).json({ message });
+    }
+  });
+
   app.post("/api/featured-players", async (req, res) => {
     const token = req.headers.authorization?.replace("Bearer ", "");
     if (!token || !adminSessions.has(token)) {

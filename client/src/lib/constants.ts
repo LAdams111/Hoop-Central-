@@ -1,5 +1,8 @@
 export const DEFAULT_HEADSHOT = "https://cdn.nba.com/headshots/nba/latest/1040x760/1631244.png";
 
+/** Base URL for the Railway-deployed hoop-central scraper API (player data by Basketball-Reference ID). */
+export const RAILWAY_SCRAPER_API_BASE = "https://hoop-central-scraper-production.up.railway.app";
+
 export const NBA_TEAMS = [
   "Atlanta Hawks", "Boston Celtics", "Brooklyn Nets", "Charlotte Hornets",
   "Chicago Bulls", "Cleveland Cavaliers", "Dallas Mavericks", "Denver Nuggets",

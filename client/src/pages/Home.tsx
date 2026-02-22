@@ -1,7 +1,7 @@
 import { Link } from "wouter";
-import { ArrowRight, Search, Activity, Users, Trophy, Lock, X, Plus, Minus } from "lucide-react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { usePlayers } from "@/hooks/use-players";
+import { ArrowRight, Search, Activity, Users, Trophy, Lock, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useRailwayPlayers } from "@/hooks/use-railway-players";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,13 +9,11 @@ import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { DEFAULT_HEADSHOT, NBA_TEAMS, G_LEAGUE_TEAMS, LEAGUE_DEFAULT_SEASONS } from "@/lib/constants";
-import { queryClient } from "@/lib/queryClient";
-import type { Player } from "@shared/schema";
 
 export default function Home() {
-  const { data: players, isLoading } = usePlayers();
-  const { data: trendingPlayers, isLoading: isLoadingTrending } = usePlayers({ sortBy: "views" });
-  const { data: featuredPlayers, isLoading: isLoadingFeatured } = useQuery<Player[]>({ queryKey: ['/api/featured-players'] });
+  const { data: players = [], isLoading, error: playersError } = useRailwayPlayers();
+  const isLoadingTrending = isLoading;
+  const trendingPlayers = players;
   const { data: teamCountData } = useQuery<{ count: number }>({ queryKey: ['/api/teams/count'] });
   const { data: dbTeams } = useQuery<{ team: string; league: string; season: string }[]>({ queryKey: ['/api/teams/all'] });
   const [, setLocation] = useLocation();
@@ -28,8 +26,6 @@ export default function Home() {
   const [adminError, setAdminError] = useState("");
   const [showFeaturedPicker, setShowFeaturedPicker] = useState(false);
   const [featuredSearch, setFeaturedSearch] = useState("");
-
-  const { data: featuredIds } = useQuery<number[]>({ queryKey: ['/api/featured-player-ids'] });
 
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
@@ -61,30 +57,6 @@ export default function Home() {
         setAdminError(data.error || "Login failed");
       }
     } catch { setAdminError("Login failed"); }
-  };
-
-  const featuredMutation = useMutation({
-    mutationFn: async (ids: number[]) => {
-      const token = localStorage.getItem("admin_token");
-      const res = await fetch("/api/featured-players", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ids }),
-      });
-      if (!res.ok) throw new Error("Failed to update featured players");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/featured-players'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/featured-player-ids'] });
-    },
-  });
-
-  const toggleFeatured = (playerId: number) => {
-    const current = featuredIds || [];
-    const newIds = current.includes(playerId)
-      ? current.filter(id => id !== playerId)
-      : [...current, playerId].slice(0, 10);
-    featuredMutation.mutate(newIds);
   };
 
   const LEAGUE_TIER: Record<string, number> = {
@@ -134,17 +106,7 @@ export default function Home() {
 
   const hasSuggestions = combined.length > 0;
 
-  const displayFeatured = (featuredPlayers && featuredPlayers.length > 0)
-    ? featuredPlayers
-    : players?.slice(0, 5) || [];
-
-  const featuredPickerResults = featuredSearch.trim().length > 0
-    ? (players?.filter(p => {
-        const searchWords = featuredSearch.toLowerCase().trim().split(/\s+/);
-        const nameWords = p.name.toLowerCase().split(' ');
-        return searchWords.every(sw => nameWords.some(nw => nw.startsWith(sw)));
-      }).slice(0, 8) || [])
-    : [];
+  const displayFeatured = players?.slice(0, 5) || [];
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -197,11 +159,12 @@ export default function Home() {
                   {combined.map((item) => (
                     item.type === "player" ? (
                       <button
-                        key={`player-${item.data.id}`}
+                        key={`player-${(item.data as { bbrefId?: string }).bbrefId ?? item.data.id}`}
                         className="w-full flex items-center gap-3 px-4 py-3 hover-elevate text-left transition-colors group"
-                        data-testid={`suggestion-player-${item.data.id}`}
+                        data-testid={`suggestion-player-${(item.data as { bbrefId?: string }).bbrefId ?? item.data.id}`}
                         onClick={() => {
-                          setLocation(`/players/${item.data.id}`);
+                          const bbrefId = (item.data as { bbrefId?: string }).bbrefId;
+                          setLocation(bbrefId ? `/players/railway/${encodeURIComponent(bbrefId)}` : `/players/${item.data.id}`);
                           setShowSuggestions(false);
                         }}
                       >
@@ -261,6 +224,14 @@ export default function Home() {
         </div>
       </section>
 
+      {playersError && (
+        <section className="border-b border-border/40 bg-destructive/10 py-4">
+          <div className="container mx-auto px-4 text-center text-destructive text-sm">
+            Could not load players from the Railway scraper. Check that it’s running and exposes GET /api/players.
+          </div>
+        </section>
+      )}
+
       {/* STATS STRIP */}
     <section className="border-b border-border/40 bg-card/30 backdrop-blur-sm py-8">
         <div className="container mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -310,7 +281,11 @@ export default function Home() {
               {trendingPlayers
                 ?.slice(0, 5)
                 .map((player) => (
-                  <PlayerCard key={player.id} player={player} />
+                  <PlayerCard
+                    key={(player as { bbrefId?: string }).bbrefId ?? player.id}
+                    player={player}
+                    href={(player as { bbrefId?: string }).bbrefId ? `/players/railway/${encodeURIComponent((player as { bbrefId: string }).bbrefId)}` : undefined}
+                  />
                 ))}
             </div>
           )}
@@ -326,16 +301,6 @@ export default function Home() {
               <p className="text-muted-foreground">Top performers from the current season</p>
             </div>
             <div className="flex items-center gap-2">
-              {isAdmin && (
-                <Button
-                  variant="outline"
-                  onClick={() => setShowFeaturedPicker(!showFeaturedPicker)}
-                  data-testid="button-featured-picker-toggle"
-                >
-                  {showFeaturedPicker ? <X className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                  {showFeaturedPicker ? "Close" : "Edit Featured"}
-                </Button>
-              )}
               <Link href="/players">
                 <Button variant="outline" className="hidden md:flex gap-2">
                   View All Players
@@ -345,79 +310,7 @@ export default function Home() {
             </div>
           </div>
 
-          {isAdmin && showFeaturedPicker && (
-            <div className="mb-8 bg-card border border-border rounded-md p-4" data-testid="featured-picker-panel">
-              <div className="flex items-center gap-2 mb-3">
-                <Lock className="w-4 h-4 text-primary" />
-                <span className="font-display text-sm uppercase tracking-wider">Admin: Select Featured Players (max 10)</span>
-              </div>
-
-              {featuredIds && featuredIds.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {featuredIds.map(id => {
-                    const p = players?.find(pl => pl.id === id);
-                    if (!p) return null;
-                    return (
-                      <Badge key={id} variant="secondary" className="gap-1 pr-1" data-testid={`featured-badge-${id}`}>
-                        <img src={p.headshotUrl || DEFAULT_HEADSHOT} alt="" className="w-5 h-5 rounded-full object-cover object-top" onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }} />
-                        {p.name}
-                        <button
-                          className="ml-1 inline-flex items-center justify-center"
-                          onClick={() => toggleFeatured(id)}
-                          data-testid={`button-remove-featured-${id}`}
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={featuredSearch}
-                  onChange={(e) => setFeaturedSearch(e.target.value)}
-                  placeholder="Search players to add..."
-                  className="w-full pl-9 pr-3 py-2 bg-muted border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  data-testid="input-featured-search"
-                />
-              </div>
-
-              {featuredPickerResults.length > 0 && (
-                <div className="mt-2 border border-border rounded-md overflow-hidden max-h-64 overflow-y-auto">
-                  {featuredPickerResults.map(p => {
-                    const isFeatured = featuredIds?.includes(p.id);
-                    return (
-                      <button
-                        key={p.id}
-                        className="w-full flex items-center gap-3 px-3 py-2 hover-elevate text-left transition-colors"
-                        onClick={() => toggleFeatured(p.id)}
-                        data-testid={`featured-option-${p.id}`}
-                      >
-                        <div className="w-8 h-8 rounded-full overflow-hidden border border-border flex-shrink-0">
-                          <img src={p.headshotUrl || DEFAULT_HEADSHOT} alt={p.name} className="w-full h-full object-cover object-top" onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-display font-bold text-sm text-foreground truncate">{p.name}</div>
-                          <div className="text-xs text-muted-foreground font-mono uppercase">{p.team} • #{p.jerseyNumber}</div>
-                        </div>
-                        {isFeatured ? (
-                          <Badge variant="default" className="flex-shrink-0"><Minus className="w-3 h-3 mr-1" />Remove</Badge>
-                        ) : (
-                          <Badge variant="outline" className="flex-shrink-0"><Plus className="w-3 h-3 mr-1" />Add</Badge>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {(isLoadingFeatured || isLoading) ? (
+          {isLoading ? (
             <div className="grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-6 md:gap-8">
               {[1, 2, 3, 4, 5].map((n) => (
                 <div key={n} className="aspect-[3/4] rounded-xl bg-card/50 animate-pulse border border-white/5" />
@@ -426,7 +319,11 @@ export default function Home() {
           ) : (
             <div className="grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-6 md:gap-8">
               {displayFeatured.map((player) => (
-                <PlayerCard key={player.id} player={player} />
+                <PlayerCard
+                  key={(player as { bbrefId?: string }).bbrefId ?? player.id}
+                  player={player}
+                  href={(player as { bbrefId?: string }).bbrefId ? `/players/railway/${encodeURIComponent((player as { bbrefId: string }).bbrefId)}` : undefined}
+                />
               ))}
             </div>
           )}
@@ -490,18 +387,24 @@ export default function Home() {
   );
 }
 
-function FavoritesBar({ players }: { players: any[] | undefined }) {
+function FavoritesBar({ players }: { players: Array<{ id?: number | string; bbrefId?: string; name?: string; headshotUrl?: string }> | undefined }) {
   const [favIds, setFavIds] = useState<number[]>([]);
+  const [favBbrefIds, setFavBbrefIds] = useState<string[]>([]);
   const [favTeams, setFavTeams] = useState<string[]>([]);
+  const useRailway = (players?.length && (players[0] as { bbrefId?: string }).bbrefId) ? true : false;
 
   useEffect(() => {
-    const favorites = JSON.parse(localStorage.getItem('player_favorites') || '[]');
-    const teamFavorites = JSON.parse(localStorage.getItem('team_favorites') || '[]');
-    setFavIds(favorites);
+    const favorites = JSON.parse(localStorage.getItem("player_favorites") || "[]");
+    const railwayFavs = JSON.parse(localStorage.getItem("player_favorites_railway") || "[]");
+    const teamFavorites = JSON.parse(localStorage.getItem("team_favorites") || "[]");
+    setFavIds(Array.isArray(favorites) ? favorites : []);
+    setFavBbrefIds(Array.isArray(railwayFavs) ? railwayFavs : []);
     setFavTeams(teamFavorites);
   }, []);
 
-  const favoritePlayers = players?.filter(p => favIds.includes(p.id)) || [];
+  const favoritePlayers = useRailway
+    ? (players?.filter((p) => (p as { bbrefId?: string }).bbrefId && favBbrefIds.includes((p as { bbrefId: string }).bbrefId)) || [])
+    : (players?.filter((p) => favIds.includes(p.id as number)) || []);
 
   return (
     <section className="py-6 bg-background border-y border-border overflow-hidden">
@@ -525,8 +428,11 @@ function FavoritesBar({ players }: { players: any[] | undefined }) {
               </Link>
             ))}
             {favoritePlayers.length > 0 || favTeams.length > 0 ? (
-              favoritePlayers.map((player) => (
-                <Link key={player.id} href={`/players/${player.id}`} className="group relative">
+              favoritePlayers.map((player) => {
+                const bbrefId = (player as { bbrefId?: string }).bbrefId;
+                const href = bbrefId ? `/players/railway/${encodeURIComponent(bbrefId)}` : `/players/${player.id}`;
+                return (
+                <Link key={bbrefId ?? player.id} href={href} className="group relative">
                   <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-110 shadow-sm">
                     <img 
                       src={player.headshotUrl || DEFAULT_HEADSHOT} 
@@ -537,7 +443,8 @@ function FavoritesBar({ players }: { players: any[] | undefined }) {
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Link>
-              ))
+              );
+              })
             ) : (
               <div className="flex items-center -space-x-4 opacity-40">
                 {[1, 2, 3].map((i) => (
