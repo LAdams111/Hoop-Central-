@@ -224,10 +224,10 @@ export default function Home() {
         </div>
       </section>
 
-      {playersError && (
+      {playersError && (!players || players.length === 0) && (
         <section className="border-b border-border/40 bg-destructive/10 py-4">
           <div className="container mx-auto px-4 text-center text-destructive text-sm">
-            Could not load players from the Railway scraper. Check that it’s running and exposes GET /api/players.
+            Could not load players. Check that the Railway scraper or local server is running.
           </div>
         </section>
       )}

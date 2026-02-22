@@ -69,24 +69,55 @@ export async function registerRoutes(
   });
 
   const playersPath = process.env.RAILWAY_SCRAPER_PLAYERS_PATH || "/api/players";
+  const fallbackBbrefIds: string[] = (
+    process.env.RAILWAY_SCRAPER_PLAYER_IDS
+      ? process.env.RAILWAY_SCRAPER_PLAYER_IDS.split(",").map((s) => s.trim()).filter(Boolean)
+      : [
+          "jamesle01", "curryst01", "durantke01", "antetgi01", "jokicni01", "embiidjo01", "doncilu01",
+          "tatumja01", "moranja01", "butleji01", "leonaka01", "georgpa01", "hardeja01", "lillada01",
+          "irvinky01", "adebaba01", "bookede01", "murrajam01", "mitrodo01", "sabondo01", "foxde01",
+          "halibty01", "edwaran01", "banede01", "maxeyty01", "brunajo01", "randoju01", "ingrabr01",
+          "wembavi01", "holidru01", "portemi01", "allenja01", "mccolcj01", "markkla01", "barnesc01",
+          "wagnemo01", "cunnica01", "coopeam01", "flaggco01", "knuepko01",
+        ]
+  );
+
   app.get("/api/railway/players", async (_req, res) => {
     try {
-      const response = await fetch(`${railwayScraperBase}${playersPath}`);
-      if (!response.ok) {
-        const text = await response.text();
-        try {
-          const json = JSON.parse(text);
-          return res.status(response.status).json(json);
-        } catch {
-          return res.status(response.status).json({ message: text || "Failed to fetch players list from scraper" });
+      const direct = await fetch(`${railwayScraperBase}${playersPath}`);
+      if (direct.ok) {
+        const data = await direct.json();
+        const list = Array.isArray(data) ? data : (data?.players ?? data?.data ?? []);
+        if (Array.isArray(list) && list.length > 0) {
+          return res.json(list);
         }
       }
-      const data = await response.json();
-      const list = Array.isArray(data) ? data : (data?.players ?? data?.data ?? []);
-      if (!Array.isArray(list)) {
-        return res.status(502).json({ message: "Scraper did not return an array of players" });
+
+      const ids = fallbackBbrefIds.length > 0 ? fallbackBbrefIds : [];
+      if (ids.length === 0) {
+        return res.status(502).json({
+          message: "Scraper has no GET /api/players and RAILWAY_SCRAPER_PLAYER_IDS is not set",
+        });
       }
-      res.json(list);
+
+      const CONCURRENCY = 10;
+      const results: unknown[] = [];
+      for (let i = 0; i < ids.length; i += CONCURRENCY) {
+        const chunk = ids.slice(i, i + CONCURRENCY);
+        const fetched = await Promise.all(
+          chunk.map(async (id) => {
+            try {
+              const r = await fetch(`${railwayScraperBase}/api/player/${encodeURIComponent(id)}`);
+              if (!r.ok) return null;
+              return r.json();
+            } catch {
+              return null;
+            }
+          })
+        );
+        results.push(...fetched.filter((x): x is unknown => x != null));
+      }
+      res.json(results);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to reach Railway scraper";
       res.status(502).json({ message });

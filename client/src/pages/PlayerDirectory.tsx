@@ -113,9 +113,9 @@ export default function PlayerDirectory() {
           <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 md:gap-6">
             {filtered.map((player) => (
               <PlayerCard
-                key={player.bbrefId}
+                key={(player as { bbrefId?: string }).bbrefId ?? player.id}
                 player={player}
-                href={`/players/railway/${encodeURIComponent(player.bbrefId)}`}
+                href={(player as { bbrefId?: string }).bbrefId ? `/players/railway/${encodeURIComponent((player as { bbrefId: string }).bbrefId)}` : undefined}
               />
             ))}
           </div>
