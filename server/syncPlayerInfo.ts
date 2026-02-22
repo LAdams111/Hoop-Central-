@@ -77,22 +77,22 @@ function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
   };
 }
 
-async function queryPlayerInfoTable(sql: string, params?: unknown[]): Promise<{ rows: PlayerInfoRow[] }> {
-  try {
-    const res = await pool.query<PlayerInfoRow>(sql, params ?? []);
-    return { rows: res.rows || [] };
-  } catch {
-    return { rows: [] };
-  }
-}
-
-/** Try "Player info" then "player_info"; return rows in API shape. */
+/** Try "Player info", then player_info, then "player info" (lowercase); return rows in API shape. */
 export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
-  let out = await queryPlayerInfoTable(`SELECT * FROM "${PLAYER_INFO_TABLE_QUOTED}"`);
-  if (out.rows.length === 0) {
-    out = await queryPlayerInfoTable(`SELECT * FROM ${PLAYER_INFO_TABLE_SNAKE}`);
+  const tables = [
+    `"${PLAYER_INFO_TABLE_QUOTED}"`,
+    PLAYER_INFO_TABLE_SNAKE,
+    `"player info"`,
+  ];
+  for (const table of tables) {
+    try {
+      const res = await pool.query<PlayerInfoRow>(`SELECT * FROM ${table}`);
+      return (res.rows || []).map(mapRowToPlayer);
+    } catch {
+      continue;
+    }
   }
-  return out.rows.map(mapRowToPlayer);
+  return [];
 }
 
 /** Get a single row by id; try both table names. */

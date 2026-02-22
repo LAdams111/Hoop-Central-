@@ -285,36 +285,35 @@ export async function registerRoutes(
     res.json(updated);
   });
 
-  // Players List — prefer synced players table (same ids = profile, teams, stats work everywhere)
+  // Players List — show from "Player info" first so list is never empty when that table has data; else synced players
   app.get(api.players.list.path, async (req, res) => {
     const search = req.query.search as string | undefined;
     const position = req.query.position as string | undefined;
     const sortBy = req.query.sortBy as "views" | "name" | undefined;
 
-    let players = await storage.getPlayers(search, position, sortBy);
-    if (players.length === 0) {
-      try {
-        const syncResult = await syncPlayerInfoFromPostgres();
-        if (syncResult.created > 0 || syncResult.updated > 0) {
-          players = await storage.getPlayers(search, position, sortBy);
-        }
-      } catch {
-        // ignore
+    let players: { id: number; name: string; position: string; team: string; height: string; weight: string; jerseyNumber: number; headshotUrl: string; profileViews: number }[];
+    try {
+      const fromPlayerInfo = await getPlayerInfoRows();
+      if (fromPlayerInfo.length > 0) {
+        players = fromPlayerInfo;
+        let list = players;
+        const searchLower = search?.toLowerCase().trim();
+        if (searchLower) list = list.filter((p) => p.name.toLowerCase().includes(searchLower));
+        if (position && position !== "ALL") list = list.filter((p) => p.position === position);
+        if (sortBy === "views") list = [...list].sort((a, b) => (b.profileViews ?? 0) - (a.profileViews ?? 0));
+        else list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+        res.json(list);
+        return;
       }
+    } catch {
+      // fall through to players table
     }
+
+    players = await storage.getPlayers(search, position, sortBy);
     if (players.length === 0) {
       try {
-        const fromPlayerInfo = await getPlayerInfoRows();
-        if (fromPlayerInfo.length > 0) {
-          let list = fromPlayerInfo;
-          const searchLower = search?.toLowerCase().trim();
-          if (searchLower) list = list.filter((p) => p.name.toLowerCase().includes(searchLower));
-          if (position && position !== "ALL") list = list.filter((p) => p.position === position);
-          if (sortBy === "views") list = [...list].sort((a, b) => (b.profileViews ?? 0) - (a.profileViews ?? 0));
-          else list = [...list].sort((a, b) => a.name.localeCompare(b.name));
-          res.json(list);
-          return;
-        }
+        await syncPlayerInfoFromPostgres();
+        players = await storage.getPlayers(search, position, sortBy);
       } catch {
         // ignore
       }
