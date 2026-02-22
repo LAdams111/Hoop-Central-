@@ -21,6 +21,8 @@ export function usePlayers(filters?: { search?: string; position?: string; sortB
       if (!res.ok) throw new Error("Failed to fetch players");
       return api.players.list.responses[200].parse(await res.json());
     },
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -37,5 +39,7 @@ export function usePlayer(id: number) {
       return api.players.get.responses[200].parse(await res.json());
     },
     enabled: !isNaN(id),
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
   });
 }
