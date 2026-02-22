@@ -219,7 +219,7 @@ export async function registerRoutes(
   });
 
   // Seed Data function
-  // Only seed the database when a connection string or PG_* vars are present.
+  // Only attempt to seed the database when a connection string or PG_* vars are present.
   if (
     process.env.DATABASE_URL ||
     process.env.POSTGRES_URL ||
@@ -227,7 +227,23 @@ export async function registerRoutes(
     process.env.RAILWAY_DATABASE_URL ||
     process.env.PGHOST
   ) {
-    await seedDatabase();
+    try {
+      await seedDatabase();
+    } catch (err: any) {
+      // If the database schema/tables don't exist, log a clear actionable message
+      // and continue without crashing the entire process. This prevents an
+      // unhandled rejection from bringing the app down during first-time
+      // deploys when migrations haven't been run.
+      console.error("Database seed failed during startup:", err?.message ?? String(err));
+      if (err?.message && /relation .* does not exist/i.test(err.message)) {
+        console.error(
+          "It looks like your database schema is missing (relation/table not found).\n" +
+            "Run the migrations to create the required tables, e.g. `npm run db:push`\n" +
+            "or ensure your database has the expected schema before starting the app."
+        );
+      }
+      console.warn("Continuing startup without seeding. Some endpoints may fail until the schema is created.");
+    }
   } else {
     console.warn("Database not configured; skipping seedDatabase.");
   }
