@@ -174,7 +174,7 @@ export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
   return [];
 }
 
-/** Get a single row by numeric id; try both table names. */
+/** Get a single row by numeric id; try both table names; include stats from player_stats table. */
 export async function getPlayerInfoById(id: number): Promise<PlayerInfoMapped | null> {
   let res = await pool.query<PlayerInfoRow>(`SELECT * FROM "${PLAYER_INFO_TABLE_QUOTED}" WHERE id = $1`, [id]);
   let row = res.rows?.[0];
@@ -186,10 +186,64 @@ export async function getPlayerInfoById(id: number): Promise<PlayerInfoMapped | 
       // ignore
     }
   }
-  return row ? mapRowToPlayer(row) : null;
+  if (!row) return null;
+  const mapped = mapRowToPlayer(row);
+  const playerIdStr = String(row.player_id || "").trim();
+  if (playerIdStr) {
+    const statsFromTable = await getPlayerStatsFromPlayerStatsTable(playerIdStr);
+    if (statsFromTable.length > 0) return { ...mapped, stats: statsFromTable };
+  }
+  return mapped;
 }
 
-/** Get a single row by player_id (e.g. "abdelal01"); frontend links use this. */
+/** Query user's player_stats table (JOIN source); map to API stat shape. */
+interface PlayerStatsTableRow {
+  id?: number;
+  player_id: string;
+  season?: string;
+  team?: string;
+  league?: string;
+  games?: number;
+  games_started?: number;
+  pts_per_g?: string | number;
+  trb_per_g?: string | number;
+  ast_per_g?: string | number;
+  stl_per_g?: string | number;
+  blk_per_g?: string | number;
+  fg_pct?: string | number;
+  fg3_pct?: string | number;
+  ft_pct?: string | number;
+}
+
+function mapPlayerStatsRow(r: PlayerStatsTableRow, index: number): PlayerInfoStatRow {
+  return {
+    id: r.id ?? index,
+    season: String(r.season ?? "N/A"),
+    team: String(r.team ?? "NBA"),
+    league: String(r.league ?? "NBA"),
+    gamesPlayed: Number(r.games) || 0,
+    pointsPerGame: String(r.pts_per_g ?? "0"),
+    reboundsPerGame: String(r.trb_per_g ?? "0"),
+    assistsPerGame: String(r.ast_per_g ?? "0"),
+    stealsPerGame: String(r.stl_per_g ?? "0"),
+    blocksPerGame: String(r.blk_per_g ?? "0"),
+    fieldGoalPct: String(r.fg_pct ?? "0"),
+  };
+}
+
+export async function getPlayerStatsFromPlayerStatsTable(playerId: string): Promise<PlayerInfoStatRow[]> {
+  try {
+    const res = await pool.query<PlayerStatsTableRow>(
+      "SELECT * FROM player_stats WHERE player_id = $1 ORDER BY season DESC",
+      [playerId]
+    );
+    return (res.rows || []).map((r, i) => mapPlayerStatsRow(r, i));
+  } catch {
+    return [];
+  }
+}
+
+/** Get a single row by player_id (e.g. "abdelal01"); JOIN with player_stats so stats are included. */
 export async function getPlayerInfoByPlayerId(playerId: string): Promise<PlayerInfoMapped | null> {
   const id = String(playerId || "").trim();
   if (!id) return null;
@@ -198,7 +252,11 @@ export async function getPlayerInfoByPlayerId(playerId: string): Promise<PlayerI
     try {
       const res = await pool.query<PlayerInfoRow>(`SELECT * FROM ${table} WHERE player_id = $1`, [id]);
       const row = res.rows?.[0];
-      if (row) return mapRowToPlayer(row);
+      if (row) {
+        const mapped = mapRowToPlayer(row);
+        const statsFromTable = await getPlayerStatsFromPlayerStatsTable(id);
+        return { ...mapped, stats: statsFromTable.length > 0 ? statsFromTable : mapped.stats };
+      }
     } catch {
       continue;
     }
@@ -265,4 +323,46 @@ export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; u
   }
 
   return result;
+}
+
+/** Ingest: insert one row into user's player_stats table (scraper calls after inserting into "Player info"). */
+export async function insertPlayerStatsRow(row: {
+  player_id: string;
+  season?: string;
+  team?: string;
+  league?: string;
+  games?: number;
+  games_started?: number;
+  pts_per_g?: string | number;
+  trb_per_g?: string | number;
+  ast_per_g?: string | number;
+  stl_per_g?: string | number;
+  blk_per_g?: string | number;
+  fg_pct?: string | number;
+  fg3_pct?: string | number;
+  ft_pct?: string | number;
+}): Promise<void> {
+  await pool.query(
+    `INSERT INTO player_stats (
+      player_id, season, team, league, games, games_started,
+      pts_per_g, trb_per_g, ast_per_g, stl_per_g, blk_per_g,
+      fg_pct, fg3_pct, ft_pct
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+    [
+      row.player_id,
+      row.season ?? "N/A",
+      row.team ?? "NBA",
+      row.league ?? "NBA",
+      row.games ?? 0,
+      row.games_started ?? 0,
+      String(row.pts_per_g ?? 0),
+      String(row.trb_per_g ?? 0),
+      String(row.ast_per_g ?? 0),
+      String(row.stl_per_g ?? 0),
+      String(row.blk_per_g ?? 0),
+      String(row.fg_pct ?? 0),
+      String(row.fg3_pct ?? 0),
+      String(row.ft_pct ?? 0),
+    ]
+  );
 }

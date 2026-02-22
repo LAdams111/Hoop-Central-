@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, insertPlayerStatsRow } from "./syncPlayerInfo";
 
 export const adminSessions = new Set<string>();
 
@@ -223,6 +223,55 @@ export async function registerRoutes(
       }
     }
     res.json({ created, updated, errors });
+  });
+
+  app.post("/api/ingest/player-stats", async (req, res) => {
+    if (ingestSecret) {
+      const provided = req.headers["x-ingest-secret"] || req.query.secret;
+      if (provided !== ingestSecret) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+    }
+    const raw = req.body?.stats ?? req.body;
+    const list = Array.isArray(raw) ? raw : [raw].filter(Boolean);
+    if (list.length === 0) {
+      return res.status(400).json({ error: "Expected { stats: [ ... ] } or a single stat object with player_id" });
+    }
+    const get = (o: Record<string, unknown>, ...keys: string[]) => {
+      for (const k of keys) if (o[k] != null) return o[k];
+      return undefined;
+    };
+    let inserted = 0;
+    const errors: string[] = [];
+    for (const item of list) {
+      const player_id = get(item, "player_id", "playerId") as string | undefined;
+      if (!player_id) {
+        errors.push("Missing player_id");
+        continue;
+      }
+      try {
+        await insertPlayerStatsRow({
+          player_id: String(player_id),
+          season: get(item, "season", "year_id", "year") as string | undefined,
+          team: get(item, "team", "team_name_abbr", "teamName") as string | undefined,
+          league: get(item, "league", "comp_name_abbr", "league") as string | undefined,
+          games: Number(get(item, "games", "gp", "g")) || 0,
+          games_started: Number(get(item, "games_started", "gs")) || 0,
+          pts_per_g: get(item, "pts_per_g", "ppg", "pts"),
+          trb_per_g: get(item, "trb_per_g", "rpg", "reb"),
+          ast_per_g: get(item, "ast_per_g", "apg", "ast"),
+          stl_per_g: get(item, "stl_per_g", "spg", "stl"),
+          blk_per_g: get(item, "blk_per_g", "bpg", "blk"),
+          fg_pct: get(item, "fg_pct", "fg%"),
+          fg3_pct: get(item, "fg3_pct", "fg3%"),
+          ft_pct: get(item, "ft_pct", "ft%"),
+        });
+        inserted++;
+      } catch (err: unknown) {
+        errors.push(err instanceof Error ? err.message : String(err));
+      }
+    }
+    res.json({ inserted, errors });
   });
 
   app.post("/api/featured-players", async (req, res) => {
