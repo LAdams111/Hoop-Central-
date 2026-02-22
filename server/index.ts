@@ -104,26 +104,27 @@ app.use((req, res, next) => {
 })();
 
 function startWeeklyScraperSchedule() {
-  function msUntilNextSunday6AM(): number {
+  function msUntilNextSunday6AM() {
     const now = new Date();
-    const dayOfWeek = now.getDay();
-    let daysUntilSunday = (7 - dayOfWeek) % 7;
-    if (daysUntilSunday === 0) {
-      const sixAM = new Date(now);
-      sixAM.setHours(6, 0, 0, 0);
-      if (now >= sixAM) {
-        daysUntilSunday = 7;
-      }
+    const next = new Date(now);
+
+    // 0 = Sunday; compute days until next Sunday
+    const day = now.getDay();
+    const daysUntilSunday = (7 - day) % 7;
+    next.setDate(now.getDate() + daysUntilSunday);
+    next.setHours(6, 0, 0, 0);
+
+    // If it's already past Sunday 6:00 AM today, schedule for next week
+    if (next.getTime() <= now.getTime()) {
+      next.setDate(next.getDate() + 7);
     }
-    const nextSunday = new Date(now);
-    nextSunday.setDate(now.getDate() + daysUntilSunday);
-    nextSunday.setHours(6, 0, 0, 0);
-    return nextSunday.getTime() - now.getTime();
+
+    return next.getTime() - now.getTime();
   }
 
-  function scheduleNext() {
+  async function scheduleNext() {
     const ms = msUntilNextSunday6AM();
-    const hours = Math.round(ms / 1000 / 60 / 60 * 10) / 10;
+    const hours = Math.round((ms / 1000 / 60 / 60) * 10) / 10;
     log(`Next auto-scrape scheduled in ${hours} hours (Sunday 6:00 AM)`, "scheduler");
 
     setTimeout(async () => {
@@ -132,11 +133,12 @@ function startWeeklyScraperSchedule() {
         const result = await scrapeNBAPlayers();
         log(`Scheduled scrape complete! Added: ${result.playersAdded}, Updated: ${result.playersUpdated}, Stats: ${result.statsUpdated}, Seasons: ${result.seasonsProcessed.join(', ')}`, "scheduler");
       } catch (err: any) {
-        log(`Scheduled scrape failed: ${err.message}`, "scheduler");
+        log(`Scheduled scrape failed: ${err?.message ?? String(err)}`, "scheduler");
       }
-      scheduleNext();
+      // schedule the next run
+      void scheduleNext();
     }, ms);
   }
 
-  scheduleNext();
+  void scheduleNext();
 }
