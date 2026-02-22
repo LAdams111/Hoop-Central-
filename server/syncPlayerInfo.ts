@@ -41,7 +41,8 @@ interface PlayerInfoRow {
   team: string;
   position: string;
   height: string;
-  weig: string | number;
+  weig?: string | number;
+  weight?: string | number;
 }
 
 /** Shape the API returns for a player (matches frontend expectation). */
@@ -69,7 +70,7 @@ function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
     position: normalizePosition(row.position || ""),
     team: (row.team || "").trim(),
     height: formatHeight(row.height || ""),
-    weight: formatWeight(row.weig),
+    weight: formatWeight(row.weig ?? row.weight),
     jerseyNumber: 0,
     headshotUrl: "",
     bio: null,
@@ -134,11 +135,11 @@ export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; u
 
   let rows: PlayerInfoRow[] = [];
   try {
-    const res = await pool.query<PlayerInfoRow>(`SELECT id, player_id, name, team, position, height, weig FROM "${PLAYER_INFO_TABLE_QUOTED}"`);
+    const res = await pool.query<PlayerInfoRow>(`SELECT * FROM "${PLAYER_INFO_TABLE_QUOTED}"`);
     rows = res.rows || [];
   } catch {
     try {
-      const res = await pool.query<PlayerInfoRow>(`SELECT id, player_id, name, team, position, height, weig FROM ${PLAYER_INFO_TABLE_SNAKE}`);
+      const res = await pool.query<PlayerInfoRow>(`SELECT * FROM ${PLAYER_INFO_TABLE_SNAKE}`);
       rows = res.rows || [];
     } catch (e) {
       result.errors.push(`Failed to read Player info table: ${(e as Error).message}`);
@@ -157,7 +158,7 @@ export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; u
 
       const position = normalizePosition(row.position || "");
       const height = formatHeight(row.height || "");
-      const weight = formatWeight(row.weig);
+      const weight = formatWeight(row.weig ?? row.weight);
 
       const existing = await storage.getPlayerByNameAndTeam(name, team);
       if (existing) {

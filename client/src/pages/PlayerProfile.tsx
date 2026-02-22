@@ -195,12 +195,13 @@ export default function PlayerProfile() {
     );
   }
 
-  const latestSeason = [...player.stats].sort((a, b) => b.season.localeCompare(a.season))[0];
+  const statsList = Array.isArray(player.stats) ? player.stats : [];
+  const latestSeason = [...statsList].sort((a, b) => b.season.localeCompare(a.season))[0];
   const currentStats = {
-    ppg: latestSeason?.pointsPerGame || "0.0",
-    rpg: latestSeason?.reboundsPerGame || "0.0",
-    apg: latestSeason?.assistsPerGame || "0.0",
-    season: latestSeason?.season || "N/A"
+    ppg: latestSeason?.pointsPerGame ?? "0.0",
+    rpg: latestSeason?.reboundsPerGame ?? "0.0",
+    apg: latestSeason?.assistsPerGame ?? "0.0",
+    season: latestSeason?.season ?? "N/A"
   };
 
   const calculateAge = (dob: string) => {
@@ -312,10 +313,10 @@ export default function PlayerProfile() {
                     {player.position}
                   </Badge>
                   <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
-                    <span className="text-primary font-bold">HT</span> {player.height}
+                    <span className="text-primary font-bold">HT</span> {player.height ?? "—"}
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
-                    <span className="text-primary font-bold">WT</span> {player.weight}
+                    <span className="text-primary font-bold">WT</span> {player.weight ?? "—"}
                   </div>
                   {player.birthDate && (
                     <>
@@ -442,11 +443,11 @@ export default function PlayerProfile() {
 
             <div className="lg:col-span-2">
               <div className="grid grid-cols-2 gap-2 md:gap-6">
-                <StatsChart stats={player.stats} dataKey="pointsPerGame" label="Points" color="hsl(var(--primary))" />
+                <StatsChart stats={statsList} dataKey="pointsPerGame" label="Points" color="hsl(var(--primary))" />
                 {player.position === "C" || player.position === "PF" ? (
-                  <StatsChart stats={player.stats} dataKey="reboundsPerGame" label="Rebounds" color="hsl(var(--accent))" />
+                  <StatsChart stats={statsList} dataKey="reboundsPerGame" label="Rebounds" color="hsl(var(--accent))" />
                 ) : (
-                  <StatsChart stats={player.stats} dataKey="assistsPerGame" label="Assists" color="hsl(var(--accent))" />
+                  <StatsChart stats={statsList} dataKey="assistsPerGame" label="Assists" color="hsl(var(--accent))" />
                 )}
               </div>
             </div>
@@ -475,7 +476,7 @@ export default function PlayerProfile() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {(() => {
-                    const sorted = [...player.stats].sort((a, b) => {
+                    const sorted = [...statsList].sort((a, b) => {
                       const seasonCmp = b.season.localeCompare(a.season);
                       if (seasonCmp !== 0) return seasonCmp;
                       return b.id - a.id;
