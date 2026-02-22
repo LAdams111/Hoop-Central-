@@ -97,10 +97,18 @@ app.use((req, res, next) => {
       port,
       host: "0.0.0.0",
     },
-    () => {
+    async () => {
       log(`serving on port ${port}`);
       if (!process.env.DATABASE_URL && !process.env.RAILWAY_POSTGRESQL_URL) {
         log("Warning: DATABASE_URL not set — connect to Railway Postgres and set DATABASE_URL in Variables", "startup");
+      }
+      try {
+        const syncResult = await syncPlayerInfoFromPostgres();
+        if (syncResult.created > 0 || syncResult.updated > 0) {
+          log(`Startup sync: ${syncResult.created} players created, ${syncResult.updated} updated`, "startup");
+        }
+      } catch (err: any) {
+        log(`Startup sync skipped: ${err?.message ?? String(err)}`, "startup");
       }
       startWeeklyScraperSchedule();
       startPlayerInfoSyncSchedule();

@@ -5,7 +5,8 @@
 import { pool } from "./db";
 import { storage } from "./storage";
 
-const PLAYER_INFO_TABLE = "Player info";
+const PLAYER_INFO_TABLE_QUOTED = "Player info"; // with space; use in SQL as "Player info"
+const PLAYER_INFO_TABLE_SNAKE = "player_info";  // fallback if DB uses snake_case
 
 function normalizePosition(position: string): string {
   const p = (position || "").toLowerCase();
@@ -76,34 +77,54 @@ function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
   };
 }
 
-/**
- * Read directly from "Player info" and return rows in API shape.
- * Use this so the site shows players even when the `players` table is empty.
- * Table name must be quoted: "Player info" (with space).
- */
-export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
-  const res = await pool.query<PlayerInfoRow>(`SELECT * FROM "Player info"`);
-  const rows = res.rows || [];
-  return rows.map(mapRowToPlayer);
+async function queryPlayerInfoTable(sql: string, params?: unknown[]): Promise<{ rows: PlayerInfoRow[] }> {
+  try {
+    const res = await pool.query<PlayerInfoRow>(sql, params ?? []);
+    return { rows: res.rows || [] };
+  } catch {
+    return { rows: [] };
+  }
 }
 
-/** Get a single row from "Player info" by id (for profile page). */
+/** Try "Player info" then "player_info"; return rows in API shape. */
+export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
+  let out = await queryPlayerInfoTable(`SELECT * FROM "${PLAYER_INFO_TABLE_QUOTED}"`);
+  if (out.rows.length === 0) {
+    out = await queryPlayerInfoTable(`SELECT * FROM ${PLAYER_INFO_TABLE_SNAKE}`);
+  }
+  return out.rows.map(mapRowToPlayer);
+}
+
+/** Get a single row by id; try both table names. */
 export async function getPlayerInfoById(id: number): Promise<PlayerInfoMapped | null> {
-  const res = await pool.query<PlayerInfoRow>(`SELECT * FROM "Player info" WHERE id = $1`, [id]);
-  const row = res.rows?.[0];
+  let res = await pool.query<PlayerInfoRow>(`SELECT * FROM "${PLAYER_INFO_TABLE_QUOTED}" WHERE id = $1`, [id]);
+  let row = res.rows?.[0];
+  if (!row) {
+    try {
+      res = await pool.query<PlayerInfoRow>(`SELECT * FROM ${PLAYER_INFO_TABLE_SNAKE} WHERE id = $1`, [id]);
+      row = res.rows?.[0];
+    } catch {
+      // ignore
+    }
+  }
   return row ? mapRowToPlayer(row) : null;
 }
 
 export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; updated: number; errors: string[] }> {
   const result = { created: 0, updated: 0, errors: [] as string[] };
 
-  let rows: PlayerInfoRow[];
+  let rows: PlayerInfoRow[] = [];
   try {
-    const res = await pool.query<PlayerInfoRow>(`SELECT id, player_id, name, team, position, height, weig FROM "${PLAYER_INFO_TABLE}"`);
+    const res = await pool.query<PlayerInfoRow>(`SELECT id, player_id, name, team, position, height, weig FROM "${PLAYER_INFO_TABLE_QUOTED}"`);
     rows = res.rows || [];
-  } catch (e) {
-    result.errors.push(`Failed to read "${PLAYER_INFO_TABLE}" table: ${(e as Error).message}`);
-    return result;
+  } catch {
+    try {
+      const res = await pool.query<PlayerInfoRow>(`SELECT id, player_id, name, team, position, height, weig FROM ${PLAYER_INFO_TABLE_SNAKE}`);
+      rows = res.rows || [];
+    } catch (e) {
+      result.errors.push(`Failed to read Player info table: ${(e as Error).message}`);
+      return result;
+    }
   }
 
   for (const row of rows) {

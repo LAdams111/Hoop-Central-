@@ -285,34 +285,41 @@ export async function registerRoutes(
     res.json(updated);
   });
 
-  // Players List — read from "Player info" so profiles show when that table has data (Railway Postgres)
+  // Players List — prefer synced players table (same ids = profile, teams, stats work everywhere)
   app.get(api.players.list.path, async (req, res) => {
-    const search = (req.query.search as string | undefined)?.toLowerCase().trim();
+    const search = req.query.search as string | undefined;
     const position = req.query.position as string | undefined;
     const sortBy = req.query.sortBy as "views" | "name" | undefined;
 
-    let players: { id: number; name: string; position: string; team: string; height: string; weight: string; jerseyNumber: number; headshotUrl: string; profileViews: number }[];
-    try {
-      const fromPlayerInfo = await getPlayerInfoRows();
-      if (fromPlayerInfo.length > 0) {
-        players = fromPlayerInfo;
-      } else {
-        players = await storage.getPlayers(search, position, sortBy);
-        res.json(players);
-        return;
+    let players = await storage.getPlayers(search, position, sortBy);
+    if (players.length === 0) {
+      try {
+        const syncResult = await syncPlayerInfoFromPostgres();
+        if (syncResult.created > 0 || syncResult.updated > 0) {
+          players = await storage.getPlayers(search, position, sortBy);
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      players = await storage.getPlayers(search, position, sortBy);
-      res.json(players);
-      return;
     }
-
-    let list = players;
-    if (search) list = list.filter((p) => p.name.toLowerCase().includes(search));
-    if (position && position !== "ALL") list = list.filter((p) => p.position === position);
-    if (sortBy === "views") list = [...list].sort((a, b) => (b.profileViews ?? 0) - (a.profileViews ?? 0));
-    else list = [...list].sort((a, b) => a.name.localeCompare(b.name));
-    res.json(list);
+    if (players.length === 0) {
+      try {
+        const fromPlayerInfo = await getPlayerInfoRows();
+        if (fromPlayerInfo.length > 0) {
+          let list = fromPlayerInfo;
+          const searchLower = search?.toLowerCase().trim();
+          if (searchLower) list = list.filter((p) => p.name.toLowerCase().includes(searchLower));
+          if (position && position !== "ALL") list = list.filter((p) => p.position === position);
+          if (sortBy === "views") list = [...list].sort((a, b) => (b.profileViews ?? 0) - (a.profileViews ?? 0));
+          else list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+          res.json(list);
+          return;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    res.json(players);
   });
 
   // Prospects (under 20, sorted by views)
