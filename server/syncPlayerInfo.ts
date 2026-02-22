@@ -47,6 +47,7 @@ interface PlayerInfoRow {
 /** Shape the API returns for a player (matches frontend expectation). */
 export interface PlayerInfoMapped {
   id: number;
+  player_id: string;
   name: string;
   position: string;
   team: string;
@@ -63,6 +64,7 @@ export interface PlayerInfoMapped {
 function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
   return {
     id: row.id,
+    player_id: String(row.player_id || "").trim(),
     name: (row.name || "").trim(),
     position: normalizePosition(row.position || ""),
     team: (row.team || "").trim(),
@@ -95,7 +97,7 @@ export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
   return [];
 }
 
-/** Get a single row by id; try both table names. */
+/** Get a single row by numeric id; try both table names. */
 export async function getPlayerInfoById(id: number): Promise<PlayerInfoMapped | null> {
   let res = await pool.query<PlayerInfoRow>(`SELECT * FROM "${PLAYER_INFO_TABLE_QUOTED}" WHERE id = $1`, [id]);
   let row = res.rows?.[0];
@@ -108,6 +110,23 @@ export async function getPlayerInfoById(id: number): Promise<PlayerInfoMapped | 
     }
   }
   return row ? mapRowToPlayer(row) : null;
+}
+
+/** Get a single row by player_id (e.g. "abdelal01"); frontend links use this. */
+export async function getPlayerInfoByPlayerId(playerId: string): Promise<PlayerInfoMapped | null> {
+  const id = String(playerId || "").trim();
+  if (!id) return null;
+  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  for (const table of tables) {
+    try {
+      const res = await pool.query<PlayerInfoRow>(`SELECT * FROM ${table} WHERE player_id = $1`, [id]);
+      const row = res.rows?.[0];
+      if (row) return mapRowToPlayer(row);
+    } catch {
+      continue;
+    }
+  }
+  return null;
 }
 
 export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; updated: number; errors: string[] }> {

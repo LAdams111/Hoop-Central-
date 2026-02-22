@@ -214,7 +214,7 @@ export default function Roster() {
         {players.length > 0 ? (
           <div className="flex flex-wrap justify-center gap-8" data-testid="roster-players-grid">
             {players.map((player) => (
-              <Link key={player.id} href={`/players/${player.id}`} className="group" data-testid={`link-player-${player.id}`}>
+              <Link key={player.id} href={`/players/${(player as { player_id?: string }).player_id ?? player.id}`} className="group" data-testid={`link-player-${player.id}`}>
                 <div className="flex flex-col items-center gap-4 p-6 rounded-3xl hover:bg-muted transition-all duration-300 border border-transparent hover:border-border">
                   <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-105 shadow-md">
                     <img 

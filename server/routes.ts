@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId } from "./syncPlayerInfo";
 
 export const adminSessions = new Set<string>();
 
@@ -327,34 +327,46 @@ export async function registerRoutes(
     res.json(results);
   });
 
-  // Player Detail (with stats) — try "Player info" by id if not in players table
+  // Player Detail (with stats) — :id can be numeric (players table) or player_id string ("Player info")
   app.get(api.players.get.path, async (req, res) => {
-    const id = Number(req.params.id);
-    let player = await storage.getPlayer(id);
+    const idParam = req.params.id;
+    const idNum = Number(idParam);
 
-    if (!player) {
-      try {
-        const fromPlayerInfo = await getPlayerInfoById(id);
-        if (fromPlayerInfo) {
-          return res.json({ ...fromPlayerInfo, stats: [], awards: [] });
+    if (!Number.isNaN(idNum)) {
+      let player = await storage.getPlayer(idNum);
+      if (!player) {
+        try {
+          const fromPlayerInfo = await getPlayerInfoById(idNum);
+          if (fromPlayerInfo) {
+            return res.json({ ...fromPlayerInfo, stats: [], awards: [] });
+          }
+        } catch {
+          // ignore
         }
-      } catch {
-        // ignore
+      } else {
+        const [stats, awards] = await Promise.all([
+          storage.getPlayerStats(idNum),
+          storage.getPlayerAwards(idNum)
+        ]);
+        return res.json({ ...player, stats, awards });
       }
-      return res.status(404).json({ message: "Player not found" });
     }
 
-    const [stats, awards] = await Promise.all([
-      storage.getPlayerStats(id),
-      storage.getPlayerAwards(id)
-    ]);
-    res.json({ ...player, stats, awards });
+    try {
+      const fromPlayerInfo = await getPlayerInfoByPlayerId(idParam);
+      if (fromPlayerInfo) {
+        return res.json({ ...fromPlayerInfo, stats: [], awards: [] });
+      }
+    } catch {
+      // ignore
+    }
+    return res.status(404).json({ message: "Player not found" });
   });
 
   // Increment Player Views
   app.post("/api/players/:id/view", async (req, res) => {
     const id = Number(req.params.id);
-    await storage.incrementPlayerViews(id);
+    if (!Number.isNaN(id)) await storage.incrementPlayerViews(id);
     res.json({ success: true });
   });
 

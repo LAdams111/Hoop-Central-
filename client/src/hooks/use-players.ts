@@ -26,11 +26,13 @@ export function usePlayers(filters?: { search?: string; position?: string; sortB
   });
 }
 
-export function usePlayer(id: number) {
+export function usePlayer(id: number | string) {
+  const idStr = id == null ? "" : String(id);
+  const enabled = idStr !== "" && idStr !== "0";
   return useQuery({
-    queryKey: [api.players.get.path, id],
+    queryKey: [api.players.get.path, idStr],
     queryFn: async () => {
-      const url = buildUrl(api.players.get.path, { id });
+      const url = idStr ? `${api.players.get.path.replace(":id", encodeURIComponent(idStr))}` : "";
       const res = await fetch(url);
       
       if (res.status === 404) return null;
@@ -38,7 +40,7 @@ export function usePlayer(id: number) {
       
       return api.players.get.responses[200].parse(await res.json());
     },
-    enabled: !isNaN(id),
+    enabled,
     refetchInterval: 60_000,
     refetchOnWindowFocus: true,
   });

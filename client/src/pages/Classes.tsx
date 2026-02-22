@@ -88,7 +88,7 @@ export default function Classes() {
           ) : (birthYearPlayers && birthYearPlayers.length > 0) ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {birthYearPlayers.map((player, index) => (
-                <Link key={player.id} href={`/players/${player.id}`}>
+                <Link key={player.id} href={`/players/${(player as { player_id?: string }).player_id ?? player.id}`}>
                   <Card className="hover-elevate cursor-pointer overflow-hidden border-border hover:border-primary/50 transition-all h-full" data-testid={`card-player-${player.id}`}>
                     <div className="flex items-center p-4 gap-4">
                       <div className="flex items-center justify-center w-8 text-lg font-display font-bold text-muted-foreground">

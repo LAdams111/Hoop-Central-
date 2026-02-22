@@ -6,13 +6,14 @@ import { Users, Ruler, Weight } from "lucide-react";
 import { DEFAULT_HEADSHOT } from "@/lib/constants";
 
 interface PlayerCardProps {
-  player: Player & { id?: number | string; bbrefId?: string };
+  player: Player & { id?: number | string; bbrefId?: string; player_id?: string };
   /** When set (e.g. for Railway scraper players), used instead of /players/:id */
   href?: string;
 }
 
 export function PlayerCard({ player, href }: PlayerCardProps) {
-  const linkHref = href ?? `/players/${player.id}`;
+  const profileId = player.player_id ?? player.id;
+  const linkHref = href ?? `/players/${profileId}`;
   return (
     <Link href={linkHref} className="block group h-full">
       <Card className="min-h-full bg-card border-border hover:border-primary/50 hover:bg-card/80 transition-all duration-300 overflow-hidden relative cursor-pointer group-hover:-translate-y-1 group-hover:shadow-lg group-hover:shadow-primary/5 flex flex-col">

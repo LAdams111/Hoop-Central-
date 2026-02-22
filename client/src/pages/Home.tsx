@@ -201,7 +201,7 @@ export default function Home() {
                         className="w-full flex items-center gap-3 px-4 py-3 hover-elevate text-left transition-colors group"
                         data-testid={`suggestion-player-${item.data.id}`}
                         onClick={() => {
-                          setLocation(`/players/${item.data.id}`);
+                          setLocation(`/players/${(item.data as { player_id?: string }).player_id ?? item.data.id}`);
                           setShowSuggestions(false);
                         }}
                       >
@@ -516,7 +516,7 @@ function FavoritesBar({ players }: { players: Player[] | undefined }) {
             ))}
             {favoritePlayers.length > 0 || favTeams.length > 0 ? (
               favoritePlayers.map((player) => (
-                <Link key={player.id} href={`/players/${player.id}`} className="group relative">
+                <Link key={player.id} href={`/players/${(player as { player_id?: string }).player_id ?? player.id}`} className="group relative">
                   <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-110 shadow-sm">
                     <img
                       src={player.headshotUrl || DEFAULT_HEADSHOT}

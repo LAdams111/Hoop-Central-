@@ -29,7 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function PlayerProfile() {
   const [, params] = useRoute("/players/:id");
-  const id = parseInt(params?.id || "0");
+  const id = params?.id ?? "";
   const { data: player, isLoading } = usePlayer(id);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
