@@ -37,4 +37,8 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
+  preview: {
+    // Allow the Railway production host for preview requests
+    allowedHosts: ["hoop-central-production.up.railway.app"],
+  },
 });
