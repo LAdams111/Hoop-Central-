@@ -219,7 +219,18 @@ export async function registerRoutes(
   });
 
   // Seed Data function
-  await seedDatabase();
+  // Only seed the database when a connection string or PG_* vars are present.
+  if (
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.RAILWAY_POSTGRESQL_URL ||
+    process.env.RAILWAY_DATABASE_URL ||
+    process.env.PGHOST
+  ) {
+    await seedDatabase();
+  } else {
+    console.warn("Database not configured; skipping seedDatabase.");
+  }
 
   return httpServer;
 }
