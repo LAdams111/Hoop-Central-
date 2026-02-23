@@ -405,11 +405,13 @@ export async function registerRoutes(
     res.json(updated);
   });
 
-  // Players List — show from "Player info" first so list is never empty when that table has data; else synced players
+  // Players List — show from "Player info" first; cap at 50 when no search so directory doesn't overload
+  const DIRECTORY_LIST_LIMIT = 50;
   app.get(api.players.list.path, async (req, res) => {
     const search = req.query.search as string | undefined;
     const position = req.query.position as string | undefined;
     const sortBy = req.query.sortBy as "views" | "name" | undefined;
+    const hasSearch = (search?.trim() ?? "") !== "" || (position && position !== "ALL");
 
     let players: { id: number; name: string; position: string; team: string; height: string; weight: string; jerseyNumber: number; headshotUrl: string; profileViews: number }[];
     try {
@@ -422,6 +424,7 @@ export async function registerRoutes(
         if (position && position !== "ALL") list = list.filter((p) => p.position === position);
         if (sortBy === "views") list = [...list].sort((a, b) => (b.profileViews ?? 0) - (a.profileViews ?? 0));
         else list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+        if (!hasSearch) list = list.slice(0, DIRECTORY_LIST_LIMIT);
         res.json(list);
         return;
       }
@@ -438,6 +441,7 @@ export async function registerRoutes(
         // ignore
       }
     }
+    if (!hasSearch) players = players.slice(0, DIRECTORY_LIST_LIMIT);
     res.json(players);
   });
 
