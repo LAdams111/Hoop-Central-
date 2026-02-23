@@ -135,7 +135,7 @@ export default function Home() {
 
   const playerSuggestions = (search.trim()
     ? (searchResults ?? [])
-    : (players ?? []).filter(p => matchesSearch(p.name)
+    : (players ?? []).filter(p => matchesSearch(p.name))
   ).slice(0, 5);
 
   const combined = [
