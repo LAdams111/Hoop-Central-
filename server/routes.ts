@@ -33,17 +33,17 @@ export async function registerRoutes(
     res.json({ authenticated: true });
   });
 
-  // Debug: verify app is reading from the same DB (table "players")
+  // Debug: verify app is reading from the same DB (table "player_info")
   app.get("/api/debug/players-count", async (_req, res) => {
     try {
       const count = await storage.getPlayerCount();
-      res.json({ table: "players", count, ok: true });
+      res.json({ table: "player_info", count, ok: true });
     } catch (e) {
-      res.status(500).json({ table: "players", count: null, ok: false, error: String(e) });
+      res.status(500).json({ table: "player_info", count: null, ok: false, error: String(e) });
     }
   });
 
-  // Sync from Postgres "Player info" table into app's players table (creates/updates profiles)
+  // Sync from Postgres "Player info" table into app's player_info table (creates/updates profiles)
   app.post("/api/sync/player-info", async (_req, res) => {
     try {
       const result = await syncPlayerInfoFromPostgres();
@@ -440,7 +440,7 @@ export async function registerRoutes(
         return;
       }
     } catch {
-      // fall through to players table
+      // fall through to player_info table
     }
 
     players = await storage.getPlayers(search, position, sortBy);
@@ -462,7 +462,7 @@ export async function registerRoutes(
     res.json(results);
   });
 
-  // Player Detail (with stats) — :id can be numeric (players table) or player_id string ("Player info")
+  // Player Detail (with stats) — :id can be numeric (player_info table) or player_id string ("Player info")
   app.get(api.players.get.path, async (req, res) => {
     const idParam = req.params.id;
     const idNum = Number(idParam);

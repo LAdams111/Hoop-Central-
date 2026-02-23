@@ -13,15 +13,6 @@ import { queryClient } from "@/lib/queryClient";
 import type { Player } from "@shared/schema";
 
 export default function Home() {
-  const { data: players, isLoading } = usePlayers();
-  const { data: searchResults } = usePlayers(
-    debouncedSearch.trim() ? { search: debouncedSearch.trim() } : undefined
-  );
-  const { data: trendingPlayers, isLoading: isLoadingTrending } = usePlayers({ sortBy: "views" });
-  const { data: featuredPlayers, isLoading: isLoadingFeatured } = useQuery<Player[]>({ queryKey: ["/api/featured-players"] });
-  const { data: teamCountData } = useQuery<{ count: number }>({ queryKey: ["/api/teams/count"] });
-  const { data: playersCountData } = useQuery<{ count: number }>({ queryKey: ["/api/players/count"] });
-  const { data: dbTeams } = useQuery<{ team: string; league: string; season: string }[]>({ queryKey: ["/api/teams/all"] });
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -31,6 +22,16 @@ export default function Home() {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(t);
   }, [search]);
+
+  const { data: players, isLoading } = usePlayers();
+  const { data: searchResults } = usePlayers(
+    debouncedSearch.trim() ? { search: debouncedSearch.trim() } : undefined
+  );
+  const { data: trendingPlayers, isLoading: isLoadingTrending } = usePlayers({ sortBy: "views" });
+  const { data: featuredPlayers, isLoading: isLoadingFeatured } = useQuery<Player[]>({ queryKey: ["/api/featured-players"] });
+  const { data: teamCountData } = useQuery<{ count: number }>({ queryKey: ["/api/teams/count"] });
+  const { data: playersCountData } = useQuery<{ count: number }>({ queryKey: ["/api/players/count"] });
+  const { data: dbTeams } = useQuery<{ team: string; league: string; season: string }[]>({ queryKey: ["/api/teams/all"] });
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);

@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-export const players = pgTable("players", {
+export const players = pgTable("player_info", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   position: text("position").notNull(), // PG, SG, SF, PF, C

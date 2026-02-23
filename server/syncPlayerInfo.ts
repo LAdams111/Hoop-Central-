@@ -1,6 +1,6 @@
 /**
  * Syncs from the Postgres "Player info" table (id, player_id, name, team, position, height, weig)
- * into the app's `players` table so Hoop Central can show player profiles.
+ * into the app's `player_info` table so Hoop Central can show player profiles.
  */
 import { pool } from "./db";
 import { storage } from "./storage";
