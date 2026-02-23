@@ -14,6 +14,9 @@ import type { Player } from "@shared/schema";
 
 export default function Home() {
   const { data: players, isLoading } = usePlayers();
+  const { data: searchResults } = usePlayers(
+    debouncedSearch.trim() ? { search: debouncedSearch.trim() } : undefined
+  );
   const { data: trendingPlayers, isLoading: isLoadingTrending } = usePlayers({ sortBy: "views" });
   const { data: featuredPlayers, isLoading: isLoadingFeatured } = useQuery<Player[]>({ queryKey: ["/api/featured-players"] });
   const { data: teamCountData } = useQuery<{ count: number }>({ queryKey: ["/api/teams/count"] });
@@ -21,7 +24,13 @@ export default function Home() {
   const { data: dbTeams } = useQuery<{ team: string; league: string; season: string }[]>({ queryKey: ["/api/teams/all"] });
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -124,9 +133,10 @@ export default function Home() {
     .sort((a, b) => (LEAGUE_TIER[a.league] || 99) - (LEAGUE_TIER[b.league] || 99))
     .slice(0, 5);
 
-  const playerSuggestions = players
-    ?.filter(p => matchesSearch(p.name))
-    .slice(0, 5) || [];
+  const playerSuggestions = (search.trim()
+    ? (searchResults ?? [])
+    : (players ?? []).filter(p => matchesSearch(p.name)
+  ).slice(0, 5);
 
   const combined = [
     ...playerSuggestions.map(p => ({ type: "player" as const, data: p })),
