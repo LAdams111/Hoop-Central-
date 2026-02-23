@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, insertPlayerStatsRow, insertIntoPlayerInfo } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount } from "./syncPlayerInfo";
 
 export const adminSessions = new Set<string>();
 
@@ -403,6 +403,17 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Player not found" });
     }
     res.json(updated);
+  });
+
+  // Total player count (for "Active Players" stat — all players on site, not just the 50 on directory)
+  app.get("/api/players/count", async (_req, res) => {
+    try {
+      let count = await getPlayerInfoCount();
+      if (count === 0) count = await storage.getPlayerCount();
+      res.json({ count });
+    } catch {
+      res.json({ count: 0 });
+    }
   });
 
   // Players List — show from "Player info" first; cap at 50 when no search so directory doesn't overload

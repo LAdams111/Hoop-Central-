@@ -17,6 +17,7 @@ export default function Home() {
   const { data: trendingPlayers, isLoading: isLoadingTrending } = usePlayers({ sortBy: "views" });
   const { data: featuredPlayers, isLoading: isLoadingFeatured } = useQuery<Player[]>({ queryKey: ["/api/featured-players"] });
   const { data: teamCountData } = useQuery<{ count: number }>({ queryKey: ["/api/teams/count"] });
+  const { data: playersCountData } = useQuery<{ count: number }>({ queryKey: ["/api/players/count"] });
   const { data: dbTeams } = useQuery<{ team: string; league: string; season: string }[]>({ queryKey: ["/api/teams/all"] });
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
@@ -265,7 +266,7 @@ export default function Home() {
     <section className="border-b border-border/40 bg-card/30 backdrop-blur-sm py-8">
         <div className="container mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
-            { label: "Active Players", value: `${players?.length || 0}+`, icon: Users },
+            { label: "Active Players", value: `${playersCountData?.count ?? players?.length ?? 0}+`, icon: Users },
             { label: "Active Scouts", value: "1.2k", icon: Search },
             { label: "Seasons Tracked", value: "75", icon: Trophy },
             { label: "Teams", value: `${teamCountData?.count || 0}+`, icon: Users },

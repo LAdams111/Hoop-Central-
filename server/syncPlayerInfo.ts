@@ -156,6 +156,22 @@ function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
   };
 }
 
+/** Return total count of players (for "Active Players" stat). Uses same source as list. */
+export async function getPlayerInfoCount(): Promise<number> {
+  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  for (const table of tables) {
+    try {
+      const res = await pool.query<{ count: number | string }>(`SELECT COUNT(*)::int AS count FROM ${table}`);
+      const raw = res.rows?.[0]?.count;
+      const n = typeof raw === "number" ? raw : parseInt(String(raw ?? "0"), 10);
+      if (!Number.isNaN(n)) return n;
+    } catch {
+      continue;
+    }
+  }
+  return 0;
+}
+
 /** Try "Player info", then player_info, then "player info" (lowercase); return rows in API shape. */
 export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
   const tables = [
