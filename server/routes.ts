@@ -513,7 +513,7 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
-  // Team Roster — same team+season as profile Season History; uses app DB then external table by stats
+  // Team Roster — only players who have a record for this team + season (app player_stats or external stats)
   app.get("/api/teams/:team/roster/:season", async (req, res) => {
     const teamRaw = req.params.team ?? "";
     const seasonRaw = req.params.season ?? "";

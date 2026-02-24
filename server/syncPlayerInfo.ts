@@ -225,7 +225,7 @@ export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
   return [];
 }
 
-/** Roster for team + season using same stats as profile (external table + player_stats or stats JSON). */
+/** Roster for team + season: only players whose stats include this team and season (same source as profile). */
 export async function getRosterFromExternalTable(team: string, season: string): Promise<PlayerInfoMapped[]> {
   const candidates = new Set(getTeamMatchCandidates(team));
   const seasonNorm = (season || "").trim();
