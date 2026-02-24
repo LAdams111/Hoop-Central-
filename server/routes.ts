@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, getRosterFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount } from "./syncPlayerInfo";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -513,13 +513,34 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
-  // Team Roster
+  // Team Roster — same team+season as profile Season History; uses app DB then external table by stats
   app.get("/api/teams/:team/roster/:season", async (req, res) => {
     const teamRaw = req.params.team ?? "";
     const seasonRaw = req.params.season ?? "";
     const team = decodeURIComponent(teamRaw).replace(/\+/g, " ").trim();
     const season = decodeURIComponent(seasonRaw).trim();
-    const roster = await storage.getRoster(team, season);
+    let roster = await storage.getRoster(team, season);
+    if (roster.length === 0) {
+      try {
+        const fromExternal = await getRosterFromExternalTable(team, season);
+        roster = fromExternal.map((p) => ({
+          id: p.id,
+          name: p.name,
+          position: p.position,
+          team: p.team,
+          height: p.height,
+          weight: p.weight,
+          jerseyNumber: p.jerseyNumber ?? 0,
+          headshotUrl: p.headshotUrl ?? "",
+          bio: p.bio ?? null,
+          profileViews: p.profileViews ?? 50,
+          hometown: p.hometown ?? null,
+          birthDate: p.birthDate ?? null,
+        }));
+      } catch {
+        // keep roster []
+      }
+    }
     res.json(roster);
   });
 

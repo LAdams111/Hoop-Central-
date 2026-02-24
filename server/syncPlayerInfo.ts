@@ -3,7 +3,7 @@
  * into the app's `player_info` table so Hoop Central can show player profiles.
  */
 import { pool } from "./db";
-import { storage } from "./storage";
+import { storage, getTeamMatchCandidates } from "./storage";
 
 const PLAYER_INFO_TABLE_QUOTED = "Player info"; // with space; use in SQL as "Player info"
 const PLAYER_INFO_TABLE_SNAKE = "player_info";  // fallback if DB uses snake_case
@@ -223,6 +223,27 @@ export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
     }
   }
   return [];
+}
+
+/** Roster for team + season using same stats as profile (external table + player_stats or stats JSON). */
+export async function getRosterFromExternalTable(team: string, season: string): Promise<PlayerInfoMapped[]> {
+  const candidates = new Set(getTeamMatchCandidates(team));
+  const seasonNorm = (season || "").trim();
+  const seasonVariants: string[] = seasonNorm ? [seasonNorm] : [];
+  if (/^\d{4}$/.test(seasonNorm)) {
+    const y = parseInt(seasonNorm, 10);
+    seasonVariants.push(`${y - 1}-${String(y).slice(-2)}`);
+  }
+  const rows = await getPlayerInfoRows();
+  const out: PlayerInfoMapped[] = [];
+  for (const p of rows) {
+    const stats = p.stats ?? (await getPlayerStatsFromPlayerStatsTable(p.player_id));
+    const hasMatch = stats.some(
+      (s) => candidates.has((s.team || "").toLowerCase()) && seasonVariants.includes((s.season || "").trim())
+    );
+    if (hasMatch) out.push(p);
+  }
+  return out;
 }
 
 /** Get a single row by numeric id; try both table names; include stats from player_stats table. */

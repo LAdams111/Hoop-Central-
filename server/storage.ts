@@ -17,8 +17,9 @@ const TEAM_ABBREV_TO_FULL: Record<string, string> = {
   NJN: "Brooklyn Nets", NOH: "New Orleans Pelicans", SEA: "Oklahoma City Thunder",
   VAN: "Memphis Grizzlies", CHH: "Charlotte Hornets", WSB: "Washington Wizards",
 };
-function getTeamMatchCandidates(team: string): string[] {
-  const t = team.trim();
+/** Exported so roster API can use for external-table fallback. */
+export function getTeamMatchCandidates(team: string): string[] {
+  const t = (team ?? "").replace(/\+/g, " ").trim();
   const full = TEAM_ABBREV_TO_FULL[t] ?? (t.length <= 4 ? undefined : t);
   const abbrev = Object.entries(TEAM_ABBREV_TO_FULL).find(([, v]) => v.toLowerCase() === t.toLowerCase())?.[0] ?? (t.length <= 4 ? t : undefined);
   const set = new Set<string>();
