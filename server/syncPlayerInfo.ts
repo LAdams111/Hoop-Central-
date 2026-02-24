@@ -269,7 +269,7 @@ export async function getRosterFromExternalTableViaJoin(team: string, season: st
     .where(
       and(
         sql`LOWER(${playerStats.team}) = ${teamLower}`,
-        sql`${playerStats.season}::text IN (${sql.join(seasonVariants.map((v) => sql`${v}`), sql`, `)})`
+        sql`CAST(${playerStats.season} AS text) IN (${sql.join(seasonVariants.map((v) => sql`${v}`), sql`, `)})`
       )
     );
 

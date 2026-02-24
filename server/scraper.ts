@@ -325,7 +325,7 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
           const existingSeasonStats = await db.select().from(playerStats).where(
             and(
               eq(playerStats.playerId, playerId),
-              sql`${playerStats.season}::text = ${seasonDisplay}`,
+              sql`CAST(${playerStats.season} AS text) = ${seasonDisplay}`,
               eq(playerStats.league, "NBA")
             )
           );
