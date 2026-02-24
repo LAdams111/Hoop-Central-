@@ -2,6 +2,32 @@ import { players, playerStats, awards, teamRecords, siteSettings, type Player, t
 import { db } from "./db";
 import { eq, ilike, or, sql, and, inArray } from "drizzle-orm";
 
+/** Abbreviation → full name so roster can match either. */
+const TEAM_ABBREV_TO_FULL: Record<string, string> = {
+  ATL: "Atlanta Hawks", BOS: "Boston Celtics", BKN: "Brooklyn Nets", BRK: "Brooklyn Nets",
+  CHA: "Charlotte Hornets", CHO: "Charlotte Hornets", CHI: "Chicago Bulls", CLE: "Cleveland Cavaliers",
+  DAL: "Dallas Mavericks", DEN: "Denver Nuggets", DET: "Detroit Pistons",
+  GSW: "Golden State Warriors", HOU: "Houston Rockets", IND: "Indiana Pacers",
+  LAC: "LA Clippers", LAL: "Los Angeles Lakers", MEM: "Memphis Grizzlies",
+  MIA: "Miami Heat", MIL: "Milwaukee Bucks", MIN: "Minnesota Timberwolves",
+  NOP: "New Orleans Pelicans", NYK: "New York Knicks", OKC: "Oklahoma City Thunder",
+  ORL: "Orlando Magic", PHI: "Philadelphia 76ers", PHX: "Phoenix Suns", PHO: "Phoenix Suns",
+  POR: "Portland Trail Blazers", SAC: "Sacramento Kings", SAS: "San Antonio Spurs",
+  TOR: "Toronto Raptors", UTA: "Utah Jazz", WAS: "Washington Wizards",
+  NJN: "Brooklyn Nets", NOH: "New Orleans Pelicans", SEA: "Oklahoma City Thunder",
+  VAN: "Memphis Grizzlies", CHH: "Charlotte Hornets", WSB: "Washington Wizards",
+};
+function getTeamMatchCandidates(team: string): string[] {
+  const t = team.trim();
+  const full = TEAM_ABBREV_TO_FULL[t] ?? (t.length <= 4 ? undefined : t);
+  const abbrev = Object.entries(TEAM_ABBREV_TO_FULL).find(([, v]) => v.toLowerCase() === t.toLowerCase())?.[0] ?? (t.length <= 4 ? t : undefined);
+  const set = new Set<string>();
+  if (t) set.add(t.toLowerCase());
+  if (full) set.add(full.toLowerCase());
+  if (abbrev) set.add(abbrev.toLowerCase());
+  return Array.from(set);
+}
+
 export interface IStorage {
   // Players
   getPlayers(search?: string, position?: string, sortBy?: "views" | "name"): Promise<Player[]>;
@@ -89,16 +115,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRoster(team: string, season: string): Promise<Player[]> {
-    const teamLower = team.toLowerCase();
+    const teamCandidates = getTeamMatchCandidates(team);
+    if (teamCandidates.length === 0) return [];
+    const teamCondition = or(...teamCandidates.map((c) => sql`LOWER(${playerStats.team}) = ${c}`));
+    const seasonNorm = season.trim();
+    const seasonCandidates: string[] = seasonNorm ? [seasonNorm] : [];
+    if (/^\d{4}$/.test(seasonNorm)) {
+      const y = parseInt(seasonNorm, 10);
+      seasonCandidates.push(`${y - 1}-${String(y).slice(-2)}`);
+    }
+    const seasonCondition = seasonCandidates.length === 1
+      ? eq(playerStats.season, seasonCandidates[0])
+      : inArray(playerStats.season, seasonCandidates);
     const results = await db
       .select({ player: players })
       .from(players)
       .innerJoin(playerStats, eq(players.id, playerStats.playerId))
-      .where(
-        sql`LOWER(${playerStats.team}) = ${teamLower} AND ${playerStats.season} = ${season}`
-      );
+      .where(and(teamCondition, seasonCondition));
     const seen = new Set<number>();
-    return results.map(r => r.player).filter(p => {
+    return results.map((r) => r.player).filter((p) => {
       if (seen.has(p.id)) return false;
       seen.add(p.id);
       return true;
