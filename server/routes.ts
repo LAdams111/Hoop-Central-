@@ -469,6 +469,60 @@ export async function registerRoutes(
     res.json(results);
   });
 
+  // Birth year counts (for year grid) — must be before /api/players/:id or "birth-year-counts" is treated as id
+  app.get("/api/players/birth-year-counts", async (_req, res) => {
+    try {
+      const counts = await getBirthYearCountsFromExternalTable();
+      if (Object.keys(counts).length > 0) return res.json(counts);
+    } catch {
+      // fall through
+    }
+    const players = await storage.getPlayers();
+    const counts: Record<string, number> = {};
+    for (const p of players) {
+      const bd = p.birthDate ?? (p as { birth_date?: string }).birth_date ?? null;
+      if (bd == null || bd === "") continue;
+      const d = new Date(String(bd).trim());
+      if (Number.isNaN(d.getTime())) continue;
+      const year = String(d.getFullYear());
+      counts[year] = (counts[year] ?? 0) + 1;
+    }
+    res.json(counts);
+  });
+
+  // Players by birth year — must be before /api/players/:id
+  const BIRTH_YEAR_LIMIT = 100;
+  app.get("/api/players/birth-year/:year", async (req, res) => {
+    const year = parseInt(req.params.year);
+    if (isNaN(year)) {
+      return res.status(400).json({ message: "Invalid year" });
+    }
+    try {
+      const fromExternal = await getPlayersByBirthYearFromExternalTable(year, BIRTH_YEAR_LIMIT);
+      if (fromExternal.length > 0) {
+        const list = fromExternal.map((p) => ({
+          id: p.id,
+          name: p.name,
+          position: p.position,
+          team: p.team,
+          height: p.height,
+          weight: p.weight,
+          jerseyNumber: p.jerseyNumber ?? 0,
+          headshotUrl: p.headshotUrl ?? "",
+          bio: p.bio ?? null,
+          profileViews: p.profileViews ?? 50,
+          hometown: p.hometown ?? null,
+          birthDate: p.birthDate ?? null,
+        }));
+        return res.json(list);
+      }
+    } catch {
+      // fall through to app table
+    }
+    const results = await storage.getPlayersByBirthYear(year);
+    res.json(results);
+  });
+
   // Player Detail (with stats) — :id can be numeric (player_info table) or player_id string ("Player info")
   app.get(api.players.get.path, async (req, res) => {
     const idParam = req.params.id;
@@ -581,60 +635,6 @@ export async function registerRoutes(
     const { league } = req.params;
     const teams = await storage.getTeamsByLeague(league);
     res.json(teams);
-  });
-
-  // Birth year counts (for year grid) — from full "Player info" so counts match 5000+ players
-  app.get("/api/players/birth-year-counts", async (_req, res) => {
-    try {
-      const counts = await getBirthYearCountsFromExternalTable();
-      if (Object.keys(counts).length > 0) return res.json(counts);
-    } catch {
-      // fall through
-    }
-    const players = await storage.getPlayers();
-    const counts: Record<string, number> = {};
-    for (const p of players) {
-      const bd = p.birthDate ?? (p as { birth_date?: string }).birth_date ?? null;
-      if (bd == null || bd === "") continue;
-      const d = new Date(String(bd).trim());
-      if (Number.isNaN(d.getTime())) continue;
-      const year = String(d.getFullYear());
-      counts[year] = (counts[year] ?? 0) + 1;
-    }
-    res.json(counts);
-  });
-
-  // Players by Birth Year — use external "Player info" first (full site data), limit 100
-  const BIRTH_YEAR_LIMIT = 100;
-  app.get("/api/players/birth-year/:year", async (req, res) => {
-    const year = parseInt(req.params.year);
-    if (isNaN(year)) {
-      return res.status(400).json({ message: "Invalid year" });
-    }
-    try {
-      const fromExternal = await getPlayersByBirthYearFromExternalTable(year, BIRTH_YEAR_LIMIT);
-      if (fromExternal.length > 0) {
-        const list = fromExternal.map((p) => ({
-          id: p.id,
-          name: p.name,
-          position: p.position,
-          team: p.team,
-          height: p.height,
-          weight: p.weight,
-          jerseyNumber: p.jerseyNumber ?? 0,
-          headshotUrl: p.headshotUrl ?? "",
-          bio: p.bio ?? null,
-          profileViews: p.profileViews ?? 50,
-          hometown: p.hometown ?? null,
-          birthDate: p.birthDate ?? null,
-        }));
-        return res.json(list);
-      }
-    } catch {
-      // fall through to app table
-    }
-    const results = await storage.getPlayersByBirthYear(year);
-    res.json(results);
   });
 
   // NBA Scraper endpoint
