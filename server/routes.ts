@@ -515,7 +515,10 @@ export async function registerRoutes(
 
   // Team Roster
   app.get("/api/teams/:team/roster/:season", async (req, res) => {
-    const { team, season } = req.params;
+    const teamRaw = req.params.team ?? "";
+    const seasonRaw = req.params.season ?? "";
+    const team = decodeURIComponent(teamRaw).replace(/\+/g, " ").trim();
+    const season = decodeURIComponent(seasonRaw).trim();
     const roster = await storage.getRoster(team, season);
     res.json(roster);
   });

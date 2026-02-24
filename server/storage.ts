@@ -115,9 +115,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRoster(team: string, season: string): Promise<Player[]> {
-    const teamCandidates = getTeamMatchCandidates(team);
+    const teamTrimmed = (team ?? "").replace(/\+/g, " ").trim();
+    const teamCandidates = getTeamMatchCandidates(teamTrimmed);
     if (teamCandidates.length === 0) return [];
-    const teamCondition = or(...teamCandidates.map((c) => sql`LOWER(${playerStats.team}) = ${c}`));
+    const teamConditionStats = or(...teamCandidates.map((c) => sql`LOWER(${playerStats.team}) = ${c}`));
     const seasonNorm = season.trim();
     const seasonCandidates: string[] = seasonNorm ? [seasonNorm] : [];
     if (/^\d{4}$/.test(seasonNorm)) {
@@ -131,13 +132,18 @@ export class DatabaseStorage implements IStorage {
       .select({ player: players })
       .from(players)
       .innerJoin(playerStats, eq(players.id, playerStats.playerId))
-      .where(and(teamCondition, seasonCondition));
+      .where(and(teamConditionStats, seasonCondition));
     const seen = new Set<number>();
-    return results.map((r) => r.player).filter((p) => {
+    let roster = results.map((r) => r.player).filter((p) => {
       if (seen.has(p.id)) return false;
       seen.add(p.id);
       return true;
     });
+    if (roster.length === 0) {
+      const teamConditionPlayers = or(...teamCandidates.map((c) => sql`LOWER(${players.team}) = ${c}`));
+      roster = await db.select().from(players).where(teamConditionPlayers);
+    }
+    return roster;
   }
 
   async createPlayerStats(insertStats: InsertPlayerStats): Promise<PlayerStats> {
