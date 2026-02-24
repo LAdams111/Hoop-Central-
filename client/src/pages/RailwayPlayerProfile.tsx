@@ -9,6 +9,16 @@ import { DEFAULT_HEADSHOT, TEAM_ABBREV_TO_FULL } from "@/lib/constants";
 
 const RAILWAY_FAV_KEY = "player_favorites_railway";
 
+function formatSeasonDisplay(season: string | null | undefined): string {
+  const s = String(season ?? "").trim();
+  if (!s) return "—";
+  if (/^\d{4}$/.test(s)) {
+    const y = parseInt(s, 10);
+    return `${y - 1}-${String(y).slice(-2)}`;
+  }
+  return s;
+}
+
 function calculateAge(dob: string): number {
   const birthDate = new Date(dob);
   const today = new Date();
@@ -213,7 +223,7 @@ export default function RailwayPlayerProfile() {
                   <tbody className="divide-y divide-border">
                     {stats.map((row: RailwayStatRow, i: number) => (
                       <tr key={i} className="hover:bg-muted/50 transition-colors">
-                        <td className="px-6 py-4 font-mono font-medium">{row.season ?? "—"}</td>
+                        <td className="px-6 py-4 font-mono font-medium">{formatSeasonDisplay(row.season)}</td>
                         <td className="px-6 py-4 font-mono text-muted-foreground">{row.league ?? "—"}</td>
                         <td className="px-6 py-4 font-mono">{TEAM_ABBREV_TO_FULL[row.team ?? ""] ?? row.team ?? "—"}</td>
                         <td className="px-6 py-4 text-muted-foreground">{row.gamesPlayed ?? "—"}</td>

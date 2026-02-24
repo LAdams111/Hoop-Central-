@@ -27,6 +27,16 @@ import {
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
+/** Show season as YYYY-YY (e.g. 1988 → 1987-88). */
+function formatSeasonDisplay(season: string): string {
+  const s = String(season || "").trim();
+  if (/^\d{4}$/.test(s)) {
+    const y = parseInt(s, 10);
+    return `${y - 1}-${String(y).slice(-2)}`;
+  }
+  return s;
+}
+
 export default function PlayerProfile() {
   const [, params] = useRoute("/players/:id");
   const id = params?.id ?? "";
@@ -505,7 +515,7 @@ export default function PlayerProfile() {
                                 <span className="text-muted-foreground/50 text-lg pl-6">↱</span>
                               ) : (
                                 <>
-                                  {stat.season}
+                                  {formatSeasonDisplay(stat.season)}
                                   {isMultiTeamSeason && isLastRow && (
                                     <span className="text-[10px] font-sans bg-yellow-600/20 text-yellow-500 px-1.5 py-0.5 rounded no-default-hover-elevate no-default-active-elevate" data-testid={`badge-traded-${stat.id}`}>TRADED</span>
                                   )}
@@ -515,7 +525,7 @@ export default function PlayerProfile() {
                           </td>
                           <td className="px-6 py-4 font-mono text-muted-foreground whitespace-nowrap">{stat.league || "NBA"}</td>
                           <td className="px-6 py-4 font-mono">
-                            <Link href={`/roster/${encodeURIComponent(TEAM_ABBREV_TO_FULL[stat.team] ?? stat.team)}/${stat.season}`}>
+                            <Link href={`/roster/${encodeURIComponent(TEAM_ABBREV_TO_FULL[stat.team] ?? stat.team)}/${encodeURIComponent(formatSeasonDisplay(stat.season))}`}>
                               <Button variant="ghost" className="p-0 h-auto text-primary whitespace-nowrap" data-testid={`link-team-${stat.id}`}>
                                 {TEAM_ABBREV_TO_FULL[stat.team] ?? stat.team}
                               </Button>
