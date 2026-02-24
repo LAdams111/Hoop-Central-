@@ -61,6 +61,11 @@ interface PlayerInfoRow {
   height: string;
   weig?: string | number;
   weight?: string | number;
+  jersey_number?: number | string;
+  jerseyNumber?: number | string;
+  number?: number | string;
+  jersey?: number | string;
+  num?: number | string;
   stats?: string | Record<string, unknown>;
   birth_date?: string | null;
   birthDate?: string | null;
@@ -175,6 +180,7 @@ function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
   );
   const hometown = getFromRow(rowAny, "hometown", "birth_place", "birth place", "birthplace", "birth_place_city") ?? null;
   const bio = getFromRow(rowAny, "bio", "biography") ?? null;
+  const jerseyNumber = getNum(rowAny, "jersey_number", "jerseyNumber", "number", "num", "jersey");
   return {
     id: row.id,
     player_id: String(row.player_id || "").trim(),
@@ -183,7 +189,7 @@ function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
     team: (row.team || "").trim(),
     height: formatHeight(row.height || ""),
     weight: formatWeight(row.weig ?? row.weight),
-    jerseyNumber: 0,
+    jerseyNumber,
     headshotUrl: "",
     bio,
     profileViews: 50,
@@ -468,6 +474,7 @@ export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; u
       );
       const hometown = getFromRow(rowAny, "hometown", "birth_place", "birth place", "birthplace", "birth_place_city") ?? undefined;
       const bio = getFromRow(rowAny, "bio", "biography") ?? undefined;
+      const jerseyNumber = getNum(rowAny, "jersey_number", "jerseyNumber", "number", "num", "jersey");
 
       const existing = await storage.getPlayerByNameAndTeam(name, team);
       if (existing) {
@@ -477,6 +484,7 @@ export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; u
           team,
           height,
           weight,
+          jerseyNumber,
           ...(birthDate != null && { birthDate }),
           ...(hometown != null && { hometown }),
           ...(bio != null && { bio }),
@@ -489,7 +497,7 @@ export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; u
           team,
           height,
           weight,
-          jerseyNumber: 0,
+          jerseyNumber,
           headshotUrl: "",
           profileViews: 50,
           ...(birthDate != null && { birthDate }),
