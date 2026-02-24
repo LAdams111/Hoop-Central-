@@ -234,6 +234,11 @@ export async function getRosterFromExternalTable(team: string, season: string): 
     const y = parseInt(seasonNorm, 10);
     seasonVariants.push(`${y - 1}-${String(y).slice(-2)}`);
   }
+  const rangeMatch = seasonNorm.match(/^(\d{4})-(\d{2})$/);
+  if (rangeMatch) {
+    const startYear = rangeMatch[1];
+    if (!seasonVariants.includes(startYear)) seasonVariants.push(startYear);
+  }
   const rows = await getPlayerInfoRows();
   const out: PlayerInfoMapped[] = [];
   for (const p of rows) {

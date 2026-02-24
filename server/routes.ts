@@ -519,7 +519,9 @@ export async function registerRoutes(
     const seasonRaw = req.params.season ?? "";
     const team = decodeURIComponent(teamRaw).replace(/\+/g, " ").trim();
     const season = decodeURIComponent(seasonRaw).trim();
+    console.log("[roster] received from frontend — team:", JSON.stringify(team), "season:", JSON.stringify(season));
     let roster = await storage.getRoster(team, season);
+    console.log("[roster] getRoster rows returned:", roster.length);
     if (roster.length === 0) {
       try {
         const fromExternal = await getRosterFromExternalTable(team, season);
@@ -540,6 +542,7 @@ export async function registerRoutes(
       } catch {
         // keep roster []
       }
+      console.log("[roster] after external fallback rows:", roster.length);
     }
     res.json(roster);
   });

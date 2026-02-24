@@ -121,12 +121,19 @@ export class DatabaseStorage implements IStorage {
     const teamCandidates = getTeamMatchCandidates(teamTrimmed);
     if (teamCandidates.length === 0) return [];
     const teamConditionStats = or(...teamCandidates.map((c) => sql`LOWER(${playerStats.team}) = ${c}`));
-    const seasonNorm = season.trim();
+    const seasonNorm = (season ?? "").trim();
     const seasonCandidates: string[] = seasonNorm ? [seasonNorm] : [];
     if (/^\d{4}$/.test(seasonNorm)) {
       const y = parseInt(seasonNorm, 10);
       seasonCandidates.push(`${y - 1}-${String(y).slice(-2)}`);
     }
+    // Frontend often sends "2025-26"; DB may store "2025-26" or start year "2025" — match both
+    const rangeMatch = seasonNorm.match(/^(\d{4})-(\d{2})$/);
+    if (rangeMatch) {
+      const startYear = rangeMatch[1];
+      if (!seasonCandidates.includes(startYear)) seasonCandidates.push(startYear);
+    }
+    console.log("[roster getRoster] season filter candidates:", JSON.stringify(seasonCandidates));
     const seasonCondition = seasonCandidates.length === 1
       ? eq(playerStats.season, seasonCandidates[0])
       : inArray(playerStats.season, seasonCandidates);
@@ -135,6 +142,7 @@ export class DatabaseStorage implements IStorage {
       .from(players)
       .innerJoin(playerStats, eq(players.id, playerStats.playerId))
       .where(and(teamConditionStats, seasonCondition));
+    console.log("[roster getRoster] query returned rows:", results.length);
     const seen = new Set<number>();
     return results.map((r) => r.player).filter((p) => {
       if (seen.has(p.id)) return false;
