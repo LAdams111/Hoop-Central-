@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount } from "./syncPlayerInfo";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -463,10 +463,36 @@ export async function registerRoutes(
     res.json(players);
   });
 
-  // Prospects (under 20, sorted by views)
-  app.get("/api/players/prospects", async (req, res) => {
-    const results = await storage.getProspects(20, 50);
-    res.json(results);
+  // Prospects (under 20, top 50 by views) — try external "Player info" first so it works with full dataset
+  app.get("/api/players/prospects", async (_req, res) => {
+    try {
+      const fromExternal = await getProspectsFromExternalTable(20, 50);
+      if (fromExternal.length > 0) {
+        const list = fromExternal.map((p) => ({
+          id: p.id,
+          name: p.name,
+          position: p.position,
+          team: p.team,
+          height: p.height,
+          weight: p.weight,
+          jerseyNumber: p.jerseyNumber ?? 0,
+          headshotUrl: p.headshotUrl ?? "",
+          bio: p.bio ?? null,
+          profileViews: p.profileViews ?? 50,
+          hometown: p.hometown ?? null,
+          birthDate: p.birthDate ?? null,
+        }));
+        return res.json(list);
+      }
+    } catch {
+      // fall through
+    }
+    try {
+      const results = await storage.getProspects(20, 50);
+      return res.json(results);
+    } catch {
+      return res.json([]);
+    }
   });
 
   // Birth year counts (for year grid) — must be before /api/players/:id or "birth-year-counts" is treated as id

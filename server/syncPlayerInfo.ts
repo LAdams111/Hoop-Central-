@@ -224,6 +224,22 @@ export async function getBirthYearCountsFromExternalTable(): Promise<Record<stri
   return counts;
 }
 
+/** Prospects (under maxAge) from external "Player info" table. Sorted by profileViews, limit applied. */
+export async function getProspectsFromExternalTable(maxAge: number, limit: number): Promise<PlayerInfoMapped[]> {
+  const rows = await getPlayerInfoRows();
+  const now = new Date();
+  const filtered = rows.filter((p) => {
+    const bd = p.birthDate ?? (p as Record<string, unknown>).birth_date ?? null;
+    if (bd == null || bd === "") return false;
+    const d = new Date(String(bd).trim());
+    if (Number.isNaN(d.getTime())) return false;
+    const age = (now.getTime() - d.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+    return age < maxAge;
+  });
+  filtered.sort((a, b) => (b.profileViews ?? 0) - (a.profileViews ?? 0));
+  return filtered.slice(0, limit);
+}
+
 /** Players by birth year from external "Player info" table (same source as directory). Limit applied. */
 export async function getPlayersByBirthYearFromExternalTable(year: number, limit: number): Promise<PlayerInfoMapped[]> {
   const rows = await getPlayerInfoRows();

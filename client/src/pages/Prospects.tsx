@@ -56,7 +56,7 @@ export default function Prospects() {
           <div className="text-center py-24 bg-card/30 rounded-3xl border border-dashed border-white/10">
             <Flame className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="font-display text-2xl text-muted-foreground">No prospects found</h3>
-            <p className="text-sm text-muted-foreground mt-2">No players under 19 in the database yet.</p>
+            <p className="text-sm text-muted-foreground mt-2">No players under 20 in the database yet.</p>
           </div>
         ) : (
           <div className="space-y-2">
