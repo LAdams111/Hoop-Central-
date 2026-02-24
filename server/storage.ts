@@ -123,11 +123,12 @@ export class DatabaseStorage implements IStorage {
     const teamConditionStats = or(...teamCandidates.map((c) => sql`LOWER(${playerStats.team}) = ${c}`));
     const seasonNorm = (season ?? "").trim();
     const seasonCandidates: string[] = seasonNorm ? [seasonNorm] : [];
+    // Integer year from frontend = starting year (e.g. 2025 → match "2025-26" and "2025")
     if (/^\d{4}$/.test(seasonNorm)) {
       const y = parseInt(seasonNorm, 10);
-      seasonCandidates.push(`${y - 1}-${String(y).slice(-2)}`);
+      seasonCandidates.push(`${y}-${String(y + 1).slice(-2)}`);
     }
-    // Frontend often sends "2025-26"; DB may store "2025-26" or start year "2025" — match both
+    // "2025-26" from URL/legacy: also match start year "2025"
     const rangeMatch = seasonNorm.match(/^(\d{4})-(\d{2})$/);
     if (rangeMatch) {
       const startYear = rangeMatch[1];

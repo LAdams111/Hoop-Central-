@@ -225,13 +225,13 @@ export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
   return [];
 }
 
-/** Build season filter variants (frontend "2025-26" and DB "2025" or "2025-26"). */
+/** Build season filter variants. Integer year = starting year (2025 → "2025-26", "2025"). */
 function getSeasonVariants(season: string): string[] {
   const seasonNorm = (season || "").trim();
   const variants: string[] = seasonNorm ? [seasonNorm] : [];
   if (/^\d{4}$/.test(seasonNorm)) {
     const y = parseInt(seasonNorm, 10);
-    variants.push(`${y - 1}-${String(y).slice(-2)}`);
+    variants.push(`${y}-${String(y + 1).slice(-2)}`);
   }
   const rangeMatch = seasonNorm.match(/^(\d{4})-(\d{2})$/);
   if (rangeMatch) {

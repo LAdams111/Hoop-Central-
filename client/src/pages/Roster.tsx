@@ -92,16 +92,20 @@ function getTeamLogoUrl(teamName: string): string | null {
   return null;
 }
 
-const AVAILABLE_SEASONS = ["2025-26", "2024-25", "2023-24", "2022-23", "2021-22", "2020-21", "2018-19", "1997-98", "1995-96", "1992-93", "1987-88"];
+/** Starting years for season dropdown; value sent to backend is this integer year. */
+const AVAILABLE_SEASONS = [2025, 2024, 2023, 2022, 2021, 2020, 2018, 1997, 1995, 1992, 1987];
 
-/** Normalize season to YYYY-YY format (e.g. "1999" → "1998-99"). */
-function normalizeSeasonFormat(season: string): string {
+function formatSeason(year: number): string {
+  const next = String(year + 1).slice(-2);
+  return `${year}-${next}`;
+}
+
+/** Normalize URL season to integer year string (e.g. "2025-26" → "2025", "2025" → "2025"). */
+function normalizeSeasonToYear(season: string): string {
   const s = season.trim();
-  if (/^\d{4}$/.test(s)) {
-    const y = parseInt(s, 10);
-    return `${y - 1}-${String(y).slice(-2)}`;
-  }
-  return s;
+  if (/^\d{4}$/.test(s)) return s;
+  const match = s.match(/^(\d{4})-/);
+  return match ? match[1] : s;
 }
 
 export default function Roster() {
@@ -109,7 +113,7 @@ export default function Roster() {
   const [, setLocation] = useLocation();
   const team = decodeURIComponent(params?.team || "");
   const seasonFromUrl = decodeURIComponent(params?.season || "");
-  const season = normalizeSeasonFormat(seasonFromUrl);
+  const season = normalizeSeasonToYear(seasonFromUrl);
 
   useEffect(() => {
     if (seasonFromUrl && season !== seasonFromUrl) {
@@ -196,9 +200,9 @@ export default function Roster() {
                   <SelectValue placeholder="Choose Season" />
                 </SelectTrigger>
                 <SelectContent>
-                  {AVAILABLE_SEASONS.map((s) => (
-                    <SelectItem key={s} value={s} className="font-mono" data-testid={`option-season-${s}`}>
-                      {s} Season
+                  {AVAILABLE_SEASONS.map((year) => (
+                    <SelectItem key={year} value={String(year)} className="font-mono" data-testid={`option-season-${year}`}>
+                      {formatSeason(year)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -211,7 +215,7 @@ export default function Roster() {
       <div className="container mx-auto px-4 mt-12">
         <div className="flex items-center justify-between gap-3 mb-8 border-b border-border pb-4 flex-wrap">
           <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="font-display text-3xl font-bold uppercase tracking-tight" data-testid="text-season-heading">{season} Season Roster</h2>
+            <h2 className="font-display text-3xl font-bold uppercase tracking-tight" data-testid="text-season-heading">{/^\d{4}$/.test(season) ? formatSeason(parseInt(season, 10)) : season} Season Roster</h2>
             {players.length > 0 && (
               <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-widest">{players.length} Active</Badge>
             )}
