@@ -60,6 +60,10 @@ interface PlayerInfoRow {
   weig?: string | number;
   weight?: string | number;
   stats?: string | Record<string, unknown>;
+  birth_date?: string | null;
+  birthDate?: string | null;
+  hometown?: string | null;
+  bio?: string | null;
 }
 
 /** Shape the API returns for a player (matches frontend expectation). */
@@ -136,8 +140,39 @@ function parseStatsFromRow(row: PlayerInfoRow): PlayerInfoStatRow[] {
   }];
 }
 
+/** Get first non-empty string from row using any of the given keys (supports "birth date", "birth place", etc.). */
+function getFromRow(row: Record<string, unknown>, ...keys: string[]): string | null {
+  for (const k of keys) {
+    const v = row[k];
+    if (v != null && v !== "") {
+      const s = String(v).trim();
+      if (s) return s;
+    }
+  }
+  return null;
+}
+
+/** Normalize date to YYYY-MM-DD for frontend, or null if missing/invalid. */
+function normalizeBirthDate(val: unknown): string | null {
+  if (val == null || val === "") return null;
+  const s = String(val).trim();
+  if (!s) return null;
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
   const stats = parseStatsFromRow(row);
+  const rowAny = row as Record<string, unknown>;
+  const birthDate = normalizeBirthDate(
+    getFromRow(rowAny, "birth_date", "birthDate", "birth date", "dob", "date_of_birth")
+  );
+  const hometown = getFromRow(rowAny, "hometown", "birth_place", "birth place", "birthplace", "birth_place_city") ?? null;
+  const bio = getFromRow(rowAny, "bio", "biography") ?? null;
   return {
     id: row.id,
     player_id: String(row.player_id || "").trim(),
@@ -148,10 +183,10 @@ function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
     weight: formatWeight(row.weig ?? row.weight),
     jerseyNumber: 0,
     headshotUrl: "",
-    bio: null,
+    bio,
     profileViews: 50,
-    hometown: null,
-    birthDate: null,
+    hometown,
+    birthDate,
     ...(stats.length > 0 ? { stats } : {}),
   };
 }
@@ -309,6 +344,12 @@ export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; u
       const position = normalizePosition(row.position || "");
       const height = formatHeight(row.height || "");
       const weight = formatWeight(row.weig ?? row.weight);
+      const rowAny = row as Record<string, unknown>;
+      const birthDate = normalizeBirthDate(
+        getFromRow(rowAny, "birth_date", "birthDate", "birth date", "dob", "date_of_birth")
+      );
+      const hometown = getFromRow(rowAny, "hometown", "birth_place", "birth place", "birthplace", "birth_place_city") ?? undefined;
+      const bio = getFromRow(rowAny, "bio", "biography") ?? undefined;
 
       const existing = await storage.getPlayerByNameAndTeam(name, team);
       if (existing) {
@@ -318,6 +359,9 @@ export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; u
           team,
           height,
           weight,
+          ...(birthDate != null && { birthDate }),
+          ...(hometown != null && { hometown }),
+          ...(bio != null && { bio }),
         });
         result.updated++;
       } else {
@@ -330,6 +374,9 @@ export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; u
           jerseyNumber: 0,
           headshotUrl: "",
           profileViews: 50,
+          ...(birthDate != null && { birthDate }),
+          ...(hometown != null && { hometown }),
+          ...(bio != null && { bio }),
         });
         result.created++;
       }

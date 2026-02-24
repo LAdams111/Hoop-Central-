@@ -7,6 +7,13 @@ import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scrap
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount } from "./syncPlayerInfo";
 
+/** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
+function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
+  const birthDate = p.birthDate ?? (p as Record<string, unknown>).birth_date ?? null;
+  const hometown = p.hometown ?? (p as Record<string, unknown>).birth_place ?? null;
+  return { ...p, birthDate, hometown } as T;
+}
+
 export const adminSessions = new Set<string>();
 
 export async function registerRoutes(
@@ -473,7 +480,7 @@ export async function registerRoutes(
         try {
           const fromPlayerInfo = await getPlayerInfoById(idNum);
           if (fromPlayerInfo) {
-            return res.json({ ...fromPlayerInfo, stats: fromPlayerInfo.stats ?? [], awards: [] });
+            return res.json({ ...normalizePlayerForApi(fromPlayerInfo as Record<string, unknown>), stats: fromPlayerInfo.stats ?? [], awards: [] });
           }
         } catch {
           // ignore
@@ -483,14 +490,15 @@ export async function registerRoutes(
           storage.getPlayerStats(idNum),
           storage.getPlayerAwards(idNum)
         ]);
-        return res.json({ ...player, stats, awards });
+        const out = normalizePlayerForApi(player as Record<string, unknown>);
+        return res.json({ ...out, stats, awards });
       }
     }
 
     try {
       const fromPlayerInfo = await getPlayerInfoByPlayerId(idParam);
       if (fromPlayerInfo) {
-        return res.json({ ...fromPlayerInfo, stats: fromPlayerInfo.stats ?? [], awards: [] });
+        return res.json({ ...normalizePlayerForApi(fromPlayerInfo as Record<string, unknown>), stats: fromPlayerInfo.stats ?? [], awards: [] });
       }
     } catch {
       // ignore
