@@ -1,4 +1,4 @@
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
@@ -133,6 +133,7 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
 
 export default function LeagueDetail() {
   const [, params] = useRoute("/leagues/:league");
+  const [, setLocation] = useLocation();
   const leagueSlug = params?.league || "";
   const info = LEAGUE_INFO[leagueSlug];
 
@@ -195,7 +196,7 @@ export default function LeagueDetail() {
     <div className="min-h-screen bg-background pb-24">
       <div className="bg-muted border-b border-border py-12">
         <div className="container mx-auto px-4">
-          <Button variant="outline" size="sm" className="rounded-full mb-8" onClick={() => window.history.back()} data-testid="button-back">
+          <Button type="button" variant="outline" size="sm" className="rounded-full mb-8" onClick={() => (window.history.length > 1 ? window.history.back() : setLocation("/"))} data-testid="button-back">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>

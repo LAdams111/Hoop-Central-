@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ interface ScrapeResult {
 }
 
 export default function Scraper() {
+  const [, setLocation] = useLocation();
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<ScrapeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export default function Scraper() {
     <div className="min-h-screen bg-background pb-24">
       <div className="bg-muted border-b border-border py-12">
         <div className="container mx-auto px-4">
-          <Button variant="outline" size="sm" className="rounded-full mb-8" onClick={() => window.history.back()} data-testid="button-back">
+          <Button type="button" variant="outline" size="sm" className="rounded-full mb-8" onClick={() => (window.history.length > 1 ? window.history.back() : setLocation("/"))} data-testid="button-back">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>

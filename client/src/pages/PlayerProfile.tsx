@@ -1,4 +1,4 @@
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { usePlayer } from "@/hooks/use-players";
 import { api } from "@shared/routes";
@@ -39,6 +39,7 @@ function formatSeasonDisplay(season: string): string {
 
 export default function PlayerProfile() {
   const [, params] = useRoute("/players/:id");
+  const [, setLocation] = useLocation();
   const id = params?.id ?? "";
   const { data: player, isLoading } = usePlayer(id);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -240,7 +241,7 @@ export default function PlayerProfile() {
         />
         
         <div className="container mx-auto px-4 h-full relative z-20 flex flex-col justify-between py-8">
-          <Button variant="outline" size="sm" className="rounded-full w-fit mb-4" onClick={() => window.history.back()} data-testid="button-back">
+          <Button type="button" variant="outline" size="sm" className="rounded-full w-fit mb-4" onClick={() => (window.history.length > 1 ? window.history.back() : setLocation("/"))} data-testid="button-back">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
