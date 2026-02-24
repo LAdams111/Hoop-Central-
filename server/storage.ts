@@ -135,6 +135,7 @@ export class DatabaseStorage implements IStorage {
       if (!seasonCandidates.includes(startYear)) seasonCandidates.push(startYear);
     }
     console.log("[roster getRoster] season filter candidates:", JSON.stringify(seasonCandidates));
+    // Cast to text so comparison works whether DB stores season as integer or text
     const seasonCondition = sql`${playerStats.season}::text IN (${sql.join(seasonCandidates.map((c) => sql`${c}`), sql`, `)})`;
     const results = await db
       .select({ player: players })

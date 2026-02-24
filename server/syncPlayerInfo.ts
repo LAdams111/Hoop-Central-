@@ -243,9 +243,11 @@ function getSeasonVariants(season: string): string[] {
   return variants;
 }
 
-/** Roster using app tables only: players + playerStats (no teamRecords, no external tables). */
+/** Roster using app tables only: players + playerStats (no teamRecords, no external tables). Season column may be integer or text in DB — always compare as text. */
 export async function getRosterFromExternalTableViaJoin(team: string, season: string) {
   const teamLower = team.toLowerCase();
+  const seasonVariants = getSeasonVariants(season);
+  if (seasonVariants.length === 0) return [];
 
   const rows = await db
     .select({
@@ -267,7 +269,7 @@ export async function getRosterFromExternalTableViaJoin(team: string, season: st
     .where(
       and(
         sql`LOWER(${playerStats.team}) = ${teamLower}`,
-        sql`${playerStats.season}::text = ${season}`
+        sql`${playerStats.season}::text IN (${sql.join(seasonVariants.map((v) => sql`${v}`), sql`, `)})`
       )
     );
 
