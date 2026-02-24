@@ -6,7 +6,7 @@ import { StatsChart } from "@/components/StatsChart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { DEFAULT_HEADSHOT } from "@/lib/constants";
+import { DEFAULT_HEADSHOT, TEAM_ABBREV_TO_FULL } from "@/lib/constants";
 import { useUpload } from "@/hooks/use-upload";
 import { 
   ArrowLeft, 
@@ -514,10 +514,10 @@ export default function PlayerProfile() {
                             </div>
                           </td>
                           <td className="px-6 py-4 font-mono text-muted-foreground whitespace-nowrap">{stat.league || "NBA"}</td>
-                          <td className="px-6 py-4 uppercase font-mono">
-                            <Link href={`/roster/${stat.team}/${stat.season}`}>
+                          <td className="px-6 py-4 font-mono">
+                            <Link href={`/roster/${encodeURIComponent(TEAM_ABBREV_TO_FULL[stat.team] ?? stat.team)}/${stat.season}`}>
                               <Button variant="ghost" className="p-0 h-auto text-primary whitespace-nowrap" data-testid={`link-team-${stat.id}`}>
-                                {stat.team}
+                                {TEAM_ABBREV_TO_FULL[stat.team] ?? stat.team}
                               </Button>
                             </Link>
                           </td>

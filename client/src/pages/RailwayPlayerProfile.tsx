@@ -5,7 +5,7 @@ import { normalizeScraperPlayerDetail, type RailwayPlayerDetail, type RailwaySta
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Target, Activity, Trophy, Cloud, Flag } from "lucide-react";
-import { DEFAULT_HEADSHOT } from "@/lib/constants";
+import { DEFAULT_HEADSHOT, TEAM_ABBREV_TO_FULL } from "@/lib/constants";
 
 const RAILWAY_FAV_KEY = "player_favorites_railway";
 
@@ -215,7 +215,7 @@ export default function RailwayPlayerProfile() {
                       <tr key={i} className="hover:bg-muted/50 transition-colors">
                         <td className="px-6 py-4 font-mono font-medium">{row.season ?? "—"}</td>
                         <td className="px-6 py-4 font-mono text-muted-foreground">{row.league ?? "—"}</td>
-                        <td className="px-6 py-4 uppercase font-mono">{row.team ?? "—"}</td>
+                        <td className="px-6 py-4 font-mono">{TEAM_ABBREV_TO_FULL[row.team ?? ""] ?? row.team ?? "—"}</td>
                         <td className="px-6 py-4 text-muted-foreground">{row.gamesPlayed ?? "—"}</td>
                         <td className="px-6 py-4 font-bold text-foreground">{row.pointsPerGame ?? "—"}</td>
                         <td className="px-6 py-4 text-muted-foreground">{row.reboundsPerGame ?? "—"}</td>
