@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount } from "./syncPlayerInfo";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -581,6 +581,27 @@ export async function registerRoutes(
     const { league } = req.params;
     const teams = await storage.getTeamsByLeague(league);
     res.json(teams);
+  });
+
+  // Birth year counts (for year grid) — from full "Player info" so counts match 5000+ players
+  app.get("/api/players/birth-year-counts", async (_req, res) => {
+    try {
+      const counts = await getBirthYearCountsFromExternalTable();
+      if (Object.keys(counts).length > 0) return res.json(counts);
+    } catch {
+      // fall through
+    }
+    const players = await storage.getPlayers();
+    const counts: Record<string, number> = {};
+    for (const p of players) {
+      const bd = p.birthDate ?? (p as { birth_date?: string }).birth_date ?? null;
+      if (bd == null || bd === "") continue;
+      const d = new Date(String(bd).trim());
+      if (Number.isNaN(d.getTime())) continue;
+      const year = String(d.getFullYear());
+      counts[year] = (counts[year] ?? 0) + 1;
+    }
+    res.json(counts);
   });
 
   // Players by Birth Year — use external "Player info" first (full site data), limit 100

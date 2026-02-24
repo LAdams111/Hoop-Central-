@@ -209,6 +209,21 @@ export async function getPlayerInfoCount(): Promise<number> {
   return 0;
 }
 
+/** Birth year -> player count from external "Player info" table (full site data for year grid). */
+export async function getBirthYearCountsFromExternalTable(): Promise<Record<string, number>> {
+  const rows = await getPlayerInfoRows();
+  const counts: Record<string, number> = {};
+  for (const p of rows) {
+    const bd = p.birthDate ?? (p as Record<string, unknown>).birth_date ?? null;
+    if (bd == null || bd === "") continue;
+    const d = new Date(String(bd).trim());
+    if (Number.isNaN(d.getTime())) continue;
+    const year = String(d.getFullYear());
+    counts[year] = (counts[year] ?? 0) + 1;
+  }
+  return counts;
+}
+
 /** Players by birth year from external "Player info" table (same source as directory). Limit applied. */
 export async function getPlayersByBirthYearFromExternalTable(year: number, limit: number): Promise<PlayerInfoMapped[]> {
   const rows = await getPlayerInfoRows();

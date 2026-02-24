@@ -1,16 +1,23 @@
-import { usePlayers } from "@/hooks/use-players";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Users, ArrowRight, ArrowLeft, Eye } from "lucide-react";
+import { Calendar, Users, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { Player } from "@shared/schema";
 import { DEFAULT_HEADSHOT } from "@/lib/constants";
 
 export default function Classes() {
-  const { data: players, isLoading } = usePlayers();
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
+
+  const { data: birthYearCounts, isLoading: isLoadingCounts } = useQuery<Record<string, number>>({
+    queryKey: ['/api/players/birth-year-counts'],
+    queryFn: async () => {
+      const res = await fetch('/api/players/birth-year-counts');
+      if (!res.ok) throw new Error("Failed to fetch birth year counts");
+      return res.json();
+    },
+  });
 
   const { data: birthYearPlayers, isLoading: isLoadingBirthYear } = useQuery<Player[]>({
     queryKey: ['/api/players/birth-year', selectedYear],
@@ -22,7 +29,7 @@ export default function Classes() {
     enabled: !!selectedYear,
   });
 
-  if (isLoading) {
+  if (isLoadingCounts) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -30,15 +37,7 @@ export default function Classes() {
     );
   }
 
-  const yearsMap = new Map<string, number>();
-  
-  players?.forEach(player => {
-    if (player.birthDate) {
-      const year = new Date(player.birthDate).getFullYear().toString();
-      yearsMap.set(year, (yearsMap.get(year) || 0) + 1);
-    }
-  });
-
+  const yearsMap = new Map<string, number>(birthYearCounts ? Object.entries(birthYearCounts) : []);
   const sortedYears = Array.from(yearsMap.keys()).sort((a, b) => b.localeCompare(a));
 
   return (
