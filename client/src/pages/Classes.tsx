@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Users, ArrowLeft } from "lucide-react";
+import { Calendar, Users, ArrowLeft, Eye, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { Player } from "@shared/schema";
 import { DEFAULT_HEADSHOT } from "@/lib/constants";
