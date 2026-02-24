@@ -209,6 +209,21 @@ export async function getPlayerInfoCount(): Promise<number> {
   return 0;
 }
 
+/** Players by birth year from external "Player info" table (same source as directory). Limit applied. */
+export async function getPlayersByBirthYearFromExternalTable(year: number, limit: number): Promise<PlayerInfoMapped[]> {
+  const rows = await getPlayerInfoRows();
+  const yearNum = Number(year);
+  if (Number.isNaN(yearNum)) return [];
+  const filtered = rows.filter((p) => {
+    const bd = p.birthDate ?? (p as Record<string, unknown>).birth_date ?? null;
+    if (bd == null || bd === "") return false;
+    const d = new Date(String(bd).trim());
+    return !Number.isNaN(d.getTime()) && d.getFullYear() === yearNum;
+  });
+  filtered.sort((a, b) => (b.profileViews ?? 0) - (a.profileViews ?? 0));
+  return filtered.slice(0, limit);
+}
+
 /** Try "Player info", then player_info, then "player info" (lowercase); return rows in API shape. */
 export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
   const tables = [
