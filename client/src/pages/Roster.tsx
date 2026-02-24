@@ -1,4 +1,5 @@
 import { useRoute, useLocation } from "wouter";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
@@ -93,11 +94,28 @@ function getTeamLogoUrl(teamName: string): string | null {
 
 const AVAILABLE_SEASONS = ["2025-26", "2024-25", "2023-24", "2022-23", "2021-22", "2020-21", "2018-19", "1997-98", "1995-96", "1992-93", "1987-88"];
 
+/** Normalize season to YYYY-YY format (e.g. "1999" → "1998-99"). */
+function normalizeSeasonFormat(season: string): string {
+  const s = season.trim();
+  if (/^\d{4}$/.test(s)) {
+    const y = parseInt(s, 10);
+    return `${y - 1}-${String(y).slice(-2)}`;
+  }
+  return s;
+}
+
 export default function Roster() {
   const [, params] = useRoute("/roster/:team/:season");
   const [, setLocation] = useLocation();
   const team = decodeURIComponent(params?.team || "");
-  const season = decodeURIComponent(params?.season || "");
+  const seasonFromUrl = decodeURIComponent(params?.season || "");
+  const season = normalizeSeasonFormat(seasonFromUrl);
+
+  useEffect(() => {
+    if (seasonFromUrl && season !== seasonFromUrl) {
+      setLocation(`/roster/${encodeURIComponent(team)}/${encodeURIComponent(season)}`);
+    }
+  }, [seasonFromUrl, season, team, setLocation]);
 
   const { data: rosterPlayers, isLoading } = useQuery<Player[]>({
     queryKey: ['/api/teams', team, 'roster', season],
