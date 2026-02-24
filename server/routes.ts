@@ -546,14 +546,23 @@ export async function registerRoutes(
     res.json(roster);
   });
 
-  // Team Record
+  // Team Record (team_records table may not exist on all deploys)
   app.get("/api/teams/:team/record/:season", async (req, res) => {
-    const { team, season } = req.params;
-    const record = await storage.getTeamRecord(team, season);
-    if (!record) {
-      return res.status(404).json({ message: "Record not found" });
+    const team = decodeURIComponent(req.params.team ?? "").replace(/\+/g, " ").trim();
+    const season = decodeURIComponent(req.params.season ?? "").trim();
+    try {
+      const record = await storage.getTeamRecord(team, season);
+      if (!record) {
+        return res.status(404).json({ message: "Record not found" });
+      }
+      res.json(record);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("does not exist") || msg.includes("relation")) {
+        return res.status(404).json({ message: "Record not found" });
+      }
+      throw err;
     }
-    res.json(record);
   });
 
   app.get("/api/teams/count", async (req, res) => {

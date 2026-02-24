@@ -260,7 +260,7 @@ export async function getRosterFromExternalTableViaJoin(team: string, season: st
           `SELECT DISTINCT ON (p.id) p.*
            FROM ${infoTable} p
            JOIN ${statsTable} ps ON p.player_id = ps.player_id
-           WHERE LOWER(ps.team) = ANY($1::text[]) AND ps.season = ANY($2::text[])
+           WHERE LOWER(ps.team) = ANY($1::text[]) AND ps.season::text = ANY($2::text[])
            ORDER BY p.id`,
           [teamLowers, seasonVariants]
         );
