@@ -115,7 +115,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(playerStats).where(eq(playerStats.playerId, playerId));
   }
 
-  /** Roster = players who have a player_stats row for this team + season (so they only appear for years they actually played there). */
+  /** Roster = JOIN player_info + player_stats; filter by stats.team and stats.season only (no current_team). */
   async getRoster(team: string, season: string): Promise<Player[]> {
     const teamTrimmed = (team ?? "").replace(/\+/g, " ").trim();
     const teamCandidates = getTeamMatchCandidates(teamTrimmed);

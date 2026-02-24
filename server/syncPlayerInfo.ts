@@ -225,20 +225,61 @@ export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
   return [];
 }
 
-/** Roster for team + season: only players whose stats include this team and season (same source as profile). */
-export async function getRosterFromExternalTable(team: string, season: string): Promise<PlayerInfoMapped[]> {
-  const candidates = new Set(getTeamMatchCandidates(team));
+/** Build season filter variants (frontend "2025-26" and DB "2025" or "2025-26"). */
+function getSeasonVariants(season: string): string[] {
   const seasonNorm = (season || "").trim();
-  const seasonVariants: string[] = seasonNorm ? [seasonNorm] : [];
+  const variants: string[] = seasonNorm ? [seasonNorm] : [];
   if (/^\d{4}$/.test(seasonNorm)) {
     const y = parseInt(seasonNorm, 10);
-    seasonVariants.push(`${y - 1}-${String(y).slice(-2)}`);
+    variants.push(`${y - 1}-${String(y).slice(-2)}`);
   }
   const rangeMatch = seasonNorm.match(/^(\d{4})-(\d{2})$/);
   if (rangeMatch) {
     const startYear = rangeMatch[1];
-    if (!seasonVariants.includes(startYear)) seasonVariants.push(startYear);
+    if (!variants.includes(startYear)) variants.push(startYear);
   }
+  return variants;
+}
+
+/**
+ * Roster by JOIN only: fetch distinct players who have a season record for this team and season.
+ * Does not use current_team or any team/season from player_info — only filters by stats table.
+ * Tries "Player info" + player_stats, then player_info + player_stats; supports player_seasons as stats table name.
+ */
+export async function getRosterFromExternalTableViaJoin(team: string, season: string): Promise<PlayerInfoMapped[]> {
+  const teamCandidates = getTeamMatchCandidates(team);
+  const seasonVariants = getSeasonVariants(season);
+  if (teamCandidates.length === 0 || seasonVariants.length === 0) return [];
+  const teamLowers = teamCandidates.map((c) => c.toLowerCase());
+  const playerInfoTables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  const statsTables = ["player_stats", "player_seasons"];
+  for (const infoTable of playerInfoTables) {
+    for (const statsTable of statsTables) {
+      try {
+        const res = await pool.query<PlayerInfoRow>(
+          `SELECT DISTINCT ON (p.id) p.*
+           FROM ${infoTable} p
+           JOIN ${statsTable} ps ON p.player_id = ps.player_id
+           WHERE LOWER(ps.team) = ANY($1::text[]) AND ps.season = ANY($2::text[])
+           ORDER BY p.id`,
+          [teamLowers, seasonVariants]
+        );
+        const rows = res.rows ?? [];
+        if (rows.length > 0) {
+          return rows.map(mapRowToPlayer);
+        }
+      } catch {
+        continue;
+      }
+    }
+  }
+  return [];
+}
+
+/** Roster for team + season: only players whose stats include this team and season (same source as profile). */
+export async function getRosterFromExternalTable(team: string, season: string): Promise<PlayerInfoMapped[]> {
+  const candidates = new Set(getTeamMatchCandidates(team));
+  const seasonVariants = getSeasonVariants(season);
   const rows = await getPlayerInfoRows();
   const out: PlayerInfoMapped[] = [];
   for (const p of rows) {

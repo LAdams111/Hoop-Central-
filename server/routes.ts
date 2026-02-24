@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, getRosterFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount } from "./syncPlayerInfo";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -513,7 +513,7 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
-  // Team Roster — only players who have a record for this team + season (app player_stats or external stats)
+  // Team Roster — only players with a season record for this team + season (JOIN player_info + stats table; no current_team)
   app.get("/api/teams/:team/roster/:season", async (req, res) => {
     const teamRaw = req.params.team ?? "";
     const seasonRaw = req.params.season ?? "";
@@ -521,10 +521,9 @@ export async function registerRoutes(
     const season = decodeURIComponent(seasonRaw).trim();
     console.log("[roster] received from frontend — team:", JSON.stringify(team), "season:", JSON.stringify(season));
     let roster = await storage.getRoster(team, season);
-    console.log("[roster] getRoster rows returned:", roster.length);
     if (roster.length === 0) {
       try {
-        const fromExternal = await getRosterFromExternalTable(team, season);
+        const fromExternal = await getRosterFromExternalTableViaJoin(team, season);
         roster = fromExternal.map((p) => ({
           id: p.id,
           name: p.name,
@@ -542,8 +541,8 @@ export async function registerRoutes(
       } catch {
         // keep roster []
       }
-      console.log("[roster] after external fallback rows:", roster.length);
     }
+    console.log("[roster] number of players returned:", roster.length);
     res.json(roster);
   });
 
