@@ -2,7 +2,9 @@
  * Syncs from the Postgres "Player info" table (id, player_id, name, team, position, height, weig)
  * into the app's `player_info` table so Hoop Central can show player profiles.
  */
-import { pool } from "./db";
+import { eq, and, sql } from "drizzle-orm";
+import { pool, db } from "./db";
+import { players, playerStats } from "@shared/schema";
 import { storage, getTeamMatchCandidates } from "./storage";
 
 const PLAYER_INFO_TABLE_QUOTED = "Player info"; // with space; use in SQL as "Player info"
@@ -241,39 +243,40 @@ function getSeasonVariants(season: string): string[] {
   return variants;
 }
 
-/**
- * Roster by JOIN only: fetch distinct players who have a season record for this team and season.
- * Does not use current_team or any team/season from player_info — only filters by stats table.
- * Tries "Player info" + player_stats, then player_info + player_stats; supports player_seasons as stats table name.
- */
-export async function getRosterFromExternalTableViaJoin(team: string, season: string): Promise<PlayerInfoMapped[]> {
-  const teamCandidates = getTeamMatchCandidates(team);
-  const seasonVariants = getSeasonVariants(season);
-  if (teamCandidates.length === 0 || seasonVariants.length === 0) return [];
-  const teamLowers = teamCandidates.map((c) => c.toLowerCase());
-  const playerInfoTables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
-  const statsTables = ["player_stats", "player_seasons"];
-  for (const infoTable of playerInfoTables) {
-    for (const statsTable of statsTables) {
-      try {
-        const res = await pool.query<PlayerInfoRow>(
-          `SELECT DISTINCT ON (p.id) p.*
-           FROM ${infoTable} p
-           JOIN ${statsTable} ps ON p.player_id = ps.player_id
-           WHERE LOWER(ps.team) = ANY($1::text[]) AND ps.season::text = ANY($2::text[])
-           ORDER BY p.id`,
-          [teamLowers, seasonVariants]
-        );
-        const rows = res.rows ?? [];
-        if (rows.length > 0) {
-          return rows.map(mapRowToPlayer);
-        }
-      } catch {
-        continue;
-      }
-    }
-  }
-  return [];
+/** Roster using app tables only: players + playerStats (no teamRecords, no external tables). */
+export async function getRosterFromExternalTableViaJoin(team: string, season: string) {
+  const teamLower = team.toLowerCase();
+
+  const rows = await db
+    .select({
+      id: players.id,
+      name: players.name,
+      position: players.position,
+      team: playerStats.team,
+      height: players.height,
+      weight: players.weight,
+      jerseyNumber: players.jerseyNumber,
+      headshotUrl: players.headshotUrl,
+      bio: players.bio,
+      profileViews: players.profileViews,
+      birthDate: players.birthDate,
+      hometown: players.hometown,
+    })
+    .from(playerStats)
+    .innerJoin(players, eq(players.id, playerStats.playerId))
+    .where(
+      and(
+        sql`LOWER(${playerStats.team}) = ${teamLower}`,
+        sql`${playerStats.season}::text = ${season}`
+      )
+    );
+
+  const seen = new Set<number>();
+  return rows.filter((r) => {
+    if (seen.has(r.id)) return false;
+    seen.add(r.id);
+    return true;
+  });
 }
 
 /** Roster for team + season: only players whose stats include this team and season (same source as profile). */
