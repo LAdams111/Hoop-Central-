@@ -98,6 +98,40 @@ function getNum(o: Record<string, unknown>, ...keys: string[]): number {
   }
   return 0;
 }
+
+/** Try many possible column names for jersey number, then scan row for any key that looks like jersey/no/number. */
+function getJerseyFromRow(row: Record<string, unknown>): number {
+  const explicit = getNum(
+    row,
+    "jersey_number",
+    "jerseyNumber",
+    "jersey number",
+    "Jersey Number",
+    "number",
+    "num",
+    "jersey",
+    "no",
+    "No",
+    "numbr",
+    "jersey_no",
+    "player_number",
+    "player_no",
+    "uniform_number",
+    "uniform_no",
+    "jerseynumber"
+  );
+  if (explicit !== 0) return explicit;
+  for (const [key, value] of Object.entries(row)) {
+    if (value == null || value === "") continue;
+    const k = key.toLowerCase();
+    if ((k.includes("jersey") || k.includes("number") || k === "no" || k === "num" || k.includes("uniform")) && typeof value === "number" && !Number.isNaN(value)) return value;
+    if ((k.includes("jersey") || k === "no" || k === "num") && typeof value === "string") {
+      const n = parseInt(value, 10);
+      if (!Number.isNaN(n)) return n;
+    }
+  }
+  return 0;
+}
 function getStr(o: Record<string, unknown>, ...keys: string[]): string {
   for (const k of keys) {
     const v = o[k];
@@ -180,7 +214,18 @@ function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
   );
   const hometown = getFromRow(rowAny, "hometown", "birth_place", "birth place", "birthplace", "birth_place_city") ?? null;
   const bio = getFromRow(rowAny, "bio", "biography") ?? null;
-  const jerseyNumber = getNum(rowAny, "jersey_number", "jerseyNumber", "number", "num", "jersey");
+  const jerseyNumber = getJerseyFromRow(rowAny);
+  let profileViews = 50;
+  for (const k of ["profile_views", "profileViews", "views"]) {
+    const v = rowAny[k];
+    if (v != null && v !== "") {
+      const n = Number(v);
+      if (!Number.isNaN(n) && n >= 0) {
+        profileViews = n;
+        break;
+      }
+    }
+  }
   return {
     id: row.id,
     player_id: String(row.player_id || "").trim(),
@@ -192,7 +237,7 @@ function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
     jerseyNumber,
     headshotUrl: "",
     bio,
-    profileViews: 50,
+    profileViews,
     hometown,
     birthDate,
     ...(stats.length > 0 ? { stats } : {}),
@@ -364,11 +409,14 @@ export async function getPlayerInfoById(id: number): Promise<PlayerInfoMapped | 
   if (!row) return null;
   const mapped = mapRowToPlayer(row);
   const playerIdStr = String(row.player_id || "").trim();
+  let result: PlayerInfoMapped = mapped;
   if (playerIdStr) {
     const statsFromTable = await getPlayerStatsFromPlayerStatsTable(playerIdStr);
-    if (statsFromTable.length > 0) return { ...mapped, stats: statsFromTable };
+    if (statsFromTable.length > 0) result = { ...mapped, stats: statsFromTable };
   }
-  return mapped;
+  const existing = await storage.getPlayerByNameAndTeam(mapped.name, mapped.team);
+  if (existing) result = { ...result, profileViews: existing.profileViews };
+  return result;
 }
 
 /** Query user's player_stats table (JOIN source); map to API stat shape. */
@@ -430,13 +478,44 @@ export async function getPlayerInfoByPlayerId(playerId: string): Promise<PlayerI
       if (row) {
         const mapped = mapRowToPlayer(row);
         const statsFromTable = await getPlayerStatsFromPlayerStatsTable(id);
-        return { ...mapped, stats: statsFromTable.length > 0 ? statsFromTable : mapped.stats };
+        let result: PlayerInfoMapped = { ...mapped, stats: statsFromTable.length > 0 ? statsFromTable : mapped.stats };
+        const existing = await storage.getPlayerByNameAndTeam(mapped.name, mapped.team);
+        if (existing) result = { ...result, profileViews: existing.profileViews };
+        return result;
       }
     } catch {
       continue;
     }
   }
   return null;
+}
+
+/** Increment profile view count for a player by player_id (external "Player info" table). Falls back to app table by name+team if external has no profile_views. */
+export async function incrementProfileViewsByPlayerId(playerId: string): Promise<void> {
+  const id = String(playerId || "").trim();
+  if (!id) return;
+  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  for (const table of tables) {
+    try {
+      await pool.query(
+        `UPDATE ${table} SET profile_views = COALESCE(profile_views, 50) + 1 WHERE player_id = $1`,
+        [id]
+      );
+      return;
+    } catch {
+      continue;
+    }
+  }
+  // Fallback: external table may not have profile_views or player_id; increment app row by name+team
+  try {
+    const player = await getPlayerInfoByPlayerId(id);
+    if (player && player.name && player.team) {
+      const existing = await storage.getPlayerByNameAndTeam(player.name, player.team);
+      if (existing) await storage.incrementPlayerViews(existing.id);
+    }
+  } catch {
+    // ignore
+  }
 }
 
 export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; updated: number; errors: string[] }> {
@@ -474,7 +553,7 @@ export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; u
       );
       const hometown = getFromRow(rowAny, "hometown", "birth_place", "birth place", "birthplace", "birth_place_city") ?? undefined;
       const bio = getFromRow(rowAny, "bio", "biography") ?? undefined;
-      const jerseyNumber = getNum(rowAny, "jersey_number", "jerseyNumber", "number", "num", "jersey");
+      const jerseyNumber = getJerseyFromRow(rowAny);
 
       const existing = await storage.getPlayerByNameAndTeam(name, team);
       if (existing) {
@@ -522,6 +601,9 @@ export async function insertIntoPlayerInfo(row: {
   position?: string;
   height?: string;
   weight?: string | number;
+  jersey_number?: number;
+  jerseyNumber?: number;
+  number?: number;
 }): Promise<void> {
   const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE];
   const name = (row.name || "").trim();
@@ -529,15 +611,24 @@ export async function insertIntoPlayerInfo(row: {
   const position = normalizePosition(row.position || "");
   const height = formatHeight(row.height || "");
   const weight = formatWeight(row.weight ?? "—");
+  const jersey = row.jersey_number ?? row.jerseyNumber ?? row.number ?? 0;
   for (const table of tables) {
     try {
       await pool.query(
-        `INSERT INTO ${table} (player_id, name, team, position, height, weig) VALUES ($1, $2, $3, $4, $5, $6)`,
-        [row.player_id, name, team, position, height, weight]
+        `INSERT INTO ${table} (player_id, name, team, position, height, weig, jersey_number) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [row.player_id, name, team, position, height, weight, jersey]
       );
       return;
     } catch {
-      continue;
+      try {
+        await pool.query(
+          `INSERT INTO ${table} (player_id, name, team, position, height, weig) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [row.player_id, name, team, position, height, weight]
+        );
+        return;
+      } catch {
+        continue;
+      }
     }
   }
   throw new Error("Could not insert into Player info (tried both table names)");

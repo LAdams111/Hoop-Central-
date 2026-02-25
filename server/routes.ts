@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId } from "./syncPlayerInfo";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -308,7 +308,16 @@ export async function registerRoutes(
         errors.push("Missing player_id or name");
         continue;
       }
+      const getNumIngest = (obj: Record<string, unknown>, ...keys: string[]) => {
+      for (const k of keys) {
+        const v = obj[k];
+        if (typeof v === "number" && !Number.isNaN(v)) return v;
+        if (typeof v === "string") { const n = parseInt(v, 10); if (!Number.isNaN(n)) return n; }
+      }
+      return 0;
+    };
       try {
+        const jersey = getNumIngest(o, "jerseyNumber", "jersey_number", "number", "num", "jersey");
         await insertIntoPlayerInfo({
           player_id: String(player_id),
           name: String(name),
@@ -316,6 +325,7 @@ export async function registerRoutes(
           position: get(o, "position", "pos") as string | undefined,
           height: get(o, "height", "ht") as string | undefined,
           weight: get(o, "weight", "weig", "wt") as string | number | undefined,
+          jersey_number: jersey,
         });
         playersInserted++;
       } catch (err: unknown) {
@@ -589,8 +599,13 @@ export async function registerRoutes(
 
   // Increment Player Views
   app.post("/api/players/:id/view", async (req, res) => {
-    const id = Number(req.params.id);
-    if (!Number.isNaN(id)) await storage.incrementPlayerViews(id);
+    const idParam = req.params.id ?? "";
+    const idNum = Number(idParam);
+    if (!Number.isNaN(idNum)) {
+      await storage.incrementPlayerViews(idNum);
+    } else {
+      await incrementProfileViewsByPlayerId(idParam);
+    }
     res.json({ success: true });
   });
 
