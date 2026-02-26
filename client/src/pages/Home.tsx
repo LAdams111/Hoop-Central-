@@ -6,9 +6,10 @@ import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { DEFAULT_HEADSHOT, NBA_TEAMS, G_LEAGUE_TEAMS, LEAGUE_DEFAULT_SEASONS } from "@/lib/constants";
+import { getPlayerFavorites } from "@/lib/favorites";
 import { queryClient } from "@/lib/queryClient";
 import type { Player } from "@shared/schema";
 
@@ -493,17 +494,30 @@ export default function Home() {
 }
 
 function FavoritesBar({ players }: { players: Player[] | undefined }) {
-  const [favIds, setFavIds] = useState<number[]>([]);
+  const [favoritePlayers, setFavoritePlayers] = useState<{ id: string; name?: string; headshotUrl?: string; team?: string }[]>([]);
   const [favTeams, setFavTeams] = useState<string[]>([]);
 
-  useEffect(() => {
-    const favorites = JSON.parse(localStorage.getItem("player_favorites") || "[]");
-    const teamFavorites = JSON.parse(localStorage.getItem("team_favorites") || "[]");
-    setFavIds(Array.isArray(favorites) ? favorites : []);
-    setFavTeams(teamFavorites);
+  const refreshFavorites = useCallback(() => {
+    setFavoritePlayers(getPlayerFavorites());
+    setFavTeams(JSON.parse(localStorage.getItem("team_favorites") || "[]"));
   }, []);
 
-  const favoritePlayers = players?.filter((p) => favIds.includes(p.id)) || [];
+  useEffect(() => {
+    refreshFavorites();
+  }, [refreshFavorites]);
+
+  useEffect(() => {
+    const onFocus = () => refreshFavorites();
+    window.addEventListener("focus", onFocus);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "player_favorites" || e.key === "team_favorites") refreshFavorites();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [refreshFavorites]);
 
   return (
     <section className="py-6 bg-background border-y border-border overflow-hidden">
@@ -511,7 +525,7 @@ function FavoritesBar({ players }: { players: Player[] | undefined }) {
         <div className="flex items-center gap-6 overflow-x-auto pb-2 no-scrollbar">
           <div className="flex-shrink-0 flex items-center gap-2 pr-6 border-r border-border">
             <Trophy className="w-4 h-4 text-primary" />
-            <span className="font-display text-xl font-bold uppercase tracking-tight">Favorites</span>
+            <span className="font-display text-xl font-bold uppercase tracking-tight">Your Favorites</span>
           </div>
           <div className="flex items-center gap-4">
             {favTeams.map((teamName) => (
@@ -528,11 +542,11 @@ function FavoritesBar({ players }: { players: Player[] | undefined }) {
             ))}
             {favoritePlayers.length > 0 || favTeams.length > 0 ? (
               favoritePlayers.map((player) => (
-                <Link key={player.id} href={`/players/${(player as { player_id?: string }).player_id ?? player.id}`} className="group relative">
+                <Link key={player.id} href={`/players/${encodeURIComponent(player.id)}`} className="group relative">
                   <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-110 shadow-sm">
                     <img
                       src={player.headshotUrl || DEFAULT_HEADSHOT}
-                      alt={player.name}
+                      alt={player.name || "Player"}
                       className="w-full h-full object-cover object-top"
                       onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }}
                     />

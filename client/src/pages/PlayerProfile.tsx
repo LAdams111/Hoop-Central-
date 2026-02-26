@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { DEFAULT_HEADSHOT, TEAM_ABBREV_TO_FULL } from "@/lib/constants";
+import { isPlayerFavorited, togglePlayerFavorite } from "@/lib/favorites";
 import { useUpload } from "@/hooks/use-upload";
 import { 
   ArrowLeft, 
@@ -42,7 +43,7 @@ export default function PlayerProfile() {
   const [, setLocation] = useLocation();
   const id = params?.id ?? "";
   const { data: player, isLoading } = usePlayer(id);
-  const [isFavorited, setIsFavorited] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(() => isPlayerFavorited(id));
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
@@ -158,10 +159,7 @@ export default function PlayerProfile() {
 
   useEffect(() => {
     if (!id) return;
-    
-    // Check if favorited
-    const favorites = JSON.parse(localStorage.getItem('player_favorites') || '[]');
-    setIsFavorited(favorites.includes(id));
+    setIsFavorited(isPlayerFavorited(id));
 
     const lastViewKey = `last_view_player_${id}`;
     const lastView = localStorage.getItem(lastViewKey);
@@ -176,15 +174,12 @@ export default function PlayerProfile() {
   }, [id]);
 
   const toggleFavorite = () => {
-    const favorites = JSON.parse(localStorage.getItem('player_favorites') || '[]');
-    let newFavorites;
-    if (favorites.includes(id)) {
-      newFavorites = favorites.filter((favId: number) => favId !== id);
-    } else {
-      newFavorites = [...favorites, id];
-    }
-    localStorage.setItem('player_favorites', JSON.stringify(newFavorites));
-    setIsFavorited(!isFavorited);
+    const next = togglePlayerFavorite(id, player ? {
+      name: player.name,
+      headshotUrl: player.headshotUrl ?? undefined,
+      team: player.team ?? undefined,
+    } : undefined);
+    setIsFavorited(next);
   };
 
   if (isLoading) {
@@ -310,6 +305,7 @@ export default function PlayerProfile() {
                     </Button>
                   )}
                   <Button 
+                    type="button"
                     variant={isFavorited ? "default" : "secondary"} 
                     className={`w-full h-12 flex items-center justify-center gap-2 border-2 ${isFavorited ? 'border-primary' : 'border-border'} rounded-xl transition-all`}
                     onClick={toggleFavorite}
