@@ -69,13 +69,21 @@ export async function registerRoutes(
   });
 
   app.get("/api/featured-players", async (_req, res) => {
-    const featuredPlayers = await storage.getFeaturedPlayers();
-    res.json(featuredPlayers);
+    try {
+      const featuredPlayers = await storage.getFeaturedPlayers();
+      res.json(featuredPlayers);
+    } catch {
+      res.json([]);
+    }
   });
 
   app.get("/api/featured-player-ids", async (_req, res) => {
-    const ids = await storage.getFeaturedPlayerIds();
-    res.json(ids);
+    try {
+      const ids = await storage.getFeaturedPlayerIds();
+      res.json(ids);
+    } catch {
+      res.json([]);
+    }
   });
 
   const railwayScraperBase = process.env.RAILWAY_SCRAPER_URL || "https://hoop-central-scraper-production.up.railway.app";
@@ -371,8 +379,12 @@ export async function registerRoutes(
     if (!Array.isArray(ids) || ids.some((id: any) => typeof id !== "number")) {
       return res.status(400).json({ error: "ids must be an array of numbers" });
     }
-    await storage.setFeaturedPlayerIds(ids);
-    res.json({ success: true });
+    try {
+      await storage.setFeaturedPlayerIds(ids);
+      res.json({ success: true });
+    } catch (e) {
+      res.status(503).json({ error: "Featured players could not be saved. The site_settings table may be missing.", details: String((e as Error).message) });
+    }
   });
 
   app.post("/api/players/:id/headshot", async (req, res) => {
