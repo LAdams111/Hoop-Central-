@@ -4,6 +4,21 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { scrapeNBAPlayers } from "./scraper";
 import { syncPlayerInfoFromPostgres } from "./syncPlayerInfo";
+import { pool } from "./db";
+
+/** Create site_settings table if missing (e.g. production DB never ran full schema push). */
+async function ensureSiteSettingsTable(): Promise<void> {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS site_settings (
+        "key" TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    `);
+  } catch (err: unknown) {
+    console.warn("Could not ensure site_settings table:", (err as Error)?.message ?? err);
+  }
+}
 
 const app = express();
 const httpServer = createServer(app);
@@ -101,6 +116,11 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
       if (!process.env.DATABASE_URL && !process.env.RAILWAY_POSTGRESQL_URL) {
         log("Warning: DATABASE_URL not set — connect to Railway Postgres and set DATABASE_URL in Variables", "startup");
+      }
+      try {
+        await ensureSiteSettingsTable();
+      } catch {
+        // non-fatal
       }
       try {
         const syncResult = await syncPlayerInfoFromPostgres();
