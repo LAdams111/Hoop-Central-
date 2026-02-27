@@ -663,11 +663,19 @@ export async function registerRoutes(
     const team = decodeURIComponent(teamRaw).replace(/\+/g, " ").trim();
     const season = decodeURIComponent(seasonRaw).trim();
     console.log("[roster] received from frontend — team:", JSON.stringify(team), "season:", JSON.stringify(season));
-    let roster = await storage.getRoster(team, season);
+
+    let roster: { id: number; name: string; position: string; team: string; height: string; weight: string; jerseyNumber: number; headshotUrl: string; bio: string | null; profileViews: number; hometown: string | null; birthDate: string | null; player_id?: string }[] = [];
+
+    try {
+      roster = await storage.getRoster(team, season);
+    } catch {
+      // app tables may be missing or have schema issues
+    }
+
     if (roster.length === 0) {
       try {
-        const fromExternal = await getRosterFromExternalTableViaJoin(team, season);
-        roster = fromExternal.map((p) => ({
+        const fromJoin = await getRosterFromExternalTableViaJoin(team, season);
+        roster = fromJoin.map((p) => ({
           id: p.id,
           name: p.name,
           position: p.position,
@@ -685,6 +693,30 @@ export async function registerRoutes(
         // keep roster []
       }
     }
+
+    if (roster.length === 0) {
+      try {
+        const fromExternal = await getRosterFromExternalTable(team, season);
+        roster = fromExternal.map((p) => ({
+          id: p.id,
+          player_id: p.player_id || undefined,
+          name: p.name,
+          position: p.position,
+          team: p.team,
+          height: p.height,
+          weight: p.weight,
+          jerseyNumber: p.jerseyNumber ?? 0,
+          headshotUrl: p.headshotUrl ?? "",
+          bio: p.bio ?? null,
+          profileViews: p.profileViews ?? 50,
+          hometown: p.hometown ?? null,
+          birthDate: p.birthDate ?? null,
+        }));
+      } catch {
+        // keep roster []
+      }
+    }
+
     console.log("[roster] number of players returned:", roster.length);
     res.json(roster);
   });
