@@ -414,8 +414,12 @@ export async function getPlayerInfoById(id: number): Promise<PlayerInfoMapped | 
     const statsFromTable = await getPlayerStatsFromPlayerStatsTable(playerIdStr);
     if (statsFromTable.length > 0) result = { ...mapped, stats: statsFromTable };
   }
-  const existing = await storage.getPlayerByNameAndTeam(mapped.name, mapped.team);
-  if (existing) result = { ...result, profileViews: existing.profileViews };
+  try {
+    const existing = await storage.getPlayerByNameAndTeam(mapped.name, mapped.team);
+    if (existing) result = { ...result, profileViews: existing.profileViews };
+  } catch {
+    // app table may be missing or have different schema; keep mapped profileViews
+  }
   return result;
 }
 
@@ -479,8 +483,12 @@ export async function getPlayerInfoByPlayerId(playerId: string): Promise<PlayerI
         const mapped = mapRowToPlayer(row);
         const statsFromTable = await getPlayerStatsFromPlayerStatsTable(id);
         let result: PlayerInfoMapped = { ...mapped, stats: statsFromTable.length > 0 ? statsFromTable : mapped.stats };
-        const existing = await storage.getPlayerByNameAndTeam(mapped.name, mapped.team);
-        if (existing) result = { ...result, profileViews: existing.profileViews };
+        try {
+          const existing = await storage.getPlayerByNameAndTeam(mapped.name, mapped.team);
+          if (existing) result = { ...result, profileViews: existing.profileViews };
+        } catch {
+          // app table may be missing or have different schema
+        }
         return result;
       }
     } catch {

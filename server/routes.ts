@@ -469,20 +469,39 @@ export async function registerRoutes(
         return;
       }
     } catch {
-      // fall through to player_info table
+      // fall through to app table
     }
 
-    players = await storage.getPlayers(search, position, sortBy);
-    if (players.length === 0) {
+    try {
+      players = await storage.getPlayers(search, position, sortBy);
+      if (players.length === 0) {
+        try {
+          await syncPlayerInfoFromPostgres();
+          players = await storage.getPlayers(search, position, sortBy);
+        } catch {
+          // ignore
+        }
+      }
+      if (!hasSearch) players = players.slice(0, DIRECTORY_LIST_LIMIT);
+      res.json(players);
+      return;
+    } catch {
+      // app table failed (e.g. schema mismatch); try external again and return whatever we can
       try {
-        await syncPlayerInfoFromPostgres();
-        players = await storage.getPlayers(search, position, sortBy);
+        const fromPlayerInfo = await getPlayerInfoRows();
+        let list = fromPlayerInfo;
+        const searchLower = search?.toLowerCase().trim();
+        if (searchLower) list = list.filter((p) => p.name.toLowerCase().includes(searchLower));
+        if (position && position !== "ALL") list = list.filter((p) => p.position === position);
+        if (sortBy === "views") list = [...list].sort((a, b) => (b.profileViews ?? 0) - (a.profileViews ?? 0));
+        else list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+        if (!hasSearch) list = list.slice(0, DIRECTORY_LIST_LIMIT);
+        res.json(list);
+        return;
       } catch {
-        // ignore
+        res.json([]);
       }
     }
-    if (!hasSearch) players = players.slice(0, DIRECTORY_LIST_LIMIT);
-    res.json(players);
   });
 
   // Prospects (under 20, top 50 by views) — try external "Player info" first so it works with full dataset
@@ -574,39 +593,55 @@ export async function registerRoutes(
 
   // Player Detail (with stats) — :id can be numeric (player_info table) or player_id string ("Player info")
   app.get(api.players.get.path, async (req, res) => {
-    const idParam = req.params.id;
-    const idNum = Number(idParam);
-
-    if (!Number.isNaN(idNum)) {
-      let player = await storage.getPlayer(idNum);
-      if (!player) {
-        try {
-          const fromPlayerInfo = await getPlayerInfoById(idNum);
-          if (fromPlayerInfo) {
-            return res.json({ ...normalizePlayerForApi(fromPlayerInfo as Record<string, unknown>), stats: fromPlayerInfo.stats ?? [], awards: [] });
-          }
-        } catch {
-          // ignore
-        }
-      } else {
-        const [stats, awards] = await Promise.all([
-          storage.getPlayerStats(idNum),
-          storage.getPlayerAwards(idNum)
-        ]);
-        const out = normalizePlayerForApi(player as Record<string, unknown>);
-        return res.json({ ...out, stats, awards });
-      }
-    }
-
     try {
-      const fromPlayerInfo = await getPlayerInfoByPlayerId(idParam);
-      if (fromPlayerInfo) {
-        return res.json({ ...normalizePlayerForApi(fromPlayerInfo as Record<string, unknown>), stats: fromPlayerInfo.stats ?? [], awards: [] });
+      const idParam = req.params.id;
+      const idNum = Number(idParam);
+
+      if (!Number.isNaN(idNum)) {
+        let player: Awaited<ReturnType<typeof storage.getPlayer>>;
+        try {
+          player = await storage.getPlayer(idNum);
+        } catch {
+          player = undefined;
+        }
+        if (!player) {
+          try {
+            const fromPlayerInfo = await getPlayerInfoById(idNum);
+            if (fromPlayerInfo) {
+              return res.json({ ...normalizePlayerForApi(fromPlayerInfo as Record<string, unknown>), stats: fromPlayerInfo.stats ?? [], awards: [] });
+            }
+          } catch {
+            // ignore
+          }
+        } else {
+          try {
+            const [stats, awards] = await Promise.all([
+              storage.getPlayerStats(idNum),
+              storage.getPlayerAwards(idNum)
+            ]);
+            const out = normalizePlayerForApi(player as Record<string, unknown>);
+            return res.json({ ...out, stats, awards });
+          } catch {
+            // app table stats/awards failed; return player without them
+            const out = normalizePlayerForApi(player as Record<string, unknown>);
+            return res.json({ ...out, stats: [], awards: [] });
+          }
+        }
       }
-    } catch {
-      // ignore
+
+      try {
+        const fromPlayerInfo = await getPlayerInfoByPlayerId(idParam);
+        if (fromPlayerInfo) {
+          return res.json({ ...normalizePlayerForApi(fromPlayerInfo as Record<string, unknown>), stats: fromPlayerInfo.stats ?? [], awards: [] });
+        }
+      } catch {
+        // ignore
+      }
+      return res.status(404).json({ message: "Player not found" });
+    } catch (err) {
+      console.error("GET /api/players/:id error:", err);
+      return res.status(404).json({ message: "Player not found" });
     }
-    return res.status(404).json({ message: "Player not found" });
   });
 
   // Increment Player Views
