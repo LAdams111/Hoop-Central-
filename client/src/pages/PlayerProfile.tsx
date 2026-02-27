@@ -283,11 +283,16 @@ export default function PlayerProfile() {
             <div className="flex-1 pb-4 md:pb-8 pt-2 md:pt-0 flex flex-col justify-end items-center md:items-start">
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4 md:mb-6 w-full">
                 <div className="text-center md:text-left">
-                  <Link href={`/roster/${encodeURIComponent(player.team)}/2025-26`}>
-                    <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
-                      <h3 className="text-primary font-mono text-sm md:text-lg uppercase tracking-widest mb-1 hover:text-primary/80 transition-colors cursor-pointer">{player.team}</h3>
-                    </Button>
-                  </Link>
+                  {(() => {
+                    const displayTeam = TEAM_ABBREV_TO_FULL[player.team?.toUpperCase?.()] ?? player.team ?? "";
+                    return (
+                      <Link href={`/roster/${encodeURIComponent(displayTeam)}/2025-26`}>
+                        <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
+                          <h3 className="text-primary font-mono text-sm md:text-lg uppercase tracking-widest mb-1 hover:text-primary/80 transition-colors cursor-pointer">{displayTeam}</h3>
+                        </Button>
+                      </Link>
+                    );
+                  })()}
                   <h1 className="font-display text-4xl md:text-8xl font-bold leading-[0.85] text-foreground tracking-tighter">
                     {player.name}
                   </h1>

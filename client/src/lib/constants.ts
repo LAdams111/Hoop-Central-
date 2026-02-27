@@ -76,8 +76,10 @@ export const LEAGUE_DEFAULT_SEASONS: Record<string, string> = {
   "EuroLeague": "2025-26",
 };
 
-/** NBA (and common) team abbreviation → full name for Season History display. */
+/** NBA (and common) team abbreviation → full name for Season History / profile display.
+ * Includes current teams, relocated/rebranded (former names), and defunct teams. */
 export const TEAM_ABBREV_TO_FULL: Record<string, string> = {
+  // Current NBA
   ATL: "Atlanta Hawks", BOS: "Boston Celtics", BKN: "Brooklyn Nets", BRK: "Brooklyn Nets",
   CHA: "Charlotte Hornets", CHO: "Charlotte Hornets", CHI: "Chicago Bulls", CLE: "Cleveland Cavaliers",
   DAL: "Dallas Mavericks", DEN: "Denver Nuggets", DET: "Detroit Pistons",
@@ -88,6 +90,17 @@ export const TEAM_ABBREV_TO_FULL: Record<string, string> = {
   ORL: "Orlando Magic", PHI: "Philadelphia 76ers", PHX: "Phoenix Suns", PHO: "Phoenix Suns",
   POR: "Portland Trail Blazers", SAC: "Sacramento Kings", SAS: "San Antonio Spurs",
   TOR: "Toronto Raptors", UTA: "Utah Jazz", WAS: "Washington Wizards",
-  NJN: "Brooklyn Nets", NOH: "New Orleans Pelicans", SEA: "Oklahoma City Thunder",
-  VAN: "Memphis Grizzlies", CHH: "Charlotte Hornets", WSB: "Washington Wizards",
+  NJN: "Brooklyn Nets", NOH: "New Orleans Pelicans", SEA: "Seattle SuperSonics",
+  VAN: "Vancouver Grizzlies", CHH: "Charlotte Hornets", WSB: "Washington Wizards",
+  // Relocated / rebranded (former names for season history)
+  BUF: "Buffalo Braves", CIN: "Cincinnati Royals", KCO: "Kansas City-Omaha Kings",
+  KCK: "Kansas City Kings", SDC: "San Diego Clippers",
+  // Defunct / historical (BAA/NBA)
+  AND: "Anderson Packers", BAL: "Baltimore Bullets", BLB: "Baltimore Bullets",
+  CHS: "Chicago Stags", CLR: "Cleveland Rebels", DNN: "Denver Nuggets",
+  DTG: "Detroit Falcons", INJ: "Indianapolis Jets", INO: "Indianapolis Olympians",
+  PIT: "Pittsburgh Ironmen", PRO: "Providence Steamrollers", SHE: "Sheboygan Red Skins",
+  STB: "St. Louis Bombers", TRH: "Toronto Huskies", WSC: "Washington Capitols",
+  MLH: "Milwaukee Hawks", FTW: "Fort Wayne Pistons", SYR: "Syracuse Nationals",
+  ROC: "Rochester Royals", MNL: "Minneapolis Lakers", STL: "St. Louis Hawks",
 };
