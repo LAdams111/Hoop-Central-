@@ -454,11 +454,22 @@ export async function registerRoutes(
     if (typeof profileViews !== "number" || profileViews < 0) {
       return res.status(400).json({ error: "profileViews must be a non-negative number" });
     }
-    await storage.setPlayerProfileViews(id, profileViews);
+    try {
+      await storage.setPlayerProfileViews(id, profileViews);
+    } catch (appErr) {
+      console.error("[profile-views] app table update failed:", appErr);
+      try {
+        await setExternalProfileViewsById(id, profileViews);
+        return res.json({ success: true });
+      } catch (extErr) {
+        console.error("[profile-views] external table update failed:", extErr);
+        return res.status(500).json({ error: "Failed to update profile views" });
+      }
+    }
     try {
       await setExternalProfileViewsById(id, profileViews);
     } catch {
-      // external table may not exist or id may not be there; app table is updated
+      // optional: external table may not exist; app table is updated
     }
     res.json({ success: true });
   });
