@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById } from "./syncPlayerInfo";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -677,14 +677,10 @@ export async function registerRoutes(
               storage.getPlayerAwards(idNum)
             ]);
             const out = normalizePlayerForApi(player as Record<string, unknown>);
-            const externalViews = await getExternalProfileViewsById(idNum);
-            if (externalViews !== null) (out as Record<string, unknown>).profileViews = externalViews;
             return res.json({ ...out, stats, awards });
           } catch {
             // app table stats/awards failed; return player without them
             const out = normalizePlayerForApi(player as Record<string, unknown>);
-            const externalViews = await getExternalProfileViewsById(idNum);
-            if (externalViews !== null) (out as Record<string, unknown>).profileViews = externalViews;
             return res.json({ ...out, stats: [], awards: [] });
           }
         }
@@ -722,6 +718,11 @@ export async function registerRoutes(
     const idNum = Number(idParam);
     if (!Number.isNaN(idNum)) {
       await storage.incrementPlayerViews(idNum);
+      try {
+        await incrementExternalProfileViewsById(idNum);
+      } catch {
+        // external table may not exist or have column
+      }
     } else {
       await incrementProfileViewsByPlayerId(idParam);
     }

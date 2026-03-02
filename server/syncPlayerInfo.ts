@@ -551,6 +551,22 @@ export async function setExternalProfileViewsById(id: number, profileViews: numb
   }
 }
 
+/** Increment profile_views by 1 for a player by numeric id in the external table(s). So view counts stay in sync when profile is served from external table. */
+export async function incrementExternalProfileViewsById(id: number): Promise<void> {
+  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  for (const table of tables) {
+    try {
+      await pool.query(
+        `UPDATE ${table} SET profile_views = COALESCE(profile_views, 50) + 1 WHERE id = $1`,
+        [id]
+      );
+      return;
+    } catch {
+      continue;
+    }
+  }
+}
+
 /** Set headshot URL for a player by numeric id in the external table(s). Tries common column names. */
 export async function setExternalHeadshotById(id: number, headshotUrl: string): Promise<void> {
   const url = String(headshotUrl || "").trim();
