@@ -2,6 +2,7 @@ import type { Express } from "express";
 import type { Server } from "http";
 import crypto from "crypto";
 import { storage } from "./storage";
+import { pool } from "./db";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
@@ -390,7 +391,19 @@ export async function registerRoutes(
       await storage.setFeaturedPlayerIds(ids);
       res.json({ success: true });
     } catch (e) {
-      res.status(503).json({ error: "Featured players could not be saved. The site_settings table may be missing.", details: String((e as Error).message) });
+      try {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS site_settings (
+            "key" TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+          )
+        `);
+        await storage.setFeaturedPlayerIds(ids);
+        res.json({ success: true });
+      } catch (retryErr) {
+        console.error("[featured-players] save failed:", retryErr);
+        res.status(500).json({ error: "Featured players could not be saved.", details: String((e as Error).message) });
+      }
     }
   });
 

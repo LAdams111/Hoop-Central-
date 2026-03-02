@@ -120,6 +120,16 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
+  try {
+    await ensureSiteSettingsTable();
+  } catch {
+    // non-fatal
+  }
+  try {
+    await ensurePlayerInfoProfileViewsColumn();
+  } catch {
+    // non-fatal
+  }
   httpServer.listen(
     {
       port,
@@ -129,16 +139,6 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
       if (!process.env.DATABASE_URL && !process.env.RAILWAY_POSTGRESQL_URL) {
         log("Warning: DATABASE_URL not set — connect to Railway Postgres and set DATABASE_URL in Variables", "startup");
-      }
-      try {
-        await ensureSiteSettingsTable();
-      } catch {
-        // non-fatal
-      }
-      try {
-        await ensurePlayerInfoProfileViewsColumn();
-      } catch {
-        // non-fatal
       }
       try {
         const syncResult = await syncPlayerInfoFromPostgres();
