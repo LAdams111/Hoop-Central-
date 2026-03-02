@@ -8,6 +8,7 @@ import {
   AreaChart
 } from "recharts";
 import { type PlayerStats } from "@shared/schema";
+import { getCurrentNbaSeason, getCurrentNbaSeasonStartYear } from "@/lib/constants";
 
 interface StatsChartProps {
   stats: PlayerStats[];
@@ -31,8 +32,15 @@ function generateGameData(avg: number, games: number): { game: number; value: nu
 }
 
 export function StatsChart({ stats, dataKey, color = "#ff5722", label }: StatsChartProps) {
-  const sortedStats = [...stats].sort((a, b) => a.season.localeCompare(b.season));
-  const currentSeason = sortedStats[sortedStats.length - 1];
+  const seasonStartYear = (s: string) => {
+    const m = String(s).trim().match(/^(\d{4})/);
+    return m ? parseInt(m[1], 10) : 0;
+  };
+  const sortedStats = [...stats].sort((a, b) => seasonStartYear(a.season) - seasonStartYear(b.season));
+  const currentSeasonStr = getCurrentNbaSeason();
+  const currentStartYear = getCurrentNbaSeasonStartYear();
+  const withCurrent = sortedStats.find((s) => s.season === currentSeasonStr || seasonStartYear(s.season) === currentStartYear);
+  const currentSeason = withCurrent ?? sortedStats[sortedStats.length - 1];
 
   if (!currentSeason) return null;
 

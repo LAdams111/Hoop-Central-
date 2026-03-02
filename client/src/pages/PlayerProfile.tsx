@@ -6,7 +6,7 @@ import { StatsChart } from "@/components/StatsChart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { DEFAULT_HEADSHOT, TEAM_ABBREV_TO_FULL, isCurrentNbaSeason } from "@/lib/constants";
+import { DEFAULT_HEADSHOT, TEAM_ABBREV_TO_FULL, isCurrentNbaSeason, getCurrentNbaSeason, getCurrentNbaSeasonStartYear } from "@/lib/constants";
 import { isPlayerFavorited, togglePlayerFavorite } from "@/lib/favorites";
 import { useUpload } from "@/hooks/use-upload";
 import { 
@@ -29,12 +29,22 @@ import {
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
-/** Show season as YYYY-YY (e.g. 1988 → 1987-88). */
+/** Show season as YYYY-YY. If stored season is one year behind (start year < current), add one for display. */
 function formatSeasonDisplay(season: string): string {
   const s = String(season || "").trim();
-  if (/^\d{4}$/.test(s)) {
-    const y = parseInt(s, 10);
-    return `${y - 1}-${String(y).slice(-2)}`;
+  const currentStart = getCurrentNbaSeasonStartYear();
+  const parseStartYear = (): number | null => {
+    const rangeMatch = s.match(/^(\d{4})-/);
+    if (rangeMatch) return parseInt(rangeMatch[1], 10);
+    if (/^\d{4}$/.test(s)) return parseInt(s, 10);
+    return null;
+  };
+  const startYear = parseStartYear();
+  if (startYear != null && startYear < currentStart) {
+    return `${startYear + 1}-${String(startYear + 2).slice(-2)}`;
+  }
+  if (startYear != null && /^\d{4}$/.test(s)) {
+    return `${startYear}-${String(startYear + 1).slice(-2)}`;
   }
   return s;
 }
@@ -305,7 +315,14 @@ export default function PlayerProfile() {
   const statsList = Array.isArray(rawStats) ? rawStats : [];
   const statsListIndividualOnly = statsList.filter((s) => !isCombinedStatRow(s));
   const statsObj = rawStats && !Array.isArray(rawStats) && typeof rawStats === "object" ? (rawStats as Record<string, unknown>) : null;
-  const latestSeason = [...statsListIndividualOnly].sort((a, b) => b.season.localeCompare(a.season))[0];
+  const currentSeasonStr = getCurrentNbaSeason();
+  const currentStartYear = getCurrentNbaSeasonStartYear();
+  const seasonStartYear = (s: string) => {
+    const m = String(s).trim().match(/^(\d{4})/);
+    return m ? parseInt(m[1], 10) : 0;
+  };
+  const withCurrentSeason = statsListIndividualOnly.find((s) => s.season === currentSeasonStr || seasonStartYear(s.season) === currentStartYear);
+  const latestSeason = withCurrentSeason ?? [...statsListIndividualOnly].sort((a, b) => seasonStartYear(b.season) - seasonStartYear(a.season))[0];
   const currentStats = {
     ppg: String(latestSeason?.pointsPerGame ?? statsObj?.pts_per_g ?? statsObj?.pointsPerGame ?? statsObj?.ppg ?? "0.0"),
     rpg: String(latestSeason?.reboundsPerGame ?? statsObj?.trb_per_g ?? statsObj?.reboundsPerGame ?? statsObj?.rpg ?? "0.0"),

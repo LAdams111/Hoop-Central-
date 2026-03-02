@@ -5,16 +5,27 @@ import { normalizeScraperPlayerDetail, type RailwayPlayerDetail, type RailwaySta
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Target, Activity, Trophy, Cloud, Flag } from "lucide-react";
-import { DEFAULT_HEADSHOT, TEAM_ABBREV_TO_FULL, isCurrentNbaSeason } from "@/lib/constants";
+import { DEFAULT_HEADSHOT, TEAM_ABBREV_TO_FULL, isCurrentNbaSeason, getCurrentNbaSeason, getCurrentNbaSeasonStartYear } from "@/lib/constants";
 
 const RAILWAY_FAV_KEY = "player_favorites_railway";
 
+/** Show season as YYYY-YY. If stored season is one year behind (start year < current), add one for display. */
 function formatSeasonDisplay(season: string | null | undefined): string {
   const s = String(season ?? "").trim();
   if (!s) return "—";
-  if (/^\d{4}$/.test(s)) {
-    const y = parseInt(s, 10);
-    return `${y - 1}-${String(y).slice(-2)}`;
+  const currentStart = getCurrentNbaSeasonStartYear();
+  const parseStartYear = (): number | null => {
+    const rangeMatch = s.match(/^(\d{4})-/);
+    if (rangeMatch) return parseInt(rangeMatch[1], 10);
+    if (/^\d{4}$/.test(s)) return parseInt(s, 10);
+    return null;
+  };
+  const startYear = parseStartYear();
+  if (startYear != null && startYear < currentStart) {
+    return `${startYear + 1}-${String(startYear + 2).slice(-2)}`;
+  }
+  if (startYear != null && /^\d{4}$/.test(s)) {
+    return `${startYear}-${String(startYear + 1).slice(-2)}`;
   }
   return s;
 }
@@ -70,7 +81,14 @@ export default function RailwayPlayerProfile() {
   }
 
   const stats = player.stats ?? [];
-  const latestSeason = [...stats].sort((a, b) => (b.season ?? "").localeCompare(a.season ?? ""))[0];
+  const seasonStartYear = (s: string) => {
+    const m = String(s).trim().match(/^(\d{4})/);
+    return m ? parseInt(m[1], 10) : 0;
+  };
+  const currentSeasonStr = getCurrentNbaSeason();
+  const currentStartYear = getCurrentNbaSeasonStartYear();
+  const withCurrent = stats.find((s) => (s.season ?? "") === currentSeasonStr || seasonStartYear(s.season ?? "") === currentStartYear);
+  const latestSeason = withCurrent ?? [...stats].sort((a, b) => seasonStartYear(b.season ?? "") - seasonStartYear(a.season ?? ""))[0];
   const currentStats = {
     ppg: latestSeason?.pointsPerGame ?? "—",
     rpg: latestSeason?.reboundsPerGame ?? "—",
