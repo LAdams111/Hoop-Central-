@@ -6,7 +6,7 @@ import { StatsChart } from "@/components/StatsChart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { DEFAULT_HEADSHOT, TEAM_ABBREV_TO_FULL } from "@/lib/constants";
+import { DEFAULT_HEADSHOT, TEAM_ABBREV_TO_FULL, isCurrentNbaSeason } from "@/lib/constants";
 import { isPlayerFavorited, togglePlayerFavorite } from "@/lib/favorites";
 import { useUpload } from "@/hooks/use-upload";
 import { 
@@ -444,7 +444,7 @@ export default function PlayerProfile() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1">
               <section className="bg-card rounded-2xl p-6 border border-border shadow-xl h-full">
-                <h3 className="font-display text-2xl mb-4 border-b border-border pb-2">Current Season ({currentStats.season})</h3>
+                <h3 className="font-display text-2xl mb-4 border-b border-border pb-2">{isCurrentNbaSeason(currentStats.season) ? "Current Season" : "Most Recent Season"} ({formatSeasonDisplay(currentStats.season)})</h3>
                 <div className="grid grid-cols-2 gap-4">
                    <div className="bg-background rounded-xl p-4 border border-border text-center">
                      <Target className="w-6 h-6 text-primary mx-auto mb-2 opacity-80" />

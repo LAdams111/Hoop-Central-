@@ -1,5 +1,34 @@
 export const DEFAULT_HEADSHOT = "https://cdn.nba.com/headshots/nba/latest/1040x760/1631244.png";
 
+/** Current NBA season string (e.g. "2025-26"). Season starts in October. */
+export function getCurrentNbaSeason(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const startYear = month >= 10 ? year : year - 1;
+  const endShort = String(startYear + 1).slice(-2);
+  return `${startYear}-${endShort}`;
+}
+
+/** Start year of the current NBA season (e.g. 2025). */
+export function getCurrentNbaSeasonStartYear(): number {
+  const s = getCurrentNbaSeason();
+  const m = s.match(/^(\d{4})/);
+  return m ? parseInt(m[1], 10) : new Date().getFullYear();
+}
+
+/** True if the given season string is the current NBA season. */
+export function isCurrentNbaSeason(season: string | null | undefined): boolean {
+  const s = String(season ?? "").trim();
+  if (!s) return false;
+  let startYear: number;
+  const rangeMatch = s.match(/^(\d{4})-(\d{2})$/);
+  if (rangeMatch) startYear = parseInt(rangeMatch[1], 10);
+  else if (/^\d{4}$/.test(s)) startYear = parseInt(s, 10) - 1;
+  else return false;
+  return startYear === getCurrentNbaSeasonStartYear();
+}
+
 /** Base URL for the Railway-deployed hoop-central scraper API (player data by Basketball-Reference ID). */
 export const RAILWAY_SCRAPER_API_BASE = "https://hoop-central-scraper-production.up.railway.app";
 
