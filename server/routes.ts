@@ -159,6 +159,7 @@ export async function registerRoutes(
 
         const existing = await storage.getPlayerByNameAndTeam(name, team);
         if (existing) {
+          const hadNbaStatsBefore = await storage.getPlayerHasNbaStats(existing.id);
           await storage.updatePlayer(existing.id, {
             name, position, team, height, weight, jerseyNumber,
             bio: bio || existing.bio,
@@ -193,7 +194,12 @@ export async function registerRoutes(
               fieldGoalPct: fg,
             });
           }
+          const addedNbaStats = statsList.some((s: any) => (get(s, "league", "lg") || "NBA").toLowerCase() === "nba");
+          if (addedNbaStats && !hadNbaStatsBefore) {
+            await storage.addNbaProfileViewsBoost(existing.id);
+          }
         } else {
+          const hasNbaStats = statsList.some((s: any) => (get(s, "league", "lg") || "NBA").toLowerCase() === "nba");
           const player = await storage.createPlayer({
             name,
             position,
@@ -205,6 +211,7 @@ export async function registerRoutes(
             bio,
             hometown,
             birthDate,
+            ...(hasNbaStats ? { profileViews: Math.floor(Math.random() * 6001) + 10000 } : {}),
           });
           created++;
           for (const s of statsList) {

@@ -58,6 +58,11 @@ export interface IStorage {
   getPlayerByNameAndTeam(name: string, team: string): Promise<Player | undefined>;
   deletePlayerStats(playerId: number): Promise<void>;
 
+  /** True if player has at least one row in player_stats with league = 'NBA'. */
+  getPlayerHasNbaStats(playerId: number): Promise<boolean>;
+  /** Add a one-time random boost (10,000–16,000) to profile_views for players who have played in the NBA. */
+  addNbaProfileViewsBoost(playerId: number): Promise<void>;
+
   // League Teams
   getTeamsByLeague(league: string): Promise<{ team: string; season: string }[]>;
   getAllTeamsWithLeague(): Promise<{ team: string; league: string; season: string }[]>;
@@ -203,6 +208,21 @@ export class DatabaseStorage implements IStorage {
 
   async deletePlayerStats(playerId: number): Promise<void> {
     await db.delete(playerStats).where(eq(playerStats.playerId, playerId));
+  }
+
+  async getPlayerHasNbaStats(playerId: number): Promise<boolean> {
+    const [row] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(playerStats)
+      .where(and(eq(playerStats.playerId, playerId), sql`LOWER(${playerStats.league}) = 'nba'`));
+    return (row?.count ?? 0) > 0;
+  }
+
+  async addNbaProfileViewsBoost(playerId: number): Promise<void> {
+    const boost = Math.floor(Math.random() * 6001) + 10000;
+    await db.update(players)
+      .set({ profileViews: sql`${players.profileViews} + ${boost}` })
+      .where(eq(players.id, playerId));
   }
 
   async getTeamRecord(team: string, season: string): Promise<TeamRecord | undefined> {

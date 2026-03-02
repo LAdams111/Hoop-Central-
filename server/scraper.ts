@@ -288,6 +288,7 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
           }
 
           let playerId = playerCache.get(nameLower);
+          let playerWasJustCreated = false;
 
           if (!playerId) {
             const existingPlayers = await db.select().from(players).where(
@@ -312,16 +313,18 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
                 jerseyNumber: 0,
                 headshotUrl: defaultHeadshotUrl,
                 bio: `${playerName} is a professional basketball player for the ${currentTeamFull}.`,
-                profileViews: Math.floor(Math.random() * 5001) + 10000,
+                profileViews: Math.floor(Math.random() * 6001) + 10000,
                 hometown: null,
                 birthDate: birthDate,
               });
               playerId = newPlayer.id;
               result.playersAdded++;
+              playerWasJustCreated = true;
             }
             playerCache.set(nameLower, playerId);
           }
 
+          const hadNbaStatsBefore = await storage.getPlayerHasNbaStats(playerId);
           const existingSeasonStats = await db.select().from(playerStats).where(
             and(
               eq(playerStats.playerId, playerId),
@@ -388,6 +391,9 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
               });
             }
             result.statsUpdated++;
+          }
+          if (!hadNbaStatsBefore && !playerWasJustCreated) {
+            await storage.addNbaProfileViewsBoost(playerId);
           }
         } catch (playerErr: any) {
           result.errors.push(`Error processing ${nameLower} (${seasonDisplay}): ${playerErr.message}`);
