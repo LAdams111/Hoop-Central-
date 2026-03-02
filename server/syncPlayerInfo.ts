@@ -543,6 +543,27 @@ export async function setExternalProfileViewsById(id: number, profileViews: numb
   }
 }
 
+/** Get profile_views for a player by numeric id from the external table(s). Used so GET /api/players/:id returns the updated count after admin sets it (external table may be the one we wrote). */
+export async function getExternalProfileViewsById(id: number): Promise<number | null> {
+  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  for (const table of tables) {
+    try {
+      const res = await pool.query<{ profile_views: number | string }>(
+        `SELECT profile_views FROM ${table} WHERE id = $1 LIMIT 1`,
+        [id]
+      );
+      const row = res.rows?.[0];
+      if (row == null) continue;
+      const v = row.profile_views;
+      const n = typeof v === "number" ? v : parseInt(String(v), 10);
+      if (!Number.isNaN(n) && n >= 0) return n;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
 export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; updated: number; errors: string[] }> {
   const result = { created: 0, updated: 0, errors: [] as string[] };
 
