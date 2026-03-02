@@ -171,7 +171,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(players)
-      .where(sql`${players.birthDate} IS NOT NULL AND (CURRENT_DATE - ${players.birthDate}::date) / 365.25 < ${maxAge}`)
+      .where(sql`${players.birthDate} IS NOT NULL AND EXTRACT(YEAR FROM AGE(CURRENT_DATE, ${players.birthDate}::date)) < ${maxAge}`)
       .orderBy(sql`${players.profileViews} DESC`)
       .limit(limit);
   }

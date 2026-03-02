@@ -283,7 +283,15 @@ export async function getBirthYearCountsFromExternalTable(): Promise<Record<stri
   return counts;
 }
 
-/** Prospects (under maxAge) from external "Player info" table. Sorted by profileViews, limit applied. */
+/** Whole-year age (birthday-based): 20 only after 20th birthday. */
+function wholeYearAge(birthDate: Date, today: Date): number {
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+  return age;
+}
+
+/** Prospects (strictly under maxAge in whole years) from external "Player info" table. Sorted by profileViews, limit applied. */
 export async function getProspectsFromExternalTable(maxAge: number, limit: number): Promise<PlayerInfoMapped[]> {
   const rows = await getPlayerInfoRows();
   const now = new Date();
@@ -292,7 +300,7 @@ export async function getProspectsFromExternalTable(maxAge: number, limit: numbe
     if (bd == null || bd === "") return false;
     const d = new Date(String(bd).trim());
     if (Number.isNaN(d.getTime())) return false;
-    const age = (now.getTime() - d.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+    const age = wholeYearAge(d, now);
     return age < maxAge;
   });
   filtered.sort((a, b) => (b.profileViews ?? 0) - (a.profileViews ?? 0));
