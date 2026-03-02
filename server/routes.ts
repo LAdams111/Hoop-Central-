@@ -125,22 +125,26 @@ export async function registerRoutes(
       }
       const missingIds = ids.filter((id) => !byId.has(id));
       if (missingIds.length > 0) {
-        const fromExternal = await getPlayerInfoByIds(missingIds);
-        for (const p of fromExternal) {
-          byId.set(p.id, {
-            id: p.id,
-            name: p.name,
-            position: p.position,
-            team: p.team,
-            height: p.height,
-            weight: p.weight,
-            jerseyNumber: p.jerseyNumber,
-            headshotUrl: p.headshotUrl || "",
-            bio: p.bio ?? null,
-            profileViews: p.profileViews ?? 50,
-            hometown: p.hometown ?? null,
-            birthDate: p.birthDate ?? null,
-          });
+        const idSet = new Set(missingIds);
+        const allRows = await getPlayerInfoRows();
+        for (const p of allRows) {
+          const n = Number(p.id);
+          if (!Number.isNaN(n) && idSet.has(n)) {
+            byId.set(n, {
+              id: p.id,
+              name: p.name,
+              position: p.position,
+              team: p.team,
+              height: p.height,
+              weight: p.weight,
+              jerseyNumber: p.jerseyNumber,
+              headshotUrl: p.headshotUrl || "",
+              bio: p.bio ?? null,
+              profileViews: p.profileViews ?? 50,
+              hometown: p.hometown ?? null,
+              birthDate: p.birthDate ?? null,
+            });
+          }
         }
       }
       const list = ids.map((id) => byId.get(id)).filter(Boolean) as Record<string, unknown>[];

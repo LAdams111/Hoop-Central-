@@ -73,6 +73,16 @@ export default function Home() {
     .map((q) => q.data)
     .filter((p): p is Player => p != null && typeof p === "object" && "id" in p);
 
+  const byIdFromCache = new Map<number, Player>();
+  for (const p of resolvedFeaturedByIds) byIdFromCache.set(Number(p.id), p);
+  for (const p of [...(players ?? []), ...(featuredSearchResults ?? [])]) {
+    const n = Number(p.id);
+    if (!Number.isNaN(n) && !byIdFromCache.has(n)) byIdFromCache.set(n, p);
+  }
+  const resolvedFromAnySource = effectiveFeaturedIds
+    .map((id) => byIdFromCache.get(id))
+    .filter((p): p is Player => p != null);
+
   const featuredMutation = useMutation({
     mutationFn: async (ids: number[]) => {
       const token = localStorage.getItem("admin_token");
@@ -99,7 +109,7 @@ export default function Home() {
   const hasSavedFeatured =
     (featuredIds?.length ?? 0) > 0 ||
     (featuredPlayers?.length ?? 0) > 0 ||
-    (effectiveFeaturedIds.length > 0 && resolvedFeaturedByIds.length > 0);
+    (effectiveFeaturedIds.length > 0 && resolvedFromAnySource.length > 0);
 
   const initialFeaturedIds = featuredIds ?? [];
   const hasFeaturedChanges =
@@ -221,8 +231,8 @@ export default function Home() {
   const displayFeatured =
     (featuredPlayers?.length ?? 0) > 0
       ? featuredPlayers!
-      : effectiveFeaturedIds.length > 0 && resolvedFeaturedByIds.length > 0
-        ? resolvedFeaturedByIds
+      : effectiveFeaturedIds.length > 0 && resolvedFromAnySource.length > 0
+        ? resolvedFromAnySource
         : players?.slice(0, 5) || [];
 
   const featuredPickerResults =

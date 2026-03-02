@@ -430,7 +430,7 @@ export async function getRosterFromExternalTable(team: string, season: string): 
   return out;
 }
 
-/** Get a single row by numeric id; try both table names; include stats from player_stats table. */
+/** Get a single row by numeric id; try both table names; include stats from player_stats table. Falls back to getPlayerInfoRows() so we use same source as list. */
 export async function getPlayerInfoById(id: number): Promise<PlayerInfoMapped | null> {
   let res = await pool.query<PlayerInfoRow>(`SELECT * FROM "${PLAYER_INFO_TABLE_QUOTED}" WHERE id = $1`, [id]);
   let row = res.rows?.[0];
@@ -442,7 +442,25 @@ export async function getPlayerInfoById(id: number): Promise<PlayerInfoMapped | 
       // ignore
     }
   }
-  if (!row) return null;
+  if (!row) {
+    const allRows = await getPlayerInfoRows();
+    const found = allRows.find((p) => Number(p.id) === id);
+    if (found) {
+      let result: PlayerInfoMapped = found;
+      if (found.player_id) {
+        const statsFromTable = await getPlayerStatsFromPlayerStatsTable(found.player_id);
+        if (statsFromTable.length > 0) result = { ...found, stats: statsFromTable };
+      }
+      try {
+        const existing = await storage.getPlayerByNameAndTeam(found.name, found.team);
+        if (existing) result = { ...result, profileViews: existing.profileViews };
+      } catch {
+        // ignore
+      }
+      return result;
+    }
+    return null;
+  }
   const mapped = mapRowToPlayer(row);
   const playerIdStr = String(row.player_id || "").trim();
   let result: PlayerInfoMapped = mapped;
