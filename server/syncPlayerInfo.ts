@@ -340,6 +340,13 @@ export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
   return [];
 }
 
+/** Fallback roster when player_stats is empty: return players whose current team matches (from Player info / player_info). */
+export async function getRosterByCurrentTeamFromPlayerInfo(team: string): Promise<PlayerInfoMapped[]> {
+  const candidates = new Set(getTeamMatchCandidates(team).map((c) => c.toLowerCase()));
+  const rows = await getPlayerInfoRows();
+  return rows.filter((p) => candidates.has((p.team || "").trim().toLowerCase()));
+}
+
 /** Fetch multiple players by id from external table (same source as list). Tries both table names. */
 export async function getPlayerInfoByIds(ids: number[]): Promise<PlayerInfoMapped[]> {
   if (ids.length === 0) return [];

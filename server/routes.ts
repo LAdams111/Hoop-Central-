@@ -6,7 +6,7 @@ import { pool } from "./db";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getRosterByCurrentTeamFromPlayerInfo, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -907,6 +907,29 @@ export async function registerRoutes(
       try {
         const fromExternal = await getRosterFromExternalTable(team, season);
         roster = fromExternal.map((p) => ({
+          id: p.id,
+          player_id: p.player_id || undefined,
+          name: p.name,
+          position: p.position,
+          team: p.team,
+          height: p.height,
+          weight: p.weight,
+          jerseyNumber: p.jerseyNumber ?? 0,
+          headshotUrl: p.headshotUrl ?? "",
+          bio: p.bio ?? null,
+          profileViews: p.profileViews ?? 50,
+          hometown: p.hometown ?? null,
+          birthDate: p.birthDate ?? null,
+        }));
+      } catch {
+        // keep roster []
+      }
+    }
+
+    if (roster.length === 0) {
+      try {
+        const byCurrentTeam = await getRosterByCurrentTeamFromPlayerInfo(team);
+        roster = byCurrentTeam.map((p) => ({
           id: p.id,
           player_id: p.player_id || undefined,
           name: p.name,
