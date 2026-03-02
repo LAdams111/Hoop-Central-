@@ -930,20 +930,17 @@ export async function registerRoutes(
     res.json(roster);
   });
 
-  // Team Record (team_records table may not exist on all deploys)
+  // Team Record (team_records table may not exist on all deploys). Return 200 with null when missing so frontend doesn't 404.
   app.get("/api/teams/:team/record/:season", async (req, res) => {
     const team = decodeURIComponent(req.params.team ?? "").replace(/\+/g, " ").trim();
     const season = decodeURIComponent(req.params.season ?? "").trim();
     try {
       const record = await storage.getTeamRecord(team, season);
-      if (!record) {
-        return res.status(404).json({ message: "Record not found" });
-      }
-      res.json(record);
+      res.json(record ?? null);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("does not exist") || msg.includes("relation")) {
-        return res.status(404).json({ message: "Record not found" });
+        return res.json(null);
       }
       throw err;
     }

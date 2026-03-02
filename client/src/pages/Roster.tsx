@@ -121,7 +121,7 @@ export default function Roster() {
     }
   }, [seasonFromUrl, season, team, setLocation]);
 
-  const { data: rosterPlayers, isLoading } = useQuery<Player[]>({
+  const { data: rosterPlayers, isLoading, isError, refetch } = useQuery<Player[]>({
     queryKey: ['/api/teams', team, 'roster', season],
     queryFn: async () => {
       const res = await fetch(`/api/teams/${encodeURIComponent(team)}/roster/${encodeURIComponent(season)}`);
@@ -129,6 +129,7 @@ export default function Roster() {
       return res.json();
     },
     enabled: !!team && !!season,
+    retry: 1,
   });
 
   const { data: teamRecord } = useQuery<TeamRecord | null>({
@@ -154,6 +155,34 @@ export default function Roster() {
   }
 
   const players = rosterPlayers || [];
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background pb-24">
+        <div className="bg-muted border-b border-border py-12">
+          <div className="container mx-auto px-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-full mb-8"
+              onClick={() => (window.history.length > 1 ? window.history.back() : setLocation("/leagues"))}
+              data-testid="button-back"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2 inline" />
+              Back
+            </Button>
+          </div>
+        </div>
+        <div className="container mx-auto px-4 mt-12 flex flex-col items-center justify-center py-24">
+          <p className="font-display text-xl text-muted-foreground mb-4">Unable to load roster. The server may be unavailable.</p>
+          <Button variant="outline" onClick={() => refetch()} data-testid="button-retry-roster">
+            Try again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24">
