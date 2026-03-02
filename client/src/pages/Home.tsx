@@ -40,8 +40,17 @@ export default function Home() {
   const [adminError, setAdminError] = useState("");
   const [showFeaturedPicker, setShowFeaturedPicker] = useState(false);
   const [featuredSearch, setFeaturedSearch] = useState("");
+  const [debouncedFeaturedSearch, setDebouncedFeaturedSearch] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedFeaturedSearch(featuredSearch), 300);
+    return () => clearTimeout(t);
+  }, [featuredSearch]);
 
   const { data: featuredIds } = useQuery<number[]>({ queryKey: ["/api/featured-player-ids"] });
+  const { data: featuredSearchResults, isLoading: isLoadingFeaturedSearch } = usePlayers(
+    debouncedFeaturedSearch.trim() ? { search: debouncedFeaturedSearch.trim() } : undefined
+  );
 
   const featuredMutation = useMutation({
     mutationFn: async (ids: number[]) => {
@@ -152,11 +161,7 @@ export default function Home() {
 
   const featuredPickerResults =
     featuredSearch.trim().length > 0
-      ? (players?.filter((p) => {
-          const searchWords = featuredSearch.toLowerCase().trim().split(/\s+/);
-          const nameWords = p.name.toLowerCase().split(" ");
-          return searchWords.every((sw) => nameWords.some((nw) => nw.startsWith(sw)));
-        }).slice(0, 8) || [])
+      ? (featuredSearchResults ?? []).slice(0, 8)
       : [];
 
   return (
@@ -398,15 +403,21 @@ export default function Home() {
                   data-testid="input-featured-search"
                 />
               </div>
-              {featuredPickerResults.length > 0 && (
+              {featuredSearch.trim().length === 0 ? (
+                <p className="mt-2 text-xs text-muted-foreground">Type a player name to search (e.g. LeBron, Curry)</p>
+              ) : isLoadingFeaturedSearch ? (
+                <p className="mt-2 text-sm text-muted-foreground">Searching…</p>
+              ) : featuredPickerResults.length > 0 ? (
                 <div className="mt-2 border border-border rounded-md overflow-hidden max-h-64 overflow-y-auto">
                   {featuredPickerResults.map((p) => {
                     const isFeatured = featuredIds?.includes(p.id);
                     return (
                       <button
                         key={p.id}
-                        className="w-full flex items-center gap-3 px-3 py-2 hover-elevate text-left transition-colors"
+                        type="button"
+                        className="w-full flex items-center gap-3 px-3 py-2 hover-elevate text-left transition-colors disabled:opacity-60"
                         onClick={() => toggleFeatured(p.id)}
+                        disabled={featuredMutation.isPending}
                         data-testid={`featured-option-${p.id}`}
                       >
                         <div className="w-8 h-8 rounded-full overflow-hidden border border-border flex-shrink-0">
@@ -419,12 +430,16 @@ export default function Home() {
                         {isFeatured ? (
                           <Badge variant="default" className="flex-shrink-0"><Minus className="w-3 h-3 mr-1" />Remove</Badge>
                         ) : (
-                          <Badge variant="outline" className="flex-shrink-0"><Plus className="w-3 h-3 mr-1" />Add</Badge>
+                          <Badge variant="outline" className="flex-shrink-0">
+                            {featuredMutation.isPending ? "…" : <><Plus className="w-3 h-3 mr-1" />Add</>}
+                          </Badge>
                         )}
                       </button>
                     );
                   })}
                 </div>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">No players found. Try a different name.</p>
               )}
             </div>
           )}
