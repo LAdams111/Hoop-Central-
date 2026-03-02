@@ -1,8 +1,38 @@
 import { Link, useLocation } from "wouter";
-import { Search, Trophy, Home, Layers, Calendar, Users, Flame } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Trophy, Home, Layers, Calendar, Users, Flame, Lock, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export function Navigation() {
   const [location] = useLocation();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("admin_token");
+    if (!token) {
+      setIsAdmin(false);
+      return;
+    }
+    fetch("/api/admin/check", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.authenticated) setIsAdmin(true);
+        else {
+          setIsAdmin(false);
+          localStorage.removeItem("admin_token");
+        }
+      })
+      .catch(() => {
+        setIsAdmin(false);
+        localStorage.removeItem("admin_token");
+      });
+  }, []);
+
+  const handleAdminLogout = () => {
+    localStorage.removeItem("admin_token");
+    setIsAdmin(false);
+  };
 
   const navItems = [
     { label: "Home", href: "/" },
@@ -51,6 +81,23 @@ export function Navigation() {
           </nav>
 
           <div className="flex items-center gap-4">
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-card border-primary/30 text-primary px-2 py-0.5 text-xs">
+                  <Lock className="w-3 h-3 mr-1" /> Admin
+                </Badge>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-foreground text-xs"
+                  onClick={handleAdminLogout}
+                  data-testid="button-nav-admin-logout"
+                >
+                  <LogOut className="w-3 h-3 mr-1" /> Logout
+                </Button>
+              </div>
+            )}
             <Link href="/players">
               <button className="p-2 rounded-full hover:bg-white/5 text-muted-foreground hover:text-primary transition-colors">
                 <Search className="w-5 h-5" />

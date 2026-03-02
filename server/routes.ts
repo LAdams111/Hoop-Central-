@@ -648,7 +648,10 @@ export async function registerRoutes(
           try {
             const fromPlayerInfo = await getPlayerInfoById(idNum);
             if (fromPlayerInfo) {
-              return res.json({ ...normalizePlayerForApi(fromPlayerInfo as Record<string, unknown>), stats: fromPlayerInfo.stats ?? [], awards: [] });
+              const out = { ...normalizePlayerForApi(fromPlayerInfo as Record<string, unknown>), stats: fromPlayerInfo.stats ?? [], awards: [] };
+              const externalViews = await getExternalProfileViewsById(idNum);
+              if (externalViews !== null) (out as Record<string, unknown>).profileViews = externalViews;
+              return res.json(out);
             }
           } catch {
             // ignore
@@ -676,7 +679,13 @@ export async function registerRoutes(
       try {
         const fromPlayerInfo = await getPlayerInfoByPlayerId(idParam);
         if (fromPlayerInfo) {
-          return res.json({ ...normalizePlayerForApi(fromPlayerInfo as Record<string, unknown>), stats: fromPlayerInfo.stats ?? [], awards: [] });
+          const out = { ...normalizePlayerForApi(fromPlayerInfo as Record<string, unknown>), stats: fromPlayerInfo.stats ?? [], awards: [] };
+          const idForViews = Number((fromPlayerInfo as Record<string, unknown>).id);
+          if (!Number.isNaN(idForViews)) {
+            const externalViews = await getExternalProfileViewsById(idForViews);
+            if (externalViews !== null) (out as Record<string, unknown>).profileViews = externalViews;
+          }
+          return res.json(out);
         }
       } catch {
         // ignore

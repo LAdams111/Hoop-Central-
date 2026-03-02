@@ -548,13 +548,11 @@ export async function getExternalProfileViewsById(id: number): Promise<number | 
   const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
   for (const table of tables) {
     try {
-      const res = await pool.query<{ profile_views: number | string }>(
-        `SELECT profile_views FROM ${table} WHERE id = $1 LIMIT 1`,
-        [id]
-      );
-      const row = res.rows?.[0];
-      if (row == null) continue;
-      const v = row.profile_views;
+      const res = await pool.query<Record<string, unknown>>(`SELECT * FROM ${table} WHERE id = $1 LIMIT 1`, [id]);
+      const row = res.rows?.[0] as Record<string, unknown> | undefined;
+      if (!row) continue;
+      const v = row.profile_views ?? row.profileViews ?? row["profile views"];
+      if (v == null) continue;
       const n = typeof v === "number" ? v : parseInt(String(v), 10);
       if (!Number.isNaN(n) && n >= 0) return n;
     } catch {

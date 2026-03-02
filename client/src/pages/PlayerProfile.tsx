@@ -18,6 +18,7 @@ import {
   Flag,
   Camera,
   Lock,
+  LogOut,
   Upload,
   Loader2,
   X,
@@ -91,6 +92,11 @@ export default function PlayerProfile() {
     setDisplayedProfileViews(null);
   }, [id]);
 
+  const handleAdminLogout = () => {
+    localStorage.removeItem("admin_token");
+    setIsAdmin(false);
+  };
+
   const handleAdminLogin = async () => {
     setAdminError("");
     try {
@@ -149,6 +155,7 @@ export default function PlayerProfile() {
             : prev
       );
       setProfileViewsInput(String(newViews));
+      queryClient.invalidateQueries({ queryKey: [api.players.get.path, String(player.id)] });
       toast({ title: "Profile views updated", description: `Set to ${newViews}.` });
     } catch {
       toast({ title: "Update failed", description: "Network or server error.", variant: "destructive" });
@@ -705,9 +712,21 @@ export default function PlayerProfile() {
           )}
 
           {isAdmin && (
-            <Badge variant="outline" className="bg-card border-primary/30 text-primary px-3 py-1">
-              <Lock className="w-3 h-3 mr-1" /> Admin
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-card border-primary/30 text-primary px-3 py-1">
+                <Lock className="w-3 h-3 mr-1" /> Admin
+              </Badge>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="text-muted-foreground hover:text-foreground text-xs"
+                onClick={handleAdminLogout}
+                data-testid="button-profile-admin-logout"
+              >
+                <LogOut className="w-3 h-3 mr-1" /> Logout
+              </Button>
+            </div>
           )}
         </div>
       </div>
