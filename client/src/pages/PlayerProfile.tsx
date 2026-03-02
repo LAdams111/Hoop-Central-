@@ -142,7 +142,6 @@ export default function PlayerProfile() {
             : prev
       );
       setProfileViewsInput(String(newViews));
-      queryClient.invalidateQueries({ queryKey: [api.players.get.path, String(player.id)] });
       toast({ title: "Profile views updated", description: `Set to ${newViews}.` });
     } catch {
       toast({ title: "Update failed", description: "Network or server error.", variant: "destructive" });
