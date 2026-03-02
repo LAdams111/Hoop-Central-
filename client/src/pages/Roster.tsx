@@ -166,7 +166,7 @@ export default function Roster() {
               variant="outline"
               size="sm"
               className="rounded-full mb-8"
-              onClick={() => (window.history.length > 1 ? window.history.back() : setLocation("/leagues"))}
+              onClick={() => setLocation("/leagues")}
               data-testid="button-back"
             >
               <ArrowLeft className="w-4 h-4 mr-2 inline" />
@@ -193,7 +193,7 @@ export default function Roster() {
             variant="outline"
             size="sm"
             className="rounded-full mb-8"
-            onClick={() => (window.history.length > 1 ? window.history.back() : setLocation("/leagues"))}
+            onClick={() => setLocation("/leagues")}
             data-testid="button-back"
           >
             <ArrowLeft className="w-4 h-4 mr-2 inline" />
