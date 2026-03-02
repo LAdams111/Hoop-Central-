@@ -62,11 +62,38 @@ export default function Home() {
       });
       if (!res.ok) throw new Error("Failed to update featured players");
     },
+    onMutate: async (newIds) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/featured-player-ids"] });
+      await queryClient.cancelQueries({ queryKey: ["/api/featured-players"] });
+      const prevIds = queryClient.getQueryData<number[]>(["/api/featured-player-ids"]);
+      const prevPlayers = queryClient.getQueryData<Player[]>(["/api/featured-players"]);
+      queryClient.setQueryData(["/api/featured-player-ids"], newIds);
+      if (prevPlayers && prevIds) {
+        const keepSet = new Set(newIds);
+        const nextPlayers = prevPlayers.filter((p) => keepSet.has(Number(p.id)));
+        queryClient.setQueryData(["/api/featured-players"], nextPlayers);
+      }
+      return { prevIds, prevPlayers };
+    },
+    onError: (_err, _newIds, context) => {
+      if (context?.prevIds != null) queryClient.setQueryData(["/api/featured-player-ids"], context.prevIds);
+      if (context?.prevPlayers != null) queryClient.setQueryData(["/api/featured-players"], context.prevPlayers);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/featured-players"] });
       queryClient.invalidateQueries({ queryKey: ["/api/featured-player-ids"] });
     },
   });
+
+  /** Remove a player from featured only (used by X on featured cards). */
+  const removeFromFeatured = (playerId: number | string) => {
+    const numId = Number(playerId);
+    if (Number.isNaN(numId)) return;
+    const current = featuredIds || [];
+    if (!current.includes(numId)) return;
+    const newIds = current.filter((id) => id !== numId).map((id) => Number(id));
+    featuredMutation.mutate(newIds);
+  };
 
   const toggleFeatured = (playerId: number | string) => {
     const numId = Number(playerId);
@@ -477,7 +504,7 @@ export default function Home() {
                           size="icon"
                           variant="destructive"
                           className="pointer-events-auto opacity-90 hover:opacity-100 shadow-md h-7 w-7 rounded-full"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFeatured(player.id); }}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFromFeatured(player.id); }}
                           disabled={featuredMutation.isPending}
                           title="Remove from featured"
                           data-testid={`button-remove-featured-card-${player.id}`}
@@ -500,7 +527,7 @@ export default function Home() {
                           size="icon"
                           variant="destructive"
                           className="pointer-events-auto opacity-90 hover:opacity-100 shadow-md h-7 w-7 rounded-full"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFeatured(player.id); }}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFromFeatured(player.id); }}
                           disabled={featuredMutation.isPending}
                           title="Remove from featured"
                           data-testid={`button-remove-featured-card-${player.id}`}
