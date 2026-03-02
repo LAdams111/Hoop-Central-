@@ -471,18 +471,20 @@ export default function Home() {
                   <div key={player.id} className="relative group">
                     <PlayerCard player={player} />
                     {isAdmin && (
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="destructive"
-                        className="absolute top-1 right-1 h-7 w-7 rounded-full opacity-90 hover:opacity-100 shadow-md z-30"
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFeatured(player.id); }}
-                        disabled={featuredMutation.isPending}
-                        title="Remove from featured"
-                        data-testid={`button-remove-featured-card-${player.id}`}
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </Button>
+                      <div className="absolute top-1 right-1 z-[100] pointer-events-none">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="destructive"
+                          className="pointer-events-auto opacity-90 hover:opacity-100 shadow-md h-7 w-7 rounded-full"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFeatured(player.id); }}
+                          disabled={featuredMutation.isPending}
+                          title="Remove from featured"
+                          data-testid={`button-remove-featured-card-${player.id}`}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -492,18 +494,20 @@ export default function Home() {
                   <div key={player.id} className="relative group">
                     <PlayerCard player={player} />
                     {isAdmin && (
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="destructive"
-                        className="absolute top-1 right-1 h-7 w-7 rounded-full opacity-90 hover:opacity-100 shadow-md z-30"
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFeatured(player.id); }}
-                        disabled={featuredMutation.isPending}
-                        title="Remove from featured"
-                        data-testid={`button-remove-featured-card-${player.id}`}
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </Button>
+                      <div className="absolute top-1 right-1 z-[100] pointer-events-none">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="destructive"
+                          className="pointer-events-auto opacity-90 hover:opacity-100 shadow-md h-7 w-7 rounded-full"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFeatured(player.id); }}
+                          disabled={featuredMutation.isPending}
+                          title="Remove from featured"
+                          data-testid={`button-remove-featured-card-${player.id}`}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     )}
                   </div>
                 ))}
