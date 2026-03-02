@@ -38,6 +38,15 @@ function formatSeasonDisplay(season: string): string {
   return s;
 }
 
+/** True if this stat row is a combined/total row (e.g. team "2", "3", "TOT") — do not display in Season History. */
+function isCombinedStatRow(stat: { team?: string | number | null }): boolean {
+  const t = String(stat?.team ?? "").trim();
+  if (!t) return false;
+  if (/^\d+$/.test(t)) return true; // "2", "3" = number of teams
+  if (/^TOT$/i.test(t)) return true;
+  return false;
+}
+
 export default function PlayerProfile() {
   const [, params] = useRoute("/players/:id");
   const [, setLocation] = useLocation();
@@ -203,8 +212,9 @@ export default function PlayerProfile() {
 
   const rawStats = player.stats;
   const statsList = Array.isArray(rawStats) ? rawStats : [];
+  const statsListIndividualOnly = statsList.filter((s) => !isCombinedStatRow(s));
   const statsObj = rawStats && !Array.isArray(rawStats) && typeof rawStats === "object" ? (rawStats as Record<string, unknown>) : null;
-  const latestSeason = [...statsList].sort((a, b) => b.season.localeCompare(a.season))[0];
+  const latestSeason = [...statsListIndividualOnly].sort((a, b) => b.season.localeCompare(a.season))[0];
   const currentStats = {
     ppg: String(latestSeason?.pointsPerGame ?? statsObj?.pts_per_g ?? statsObj?.pointsPerGame ?? statsObj?.ppg ?? "0.0"),
     rpg: String(latestSeason?.reboundsPerGame ?? statsObj?.trb_per_g ?? statsObj?.reboundsPerGame ?? statsObj?.rpg ?? "0.0"),
@@ -457,11 +467,11 @@ export default function PlayerProfile() {
 
             <div className="lg:col-span-2">
               <div className="grid grid-cols-2 gap-2 md:gap-6">
-                <StatsChart stats={statsList} dataKey="pointsPerGame" label="Points" color="hsl(var(--primary))" />
+                <StatsChart stats={statsListIndividualOnly} dataKey="pointsPerGame" label="Points" color="hsl(var(--primary))" />
                 {player.position === "C" || player.position === "PF" ? (
-                  <StatsChart stats={statsList} dataKey="reboundsPerGame" label="Rebounds" color="hsl(var(--accent))" />
+                  <StatsChart stats={statsListIndividualOnly} dataKey="reboundsPerGame" label="Rebounds" color="hsl(var(--accent))" />
                 ) : (
-                  <StatsChart stats={statsList} dataKey="assistsPerGame" label="Assists" color="hsl(var(--accent))" />
+                  <StatsChart stats={statsListIndividualOnly} dataKey="assistsPerGame" label="Assists" color="hsl(var(--accent))" />
                 )}
               </div>
             </div>
@@ -490,7 +500,7 @@ export default function PlayerProfile() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {(() => {
-                    const sorted = [...statsList].sort((a, b) => {
+                    const sorted = [...statsListIndividualOnly].sort((a, b) => {
                       const seasonCmp = b.season.localeCompare(a.season);
                       if (seasonCmp !== 0) return seasonCmp;
                       return b.id - a.id;
