@@ -20,12 +20,16 @@ const TEAM_ABBREV_TO_FULL: Record<string, string> = {
 /** Exported so roster API can use for external-table fallback. */
 export function getTeamMatchCandidates(team: string): string[] {
   const t = (team ?? "").replace(/\+/g, " ").trim();
-  const full = TEAM_ABBREV_TO_FULL[t] ?? (t.length <= 4 ? undefined : t);
-  const abbrev = Object.entries(TEAM_ABBREV_TO_FULL).find(([, v]) => v.toLowerCase() === t.toLowerCase())?.[0] ?? (t.length <= 4 ? t : undefined);
+  const tLower = t.toLowerCase();
   const set = new Set<string>();
-  if (t) set.add(t.toLowerCase());
+  if (t) set.add(tLower);
+  const full = TEAM_ABBREV_TO_FULL[t] ?? (t.length <= 4 ? undefined : t);
   if (full) set.add(full.toLowerCase());
-  if (abbrev) set.add(abbrev.toLowerCase());
+  // Include all abbreviations that map to this team (e.g. BKN, BRK, NJN for Brooklyn Nets)
+  for (const [abbr, fullName] of Object.entries(TEAM_ABBREV_TO_FULL)) {
+    if (fullName.toLowerCase() === tLower) set.add(abbr.toLowerCase());
+  }
+  if (t.length <= 4 && !full) set.add(tLower);
   return Array.from(set);
 }
 

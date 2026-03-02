@@ -239,7 +239,7 @@ function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
     player_id: String(row.player_id || "").trim(),
     name: (row.name || "").trim(),
     position: normalizePosition(row.position || ""),
-    team: (row.team || "").trim(),
+    team: (getFromRow(rowAny, "team", "Team", "team_name", "teamName") ?? "").trim() || "NBA",
     height: formatHeight(row.height || ""),
     weight: formatWeight(row.weig ?? row.weight),
     jerseyNumber,
@@ -344,7 +344,13 @@ export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
 export async function getRosterByCurrentTeamFromPlayerInfo(team: string): Promise<PlayerInfoMapped[]> {
   const candidates = new Set(getTeamMatchCandidates(team).map((c) => c.toLowerCase()));
   const rows = await getPlayerInfoRows();
-  return rows.filter((p) => candidates.has((p.team || "").trim().toLowerCase()));
+  const matched = rows.filter((p) => candidates.has((p.team || "").trim().toLowerCase()));
+  console.log("[roster] fallback by current team — total rows:", rows.length, "candidates:", Array.from(candidates).slice(0, 8).join(", "), "matched:", matched.length);
+  if (matched.length === 0 && rows.length > 0) {
+    const sampleTeams = [...new Set(rows.map((p) => (p.team || "").trim()).filter(Boolean))].slice(0, 5);
+    console.log("[roster] fallback: sample team values in DB:", sampleTeams.join(", "));
+  }
+  return matched;
 }
 
 /** Fetch multiple players by id from external table (same source as list). Tries both table names. */

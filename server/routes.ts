@@ -1,9 +1,11 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import crypto from "crypto";
-import { storage } from "./storage";
-import { pool } from "./db";
+import { sql } from "drizzle-orm";
+import { storage, getTeamMatchCandidates } from "./storage";
+import { db, pool } from "./db";
 import { api } from "@shared/routes";
+import { players } from "@shared/schema";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getRosterByCurrentTeamFromPlayerInfo, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
@@ -946,6 +948,35 @@ export async function registerRoutes(
         }));
       } catch {
         // keep roster []
+      }
+    }
+
+    if (roster.length === 0) {
+      try {
+        const candidates = getTeamMatchCandidates(team).map((c) => c.toLowerCase());
+        if (candidates.length > 0) {
+          const rows = await db
+            .select()
+            .from(players)
+            .where(sql`LOWER(TRIM(${players.team})) IN (${sql.join(candidates.map((c) => sql`${c}`), sql`, `)})`);
+          roster = rows.map((p) => ({
+            id: p.id,
+            name: p.name,
+            position: p.position,
+            team: p.team,
+            height: p.height,
+            weight: p.weight,
+            jerseyNumber: p.jerseyNumber ?? 0,
+            headshotUrl: p.headshotUrl ?? "",
+            bio: p.bio ?? null,
+            profileViews: p.profileViews ?? 50,
+            hometown: p.hometown ?? null,
+            birthDate: p.birthDate ?? null,
+          }));
+          console.log("[roster] fallback direct player_info query — matched:", roster.length);
+        }
+      } catch (e) {
+        console.log("[roster] direct player_info fallback error:", e instanceof Error ? e.message : String(e));
       }
     }
 
