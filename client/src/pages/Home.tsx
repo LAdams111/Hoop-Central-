@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { ArrowRight, Search, Activity, Users, Trophy, Lock, X, Plus, Minus, LogOut } from "lucide-react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueries } from "@tanstack/react-query";
 import { usePlayers } from "@/hooks/use-players";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,24 @@ export default function Home() {
 
   const effectiveFeaturedIds = pendingFeaturedIds ?? featuredIds ?? [];
 
+  const featuredPlayerQueries = useQueries({
+    queries: effectiveFeaturedIds.slice(0, 10).map((id) => ({
+      queryKey: ["/api/players", String(id)],
+      queryFn: async (): Promise<Player | null> => {
+        const res = await fetch(`/api/players/${encodeURIComponent(id)}`);
+        if (res.status === 404 || !res.ok) return null;
+        const data = await res.json();
+        return data as Player;
+      },
+      enabled: effectiveFeaturedIds.length > 0,
+      staleTime: 60_000,
+    })),
+  });
+
+  const resolvedFeaturedByIds = featuredPlayerQueries
+    .map((q) => q.data)
+    .filter((p): p is Player => p != null && typeof p === "object" && "id" in p);
+
   const featuredMutation = useMutation({
     mutationFn: async (ids: number[]) => {
       const token = localStorage.getItem("admin_token");
@@ -78,7 +96,10 @@ export default function Home() {
     }
   }, [featuredIds?.join(",")]);
 
-  const hasSavedFeatured = (featuredIds?.length ?? 0) > 0 || (featuredPlayers?.length ?? 0) > 0;
+  const hasSavedFeatured =
+    (featuredIds?.length ?? 0) > 0 ||
+    (featuredPlayers?.length ?? 0) > 0 ||
+    (effectiveFeaturedIds.length > 0 && resolvedFeaturedByIds.length > 0);
 
   const initialFeaturedIds = featuredIds ?? [];
   const hasFeaturedChanges =
@@ -198,9 +219,11 @@ export default function Home() {
   const hasSuggestions = combined.length > 0;
 
   const displayFeatured =
-    hasSavedFeatured && (featuredPlayers?.length ?? 0) > 0
+    (featuredPlayers?.length ?? 0) > 0
       ? featuredPlayers!
-      : players?.slice(0, 5) || [];
+      : effectiveFeaturedIds.length > 0 && resolvedFeaturedByIds.length > 0
+        ? resolvedFeaturedByIds
+        : players?.slice(0, 5) || [];
 
   const featuredPickerResults =
     featuredSearch.trim().length > 0
@@ -521,7 +544,7 @@ export default function Home() {
                 {displayFeatured.slice(0, 6).map((player) => (
                   <div key={player.id} className="relative group">
                     <PlayerCard player={player} />
-                    {isAdmin && hasSavedFeatured && (featuredPlayers?.length ?? 0) > 0 && (
+                    {isAdmin && effectiveFeaturedIds.length > 0 && displayFeatured.length > 0 && (
                       <div className="absolute top-1 right-1 z-[100] pointer-events-none">
                         <Button
                           type="button"
@@ -544,7 +567,7 @@ export default function Home() {
                 {displayFeatured.slice(0, 5).map((player) => (
                   <div key={player.id} className="relative group">
                     <PlayerCard player={player} />
-                    {isAdmin && hasSavedFeatured && (featuredPlayers?.length ?? 0) > 0 && (
+                    {isAdmin && effectiveFeaturedIds.length > 0 && displayFeatured.length > 0 && (
                       <div className="absolute top-1 right-1 z-[100] pointer-events-none">
                         <Button
                           type="button"
