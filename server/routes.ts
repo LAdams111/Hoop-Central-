@@ -749,6 +749,16 @@ export async function registerRoutes(
           } catch {
             // ignore
           }
+          try {
+            const featured = await storage.getFeaturedPlayers();
+            const fromFeatured = featured.find((p) => Number(p.id) === idNum);
+            if (fromFeatured) {
+              const out = normalizePlayerForApi(fromFeatured as Record<string, unknown>);
+              return res.json({ ...out, stats: [], awards: [] });
+            }
+          } catch {
+            // ignore
+          }
         } else {
           try {
             const [stats, awards] = await Promise.all([
