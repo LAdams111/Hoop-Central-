@@ -21,6 +21,18 @@ async function ensureSiteSettingsTable(): Promise<void> {
   }
 }
 
+/** Add profile_views column to player_info if missing (e.g. Railway DB created from external table without it). */
+async function ensurePlayerInfoProfileViewsColumn(): Promise<void> {
+  try {
+    await pool.query(`
+      ALTER TABLE player_info
+      ADD COLUMN IF NOT EXISTS profile_views INTEGER NOT NULL DEFAULT 50
+    `);
+  } catch (err: unknown) {
+    console.warn("Could not ensure player_info.profile_views column:", (err as Error)?.message ?? err);
+  }
+}
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -120,6 +132,11 @@ app.use((req, res, next) => {
       }
       try {
         await ensureSiteSettingsTable();
+      } catch {
+        // non-fatal
+      }
+      try {
+        await ensurePlayerInfoProfileViewsColumn();
       } catch {
         // non-fatal
       }
