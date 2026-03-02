@@ -75,7 +75,7 @@ export default function Home() {
     const newIds = current.includes(numId)
       ? current.filter((id) => id !== numId)
       : current.length >= 10 ? current : [...current, numId];
-    featuredMutation.mutate(newIds);
+    featuredMutation.mutate(newIds.map((id) => Number(id)));
   };
 
   useEffect(() => {
@@ -475,7 +475,7 @@ export default function Home() {
                         type="button"
                         size="icon"
                         variant="destructive"
-                        className="absolute top-1 right-1 h-7 w-7 rounded-full opacity-90 hover:opacity-100 shadow-md z-10"
+                        className="absolute top-1 right-1 h-7 w-7 rounded-full opacity-90 hover:opacity-100 shadow-md z-30"
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFeatured(player.id); }}
                         disabled={featuredMutation.isPending}
                         title="Remove from featured"
@@ -496,7 +496,7 @@ export default function Home() {
                         type="button"
                         size="icon"
                         variant="destructive"
-                        className="absolute top-1 right-1 h-7 w-7 rounded-full opacity-90 hover:opacity-100 shadow-md z-10"
+                        className="absolute top-1 right-1 h-7 w-7 rounded-full opacity-90 hover:opacity-100 shadow-md z-30"
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFeatured(player.id); }}
                         disabled={featuredMutation.isPending}
                         title="Remove from featured"

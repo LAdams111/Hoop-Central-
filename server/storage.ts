@@ -54,6 +54,8 @@ export interface IStorage {
   // Player Updates
   updatePlayerHeadshot(id: number, headshotUrl: string): Promise<void>;
   updatePlayer(id: number, data: Partial<Pick<Player, 'name' | 'position' | 'team' | 'height' | 'weight' | 'jerseyNumber' | 'bio' | 'hometown' | 'birthDate'>>): Promise<Player | undefined>;
+  /** Admin: set a player's profile view count. */
+  setPlayerProfileViews(id: number, profileViews: number): Promise<void>;
 
   getPlayerByNameAndTeam(name: string, team: string): Promise<Player | undefined>;
   deletePlayerStats(playerId: number): Promise<void>;
@@ -197,6 +199,11 @@ export class DatabaseStorage implements IStorage {
   async updatePlayer(id: number, data: Partial<Pick<Player, 'name' | 'position' | 'team' | 'height' | 'weight' | 'jerseyNumber' | 'bio' | 'hometown' | 'birthDate'>>): Promise<Player | undefined> {
     const [updated] = await db.update(players).set(data).where(eq(players.id, id)).returning();
     return updated;
+  }
+
+  async setPlayerProfileViews(id: number, profileViews: number): Promise<void> {
+    const value = Math.max(0, Math.floor(Number(profileViews)));
+    await db.update(players).set({ profileViews: value }).where(eq(players.id, id));
   }
 
   async getPlayerByNameAndTeam(name: string, team: string): Promise<Player | undefined> {

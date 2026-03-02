@@ -65,6 +65,8 @@ export default function PlayerProfile() {
     jerseyNumber: 0, bio: "", hometown: "", birthDate: "",
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [profileViewsInput, setProfileViewsInput] = useState("");
+  const [savingProfileViews, setSavingProfileViews] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -78,6 +80,10 @@ export default function PlayerProfile() {
         .catch(() => localStorage.removeItem("admin_token"));
     }
   }, []);
+
+  useEffect(() => {
+    if (player?.profileViews != null) setProfileViewsInput(String(player.profileViews));
+  }, [player?.profileViews]);
 
   const handleAdminLogin = async () => {
     setAdminError("");
@@ -98,6 +104,31 @@ export default function PlayerProfile() {
       }
     } catch {
       setAdminError("Login failed");
+    }
+  };
+
+  const saveProfileViews = async () => {
+    if (!player?.id) return;
+    const value = parseInt(profileViewsInput.trim(), 10);
+    if (Number.isNaN(value) || value < 0) {
+      toast({ title: "Invalid number", description: "Enter a non-negative number.", variant: "destructive" });
+      return;
+    }
+    setSavingProfileViews(true);
+    try {
+      const token = localStorage.getItem("admin_token");
+      const res = await fetch(`/api/players/${player.id}/profile-views`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ profileViews: value }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      queryClient.invalidateQueries({ queryKey: [api.players.get.path, String(player.id)] });
+      toast({ title: "Profile views updated", description: `Set to ${value}.` });
+    } catch {
+      toast({ title: "Update failed", variant: "destructive" });
+    } finally {
+      setSavingProfileViews(false);
     }
   };
 
@@ -373,9 +404,34 @@ export default function PlayerProfile() {
         <div className="grid grid-cols-1 gap-8">
           
           <div className="flex justify-center -mb-4">
-            <div className="flex items-center gap-3 text-muted-foreground bg-card w-fit px-6 py-3 rounded-2xl border border-border shadow-sm">
-              <Eye className="w-6 h-6 text-primary" />
-              <span className="font-display text-2xl uppercase tracking-wider font-bold"><span className="text-black dark:text-white">{player.profileViews}</span><span className="ml-3">Profile Views</span></span>
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex items-center gap-3 text-muted-foreground bg-card w-fit px-6 py-3 rounded-2xl border border-border shadow-sm">
+                <Eye className="w-6 h-6 text-primary" />
+                <span className="font-display text-2xl uppercase tracking-wider font-bold"><span className="text-black dark:text-white">{player.profileViews}</span><span className="ml-3">Profile Views</span></span>
+              </div>
+              {isAdmin && (
+                <div className="flex items-center gap-2 bg-card px-4 py-2 rounded-xl border border-border">
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold whitespace-nowrap">Set views</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={profileViewsInput}
+                    onChange={(e) => setProfileViewsInput(e.target.value)}
+                    className="w-24 px-2 py-1.5 bg-muted border border-border rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                    data-testid="input-admin-profile-views"
+                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={saveProfileViews}
+                    disabled={savingProfileViews}
+                    data-testid="button-save-profile-views"
+                  >
+                    {savingProfileViews ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    {savingProfileViews ? " Saving" : " Save"}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 

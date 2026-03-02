@@ -441,7 +441,24 @@ export async function registerRoutes(
     res.json(updated);
   });
 
-  // Total player count (for "Active Players" stat — all players on site, not just the 50 on directory)
+  app.patch("/api/players/:id/profile-views", async (req, res) => {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: "Invalid player id" });
+    }
+    const profileViews = req.body?.profileViews;
+    if (typeof profileViews !== "number" || profileViews < 0) {
+      return res.status(400).json({ error: "profileViews must be a non-negative number" });
+    }
+    await storage.setPlayerProfileViews(id, profileViews);
+    res.json({ success: true });
+  });
+
+  // Total player count
   app.get("/api/players/count", async (_req, res) => {
     try {
       let count = await getPlayerInfoCount();
