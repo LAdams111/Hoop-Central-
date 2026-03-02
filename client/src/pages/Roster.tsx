@@ -159,8 +159,15 @@ export default function Roster() {
     <div className="min-h-screen bg-background pb-24">
       <div className="bg-muted border-b border-border py-12">
         <div className="container mx-auto px-4">
-          <Button type="button" variant="outline" size="sm" className="rounded-full mb-8" onClick={() => (window.history.length > 1 ? window.history.back() : setLocation("/"))} data-testid="button-back">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-full mb-8"
+            onClick={() => (window.history.length > 1 ? window.history.back() : setLocation("/leagues"))}
+            data-testid="button-back"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2 inline" />
             Back
           </Button>
           
