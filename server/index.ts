@@ -42,6 +42,23 @@ async function ensurePlayerInfoProfileViewsColumn(): Promise<void> {
   }
 }
 
+/** Add headshot_url and other optional columns to player_info if missing (e.g. Railway DB created without them). Avoids 42703 on updatePlayer. */
+async function ensurePlayerInfoHeadshotUrlColumn(): Promise<void> {
+  const columns = [
+    { name: "headshot_url", sql: "ADD COLUMN IF NOT EXISTS headshot_url TEXT NOT NULL DEFAULT ''" },
+    { name: "bio", sql: "ADD COLUMN IF NOT EXISTS bio TEXT" },
+    { name: "hometown", sql: "ADD COLUMN IF NOT EXISTS hometown TEXT" },
+    { name: "birth_date", sql: "ADD COLUMN IF NOT EXISTS birth_date TEXT" },
+  ];
+  for (const col of columns) {
+    try {
+      await pool.query(`ALTER TABLE player_info ${col.sql}`);
+    } catch (err: unknown) {
+      console.warn(`Could not ensure player_info.${col.name}:`, (err as Error)?.message ?? err);
+    }
+  }
+}
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -136,6 +153,11 @@ app.use((req, res, next) => {
   }
   try {
     await ensurePlayerInfoProfileViewsColumn();
+  } catch {
+    // non-fatal
+  }
+  try {
+    await ensurePlayerInfoHeadshotUrlColumn();
   } catch {
     // non-fatal
   }
