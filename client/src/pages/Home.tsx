@@ -68,11 +68,13 @@ export default function Home() {
     },
   });
 
-  const toggleFeatured = (playerId: number) => {
+  const toggleFeatured = (playerId: number | string) => {
+    const numId = Number(playerId);
+    if (Number.isNaN(numId)) return;
     const current = featuredIds || [];
-    const newIds = current.includes(playerId)
-      ? current.filter((id) => id !== playerId)
-      : [...current, playerId].slice(0, 10);
+    const newIds = current.includes(numId)
+      ? current.filter((id) => id !== numId)
+      : current.length >= 10 ? current : [...current, numId];
     featuredMutation.mutate(newIds);
   };
 
@@ -382,14 +384,21 @@ export default function Home() {
               </div>
               {featuredIds && featuredIds.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {featuredIds.map((id) => {
-                    const p = players?.find((pl) => pl.id === id);
-                    if (!p) return null;
+                    {featuredIds.map((id) => {
+                    const p = players?.find((pl) => pl.id === id || Number(pl.id) === id);
+                    if (!p) return (
+                      <Badge key={id} variant="secondary" className="gap-1 pr-1" data-testid={`featured-badge-${id}`}>
+                        <span className="font-mono text-xs">ID {id}</span>
+                        <button type="button" className="ml-1 inline-flex items-center justify-center" onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFeatured(id); }} data-testid={`button-remove-featured-${id}`}>
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    );
                     return (
                       <Badge key={id} variant="secondary" className="gap-1 pr-1" data-testid={`featured-badge-${id}`}>
                         <img src={p.headshotUrl || DEFAULT_HEADSHOT} alt="" className="w-5 h-5 rounded-full object-cover object-top" onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }} />
                         {p.name}
-                        <button className="ml-1 inline-flex items-center justify-center" onClick={() => toggleFeatured(id)} data-testid={`button-remove-featured-${id}`}>
+                        <button type="button" className="ml-1 inline-flex items-center justify-center" onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFeatured(id); }} data-testid={`button-remove-featured-${id}`}>
                           <X className="w-3 h-3" />
                         </button>
                       </Badge>
@@ -415,7 +424,7 @@ export default function Home() {
               ) : featuredPickerResults.length > 0 ? (
                 <div className="mt-2 border border-border rounded-md overflow-hidden max-h-64 overflow-y-auto">
                   {featuredPickerResults.map((p) => {
-                    const isFeatured = featuredIds?.includes(p.id);
+                    const isFeatured = featuredIds?.includes(Number(p.id));
                     return (
                       <button
                         key={p.id}
@@ -467,7 +476,7 @@ export default function Home() {
                         size="icon"
                         variant="destructive"
                         className="absolute top-1 right-1 h-7 w-7 rounded-full opacity-90 hover:opacity-100 shadow-md z-10"
-                        onClick={() => toggleFeatured(player.id)}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFeatured(player.id); }}
                         disabled={featuredMutation.isPending}
                         title="Remove from featured"
                         data-testid={`button-remove-featured-card-${player.id}`}
@@ -488,7 +497,7 @@ export default function Home() {
                         size="icon"
                         variant="destructive"
                         className="absolute top-1 right-1 h-7 w-7 rounded-full opacity-90 hover:opacity-100 shadow-md z-10"
-                        onClick={() => toggleFeatured(player.id)}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFeatured(player.id); }}
                         disabled={featuredMutation.isPending}
                         title="Remove from featured"
                         data-testid={`button-remove-featured-card-${player.id}`}

@@ -3,7 +3,7 @@ import { type Player } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Ruler, Weight } from "lucide-react";
-import { DEFAULT_HEADSHOT } from "@/lib/constants";
+import { DEFAULT_HEADSHOT, TEAM_ABBREV_TO_FULL } from "@/lib/constants";
 
 interface PlayerCardProps {
   player: Player & { id?: number | string; bbrefId?: string; player_id?: string };
@@ -45,7 +45,7 @@ export function PlayerCard({ player, href }: PlayerCardProps) {
         <CardContent className="p-2 md:p-5 flex flex-col flex-1 justify-between gap-1 md:gap-3 relative z-20">
           <div className="min-h-0">
             <div className="text-[8px] md:text-[10px] font-mono text-primary uppercase tracking-widest mb-0.5 md:mb-1 truncate">
-              {player.team}
+              {TEAM_ABBREV_TO_FULL[player.team?.toUpperCase?.() ?? ""] ?? player.team}
             </div>
             <h3 className="font-display text-sm md:text-2xl leading-tight text-foreground group-hover:text-primary transition-colors line-clamp-2">
               {(() => {
