@@ -638,61 +638,109 @@ export async function setExternalHeadshotById(id: number, headshotUrl: string): 
   }
 }
 
+type ExternalPlayerUpdateData = Partial<{
+  name: string;
+  position: string;
+  team: string;
+  height: string;
+  weight: string;
+  jerseyNumber: number;
+  bio: string | null;
+  hometown: string | null;
+  birthDate: string | null;
+}>;
+
+/** Build SET clause and values for external player update; useWeig = use "weig" column for weight. */
+function buildExternalPlayerUpdate(data: ExternalPlayerUpdateData, useWeig: boolean) {
+  const updates: string[] = [];
+  const values: unknown[] = [];
+  let idx = 1;
+  if (data.name !== undefined) {
+    updates.push(`name = $${idx++}`);
+    values.push(data.name);
+  }
+  if (data.position !== undefined) {
+    updates.push(`position = $${idx++}`);
+    values.push(data.position);
+  }
+  if (data.team !== undefined) {
+    updates.push(`team = $${idx++}`);
+    values.push(data.team);
+  }
+  if (data.height !== undefined) {
+    updates.push(`height = $${idx++}`);
+    values.push(data.height);
+  }
+  if (data.weight !== undefined) {
+    updates.push(`${useWeig ? "weig" : "weight"} = $${idx++}`);
+    values.push(data.weight);
+  }
+  if (data.jerseyNumber !== undefined) {
+    updates.push(`jersey_number = $${idx++}`);
+    values.push(data.jerseyNumber);
+  }
+  if (data.bio !== undefined) {
+    updates.push(`bio = $${idx++}`);
+    values.push(data.bio);
+  }
+  if (data.hometown !== undefined) {
+    updates.push(`hometown = $${idx++}`);
+    values.push(data.hometown);
+  }
+  if (data.birthDate !== undefined) {
+    updates.push(`birth_date = $${idx++}`);
+    values.push(data.birthDate);
+  }
+  return { updates, values, nextIdx: idx };
+}
+
+/** Update a player in the external "Player info" table by numeric id (same as profile_views). Use this when you have the row id. */
+export async function updateExternalPlayerById(
+  id: number,
+  data: ExternalPlayerUpdateData
+): Promise<{ ok: boolean; error?: string }> {
+  if (Object.keys(data).length === 0) return { ok: false, error: "No data" };
+  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  let lastError: string | undefined;
+  for (const table of tables) {
+    const useWeig = table.includes(PLAYER_INFO_TABLE_QUOTED) || table === `"player info"`;
+    const { updates, values, nextIdx } = buildExternalPlayerUpdate(data, useWeig);
+    if (updates.length === 0) continue;
+    values.push(id);
+    const setClause = updates.join(", ");
+    const whereClause = ` WHERE id = $${nextIdx}`;
+    try {
+      const res = await pool.query(
+        `UPDATE ${table} SET ${setClause}${whereClause}`,
+        values
+      );
+      if (res.rowCount != null && res.rowCount > 0) return { ok: true };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      lastError = msg;
+      continue;
+    }
+  }
+  return { ok: false, error: lastError };
+}
+
 /** Update a player in the external "Player info" table by player_id (e.g. "jamesle01"). Used when PATCH /api/players/:id receives a string id. */
 export async function updateExternalPlayerByPlayerId(
   playerId: string,
-  data: Partial<{ name: string; position: string; team: string; height: string; weight: string; jerseyNumber: number; bio: string | null; hometown: string | null; birthDate: string | null }>
+  data: ExternalPlayerUpdateData
 ): Promise<{ ok: boolean; error?: string }> {
   const id = String(playerId || "").trim();
   if (!id || Object.keys(data).length === 0) return { ok: false, error: "No data" };
   const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
   let lastError: string | undefined;
   for (const table of tables) {
-    const updates: string[] = [];
-    const values: unknown[] = [];
-    let idx = 1;
     const useWeig = table.includes(PLAYER_INFO_TABLE_QUOTED) || table === `"player info"`;
-    if (data.name !== undefined) {
-      updates.push(`name = $${idx++}`);
-      values.push(data.name);
-    }
-    if (data.position !== undefined) {
-      updates.push(`position = $${idx++}`);
-      values.push(data.position);
-    }
-    if (data.team !== undefined) {
-      updates.push(`team = $${idx++}`);
-      values.push(data.team);
-    }
-    if (data.height !== undefined) {
-      updates.push(`height = $${idx++}`);
-      values.push(data.height);
-    }
-    if (data.weight !== undefined) {
-      updates.push(`${useWeig ? "weig" : "weight"} = $${idx++}`);
-      values.push(data.weight);
-    }
-    if (data.jerseyNumber !== undefined) {
-      updates.push(`jersey_number = $${idx++}`);
-      values.push(data.jerseyNumber);
-    }
-    if (data.bio !== undefined) {
-      updates.push(`bio = $${idx++}`);
-      values.push(data.bio);
-    }
-    if (data.hometown !== undefined) {
-      updates.push(`hometown = $${idx++}`);
-      values.push(data.hometown);
-    }
-    if (data.birthDate !== undefined) {
-      updates.push(`birth_date = $${idx++}`);
-      values.push(data.birthDate);
-    }
+    const { updates, values, nextIdx } = buildExternalPlayerUpdate(data, useWeig);
     if (updates.length === 0) continue;
     values.push(id);
     const setClause = updates.join(", ");
     for (const whereCol of ["player_id", `"Player ID"`]) {
-      const whereClause = ` WHERE ${whereCol} = $${idx}`;
+      const whereClause = ` WHERE ${whereCol} = $${nextIdx}`;
       try {
         const res = await pool.query(
           `UPDATE ${table} SET ${setClause}${whereClause}`,

@@ -6,7 +6,7 @@ import { pool } from "./db";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -561,10 +561,19 @@ export async function registerRoutes(
     if (!fromExternal) {
       return res.status(404).json({ error: "Player not found" });
     }
-    const result = await updateExternalPlayerByPlayerId(idParam, data as Parameters<typeof updateExternalPlayerByPlayerId>[1]);
-    if (!result.ok) {
-      console.error("[PATCH /api/players/:id] updateExternalPlayerByPlayerId failed:", result.error);
-      return res.status(500).json({ error: "Failed to save changes.", details: result.error });
+    const numericId = Number((fromExternal as Record<string, unknown>).id);
+    if (Number.isNaN(numericId)) {
+      const result = await updateExternalPlayerByPlayerId(idParam, data as Parameters<typeof updateExternalPlayerByPlayerId>[1]);
+      if (!result.ok) {
+        console.error("[PATCH /api/players/:id] updateExternalPlayerByPlayerId failed:", result.error);
+        return res.status(500).json({ error: "Failed to save changes.", details: result.error });
+      }
+    } else {
+      const result = await updateExternalPlayerById(numericId, data as Parameters<typeof updateExternalPlayerById>[1]);
+      if (!result.ok) {
+        console.error("[PATCH /api/players/:id] updateExternalPlayerById failed:", result.error);
+        return res.status(500).json({ error: "Failed to save changes.", details: result.error });
+      }
     }
     const updated = await getPlayerInfoByPlayerId(idParam);
     if (!updated) {
