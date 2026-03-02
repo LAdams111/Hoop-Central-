@@ -642,65 +642,71 @@ export async function setExternalHeadshotById(id: number, headshotUrl: string): 
 export async function updateExternalPlayerByPlayerId(
   playerId: string,
   data: Partial<{ name: string; position: string; team: string; height: string; weight: string; jerseyNumber: number; bio: string | null; hometown: string | null; birthDate: string | null }>
-): Promise<boolean> {
+): Promise<{ ok: boolean; error?: string }> {
   const id = String(playerId || "").trim();
-  if (!id || Object.keys(data).length === 0) return false;
+  if (!id || Object.keys(data).length === 0) return { ok: false, error: "No data" };
   const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
-  const updates: string[] = [];
-  const values: unknown[] = [];
-  let idx = 1;
-  if (data.name !== undefined) {
-    updates.push(`name = $${idx++}`);
-    values.push(data.name);
-  }
-  if (data.position !== undefined) {
-    updates.push(`position = $${idx++}`);
-    values.push(data.position);
-  }
-  if (data.team !== undefined) {
-    updates.push(`team = $${idx++}`);
-    values.push(data.team);
-  }
-  if (data.height !== undefined) {
-    updates.push(`height = $${idx++}`);
-    values.push(data.height);
-  }
-  if (data.weight !== undefined) {
-    updates.push(`weight = $${idx++}`);
-    values.push(data.weight);
-  }
-  if (data.jerseyNumber !== undefined) {
-    updates.push(`jersey_number = $${idx++}`);
-    values.push(data.jerseyNumber);
-  }
-  if (data.bio !== undefined) {
-    updates.push(`bio = $${idx++}`);
-    values.push(data.bio);
-  }
-  if (data.hometown !== undefined) {
-    updates.push(`hometown = $${idx++}`);
-    values.push(data.hometown);
-  }
-  if (data.birthDate !== undefined) {
-    updates.push(`birth_date = $${idx++}`);
-    values.push(data.birthDate);
-  }
-  if (updates.length === 0) return false;
-  values.push(id);
-  const setClause = updates.join(", ");
-  const whereClause = ` WHERE player_id = $${idx}`;
+  let lastError: string | undefined;
   for (const table of tables) {
-    try {
-      const res = await pool.query(
-        `UPDATE ${table} SET ${setClause}${whereClause}`,
-        values
-      );
-      if (res.rowCount != null && res.rowCount > 0) return true;
-    } catch {
-      continue;
+    const updates: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+    const useWeig = table.includes(PLAYER_INFO_TABLE_QUOTED) || table === `"player info"`;
+    if (data.name !== undefined) {
+      updates.push(`name = $${idx++}`);
+      values.push(data.name);
+    }
+    if (data.position !== undefined) {
+      updates.push(`position = $${idx++}`);
+      values.push(data.position);
+    }
+    if (data.team !== undefined) {
+      updates.push(`team = $${idx++}`);
+      values.push(data.team);
+    }
+    if (data.height !== undefined) {
+      updates.push(`height = $${idx++}`);
+      values.push(data.height);
+    }
+    if (data.weight !== undefined) {
+      updates.push(`${useWeig ? "weig" : "weight"} = $${idx++}`);
+      values.push(data.weight);
+    }
+    if (data.jerseyNumber !== undefined) {
+      updates.push(`jersey_number = $${idx++}`);
+      values.push(data.jerseyNumber);
+    }
+    if (data.bio !== undefined) {
+      updates.push(`bio = $${idx++}`);
+      values.push(data.bio);
+    }
+    if (data.hometown !== undefined) {
+      updates.push(`hometown = $${idx++}`);
+      values.push(data.hometown);
+    }
+    if (data.birthDate !== undefined) {
+      updates.push(`birth_date = $${idx++}`);
+      values.push(data.birthDate);
+    }
+    if (updates.length === 0) continue;
+    values.push(id);
+    const setClause = updates.join(", ");
+    for (const whereCol of ["player_id", `"Player ID"`]) {
+      const whereClause = ` WHERE ${whereCol} = $${idx}`;
+      try {
+        const res = await pool.query(
+          `UPDATE ${table} SET ${setClause}${whereClause}`,
+          values
+        );
+        if (res.rowCount != null && res.rowCount > 0) return { ok: true };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        lastError = msg;
+        continue;
+      }
     }
   }
-  return false;
+  return { ok: false, error: lastError };
 }
 
 /** Get profile_views for a player by numeric id from the external table(s). Used so GET /api/players/:id returns the updated count after admin sets it (external table may be the one we wrote). */

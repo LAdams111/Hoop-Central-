@@ -561,9 +561,10 @@ export async function registerRoutes(
     if (!fromExternal) {
       return res.status(404).json({ error: "Player not found" });
     }
-    const ok = await updateExternalPlayerByPlayerId(idParam, data as Parameters<typeof updateExternalPlayerByPlayerId>[1]);
-    if (!ok) {
-      return res.status(500).json({ error: "Failed to save changes." });
+    const result = await updateExternalPlayerByPlayerId(idParam, data as Parameters<typeof updateExternalPlayerByPlayerId>[1]);
+    if (!result.ok) {
+      console.error("[PATCH /api/players/:id] updateExternalPlayerByPlayerId failed:", result.error);
+      return res.status(500).json({ error: "Failed to save changes.", details: result.error });
     }
     const updated = await getPlayerInfoByPlayerId(idParam);
     if (!updated) {
