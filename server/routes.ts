@@ -562,24 +562,27 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Player not found" });
     }
     const numericId = Number((fromExternal as Record<string, unknown>).id);
-    if (Number.isNaN(numericId)) {
-      const result = await updateExternalPlayerByPlayerId(idParam, data as Parameters<typeof updateExternalPlayerByPlayerId>[1]);
-      if (!result.ok) {
-        console.error("[PATCH /api/players/:id] updateExternalPlayerByPlayerId failed:", result.error);
-        return res.status(500).json({ error: "Failed to save changes.", details: result.error });
+    const updatePayload = data as Parameters<typeof storage.updatePlayer>[1];
+    if (!Number.isNaN(numericId)) {
+      const appUpdated = await storage.updatePlayer(numericId, updatePayload);
+      if (appUpdated) {
+        return res.json(normalizePlayerForApi(appUpdated as Record<string, unknown>));
       }
-    } else {
       const result = await updateExternalPlayerById(numericId, data as Parameters<typeof updateExternalPlayerById>[1]);
-      if (!result.ok) {
-        console.error("[PATCH /api/players/:id] updateExternalPlayerById failed:", result.error);
-        return res.status(500).json({ error: "Failed to save changes.", details: result.error });
+      if (result.ok) {
+        const updated = await getPlayerInfoByPlayerId(idParam);
+        return res.json(normalizePlayerForApi((updated ?? fromExternal) as Record<string, unknown>));
       }
+      console.error("[PATCH /api/players/:id] updateExternalPlayerById failed:", result.error);
+      return res.status(500).json({ error: "Failed to save changes.", details: result.error });
+    }
+    const result = await updateExternalPlayerByPlayerId(idParam, data as Parameters<typeof updateExternalPlayerByPlayerId>[1]);
+    if (!result.ok) {
+      console.error("[PATCH /api/players/:id] updateExternalPlayerByPlayerId failed:", result.error);
+      return res.status(500).json({ error: "Failed to save changes.", details: result.error });
     }
     const updated = await getPlayerInfoByPlayerId(idParam);
-    if (!updated) {
-      return res.json(fromExternal);
-    }
-    return res.json(normalizePlayerForApi(updated as Record<string, unknown>));
+    return res.json(normalizePlayerForApi((updated ?? fromExternal) as Record<string, unknown>));
   });
 
   app.patch("/api/players/:id/profile-views", async (req, res) => {
