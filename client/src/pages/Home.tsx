@@ -317,13 +317,21 @@ export default function Home() {
               {[1, 2, 3, 4, 5].map((n) => (
                 <div key={n} className="aspect-[3/4] rounded-xl bg-card/50 animate-pulse border border-border" />
               ))}
+              <div className="aspect-[3/4] rounded-xl bg-card/50 animate-pulse border border-border md:hidden" />
             </div>
           ) : (
-            <div className="grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-6 md:gap-8">
-              {trendingPlayers?.slice(0, 5).map((player) => (
-                <PlayerCard key={player.id} player={player} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-3 gap-2 sm:gap-6 md:hidden">
+                {trendingPlayers?.slice(0, 6).map((player) => (
+                  <PlayerCard key={player.id} player={player} />
+                ))}
+              </div>
+              <div className="hidden md:grid md:grid-cols-5 gap-6 md:gap-8">
+                {trendingPlayers?.slice(0, 5).map((player) => (
+                  <PlayerCard key={player.id} player={player} />
+                ))}
+              </div>
+            </>
           )}
         </div>
       </section>
@@ -425,13 +433,21 @@ export default function Home() {
               {[1, 2, 3, 4, 5].map((n) => (
                 <div key={n} className="aspect-[3/4] rounded-xl bg-card/50 animate-pulse border border-border" />
               ))}
+              <div className="aspect-[3/4] rounded-xl bg-card/50 animate-pulse border border-border md:hidden" />
             </div>
           ) : (
-            <div className="grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-6 md:gap-8">
-              {displayFeatured.map((player) => (
-                <PlayerCard key={player.id} player={player} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-3 gap-2 sm:gap-6 md:hidden">
+                {displayFeatured.slice(0, 6).map((player) => (
+                  <PlayerCard key={player.id} player={player} />
+                ))}
+              </div>
+              <div className="hidden md:grid md:grid-cols-5 gap-6 md:gap-8">
+                {displayFeatured.slice(0, 5).map((player) => (
+                  <PlayerCard key={player.id} player={player} />
+                ))}
+              </div>
+            </>
           )}
           
           <div className="mt-12 text-center md:hidden">
@@ -445,8 +461,8 @@ export default function Home() {
       {/* FAVORITES SECTION */}
       <FavoritesBar players={players} />
 
-      {/* ADMIN LOGIN - Fixed bottom-right */}
-      <div className="fixed bottom-6 right-6 z-50">
+      {/* ADMIN LOGIN: on mobile at bottom of page (in flow); on desktop fixed bottom-right */}
+      <div className="md:fixed md:bottom-6 md:right-6 z-50 mt-8 md:mt-0 px-4 pb-8 md:pb-0 md:px-0">
         {!isAdmin && !showAdminLogin && (
           <Button
             size="icon"
@@ -525,7 +541,7 @@ function FavoritesBar({ players }: { players: Player[] | undefined }) {
         <div className="flex items-center gap-6 overflow-x-auto pb-2 no-scrollbar">
           <div className="flex-shrink-0 flex items-center gap-2 pr-6 border-r border-border">
             <Trophy className="w-4 h-4 text-primary" />
-            <span className="font-display text-xl font-bold uppercase tracking-tight">Your Favorites</span>
+            <span className="font-display text-sm md:text-xl font-bold uppercase tracking-tight">Your Favorites</span>
           </div>
           <div className="flex items-center gap-4">
             {favTeams.map((teamName) => (
