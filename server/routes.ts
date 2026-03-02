@@ -6,7 +6,7 @@ import { pool } from "./db";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById } from "./syncPlayerInfo";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -112,7 +112,8 @@ export async function registerRoutes(
 
   app.get("/api/featured-players", async (_req, res) => {
     try {
-      const ids = await storage.getFeaturedPlayerIds();
+      const rawIds = await storage.getFeaturedPlayerIds();
+      const ids = rawIds.map((id) => Number(id)).filter((n) => !Number.isNaN(n) && n > 0);
       if (ids.length === 0) {
         res.json([]);
         return;
@@ -122,29 +123,30 @@ export async function registerRoutes(
       for (const p of fromApp) {
         byId.set(Number(p.id), { ...p });
       }
-      for (const id of ids) {
-        if (byId.has(id)) continue;
-        const external = await getPlayerInfoById(id);
-        if (external) {
-          byId.set(id, {
-            id: external.id,
-            name: external.name,
-            position: external.position,
-            team: external.team,
-            height: external.height,
-            weight: external.weight,
-            jerseyNumber: external.jerseyNumber,
-            headshotUrl: external.headshotUrl || "",
-            bio: external.bio ?? null,
-            profileViews: external.profileViews ?? 50,
-            hometown: external.hometown ?? null,
-            birthDate: external.birthDate ?? null,
+      const missingIds = ids.filter((id) => !byId.has(id));
+      if (missingIds.length > 0) {
+        const fromExternal = await getPlayerInfoByIds(missingIds);
+        for (const p of fromExternal) {
+          byId.set(p.id, {
+            id: p.id,
+            name: p.name,
+            position: p.position,
+            team: p.team,
+            height: p.height,
+            weight: p.weight,
+            jerseyNumber: p.jerseyNumber,
+            headshotUrl: p.headshotUrl || "",
+            bio: p.bio ?? null,
+            profileViews: p.profileViews ?? 50,
+            hometown: p.hometown ?? null,
+            birthDate: p.birthDate ?? null,
           });
         }
       }
       const list = ids.map((id) => byId.get(id)).filter(Boolean) as Record<string, unknown>[];
       res.json(list.map((p) => normalizePlayerForApi(p)));
-    } catch {
+    } catch (e) {
+      console.error("[featured-players] GET failed:", e);
       res.json([]);
     }
   });

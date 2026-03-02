@@ -332,6 +332,34 @@ export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
   return [];
 }
 
+/** Fetch multiple players by id from external table (same source as list). Tries both table names. */
+export async function getPlayerInfoByIds(ids: number[]): Promise<PlayerInfoMapped[]> {
+  if (ids.length === 0) return [];
+  const tables = [
+    `"${PLAYER_INFO_TABLE_QUOTED}"`,
+    PLAYER_INFO_TABLE_SNAKE,
+    `"player info"`,
+  ];
+  for (const table of tables) {
+    try {
+      const res = await pool.query<PlayerInfoRow>(
+        `SELECT * FROM ${table} WHERE id = ANY($1::int[])`,
+        [ids]
+      );
+      const rows = res.rows || [];
+      const byId = new Map<number, PlayerInfoMapped>();
+      for (const row of rows) {
+        const mapped = mapRowToPlayer(row);
+        byId.set(mapped.id, mapped);
+      }
+      return ids.map((id) => byId.get(id)).filter(Boolean) as PlayerInfoMapped[];
+    } catch {
+      continue;
+    }
+  }
+  return [];
+}
+
 /** Build season filter variants. Integer year = starting year (2025 → "2025-26", "2025"). */
 function getSeasonVariants(season: string): string[] {
   const seasonNorm = (season || "").trim();

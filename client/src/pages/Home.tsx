@@ -65,7 +65,8 @@ export default function Home() {
       });
       if (!res.ok) throw new Error("Failed to update featured players");
     },
-    onSuccess: () => {
+    onSuccess: (_data, idsToSave) => {
+      setPendingFeaturedIds(idsToSave);
       queryClient.invalidateQueries({ queryKey: ["/api/featured-players"] });
       queryClient.invalidateQueries({ queryKey: ["/api/featured-player-ids"] });
     },
@@ -197,7 +198,9 @@ export default function Home() {
   const hasSuggestions = combined.length > 0;
 
   const displayFeatured =
-    hasSavedFeatured ? featuredPlayers! : players?.slice(0, 5) || [];
+    hasSavedFeatured && (featuredPlayers?.length ?? 0) > 0
+      ? featuredPlayers!
+      : players?.slice(0, 5) || [];
 
   const featuredPickerResults =
     featuredSearch.trim().length > 0
@@ -518,7 +521,7 @@ export default function Home() {
                 {displayFeatured.slice(0, 6).map((player) => (
                   <div key={player.id} className="relative group">
                     <PlayerCard player={player} />
-                    {isAdmin && hasSavedFeatured && (
+                    {isAdmin && hasSavedFeatured && (featuredPlayers?.length ?? 0) > 0 && (
                       <div className="absolute top-1 right-1 z-[100] pointer-events-none">
                         <Button
                           type="button"
@@ -541,7 +544,7 @@ export default function Home() {
                 {displayFeatured.slice(0, 5).map((player) => (
                   <div key={player.id} className="relative group">
                     <PlayerCard player={player} />
-                    {isAdmin && hasSavedFeatured && (
+                    {isAdmin && hasSavedFeatured && (featuredPlayers?.length ?? 0) > 0 && (
                       <div className="absolute top-1 right-1 z-[100] pointer-events-none">
                         <Button
                           type="button"
