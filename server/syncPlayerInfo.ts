@@ -226,6 +226,14 @@ function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
       }
     }
   }
+  let headshotUrl = "";
+  for (const k of ["headshot_url", "headshotUrl", "headshot url", "image", "img"]) {
+    const v = rowAny[k];
+    if (typeof v === "string" && v.trim()) {
+      headshotUrl = v.trim();
+      break;
+    }
+  }
   return {
     id: row.id,
     player_id: String(row.player_id || "").trim(),
@@ -235,7 +243,7 @@ function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
     height: formatHeight(row.height || ""),
     weight: formatWeight(row.weig ?? row.weight),
     jerseyNumber,
-    headshotUrl: "",
+    headshotUrl,
     bio,
     profileViews,
     hometown,
@@ -539,6 +547,23 @@ export async function setExternalProfileViewsById(id: number, profileViews: numb
       if (res.rowCount && res.rowCount > 0) return;
     } catch {
       continue;
+    }
+  }
+}
+
+/** Set headshot URL for a player by numeric id in the external table(s). Tries common column names. */
+export async function setExternalHeadshotById(id: number, headshotUrl: string): Promise<void> {
+  const url = String(headshotUrl || "").trim();
+  if (!url) return;
+  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  for (const table of tables) {
+    for (const col of ["headshot_url", "headshoturl"]) {
+      try {
+        const res = await pool.query(`UPDATE ${table} SET ${col} = $1 WHERE id = $2`, [url, id]);
+        if (res.rowCount && res.rowCount > 0) return;
+      } catch {
+        continue;
+      }
     }
   }
 }

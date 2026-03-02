@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, getExternalProfileViewsById } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById } from "./syncPlayerInfo";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -401,10 +401,19 @@ export async function registerRoutes(
     }
     const id = Number(req.params.id);
     const { objectPath } = req.body;
-    if (!objectPath) {
+    if (!objectPath || typeof objectPath !== "string") {
       return res.status(400).json({ error: "Missing objectPath" });
     }
-    await storage.updatePlayerHeadshot(id, objectPath);
+    try {
+      await storage.updatePlayerHeadshot(id, objectPath);
+    } catch (err) {
+      console.error("[headshot] app table update failed:", err);
+    }
+    try {
+      await setExternalHeadshotById(id, objectPath);
+    } catch (err) {
+      console.error("[headshot] external table update failed:", err);
+    }
     res.json({ success: true });
   });
 
@@ -651,6 +660,11 @@ export async function registerRoutes(
               const out = { ...normalizePlayerForApi(fromPlayerInfo as Record<string, unknown>), stats: fromPlayerInfo.stats ?? [], awards: [] };
               const externalViews = await getExternalProfileViewsById(idNum);
               if (externalViews !== null) (out as Record<string, unknown>).profileViews = externalViews;
+              try {
+                const appPlayer = await storage.getPlayer(idNum);
+                if (appPlayer?.headshotUrl && appPlayer.headshotUrl.startsWith("/objects/"))
+                  (out as Record<string, unknown>).headshotUrl = appPlayer.headshotUrl;
+              } catch { /* ignore */ }
               return res.json(out);
             }
           } catch {
@@ -684,6 +698,11 @@ export async function registerRoutes(
           if (!Number.isNaN(idForViews)) {
             const externalViews = await getExternalProfileViewsById(idForViews);
             if (externalViews !== null) (out as Record<string, unknown>).profileViews = externalViews;
+            try {
+              const appPlayer = await storage.getPlayer(idForViews);
+              if (appPlayer?.headshotUrl && appPlayer.headshotUrl.startsWith("/objects/"))
+                (out as Record<string, unknown>).headshotUrl = appPlayer.headshotUrl;
+            } catch { /* ignore */ }
           }
           return res.json(out);
         }

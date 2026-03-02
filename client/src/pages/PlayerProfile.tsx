@@ -167,6 +167,10 @@ export default function PlayerProfile() {
   const handleHeadshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file", description: "Please choose an image file.", variant: "destructive" });
+      return;
+    }
     setIsUploadingHeadshot(true);
     try {
       const token = localStorage.getItem("admin_token");
@@ -175,16 +179,32 @@ export default function PlayerProfile() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
       });
+      if (!urlRes.ok) {
+        const err = await urlRes.json().catch(() => ({}));
+        toast({ title: "Upload failed", description: (err as { error?: string }).error || "Could not get upload URL.", variant: "destructive" });
+        return;
+      }
       const { uploadURL, objectPath } = await urlRes.json();
-      await fetch(uploadURL, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-      await fetch(`/api/players/${id}/headshot`, {
+      const putRes = await fetch(uploadURL, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      if (!putRes.ok) {
+        toast({ title: "Upload failed", description: "Failed to upload image to storage.", variant: "destructive" });
+        return;
+      }
+      const headRes = await fetch(`/api/players/${id}/headshot`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ objectPath }),
       });
+      if (!headRes.ok) {
+        const err = await headRes.json().catch(() => ({}));
+        toast({ title: "Update failed", description: (err as { error?: string }).error || "Could not set player photo.", variant: "destructive" });
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: [api.players.get.path, id] });
+      toast({ title: "Photo updated", description: "The new headshot will show for everyone viewing this profile." });
     } catch (err) {
       console.error("Upload failed:", err);
+      toast({ title: "Upload failed", description: "Something went wrong.", variant: "destructive" });
     } finally {
       setIsUploadingHeadshot(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
