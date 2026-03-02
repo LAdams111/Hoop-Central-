@@ -6,7 +6,7 @@ import { pool } from "./db";
 import { api } from "@shared/routes";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -533,9 +533,10 @@ export async function registerRoutes(
     if (!isValidAdminToken(token)) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    const id = Number(req.params.id);
+    const idParam = req.params.id ?? "";
+    const idNum = Number(idParam);
     const allowedFields = ['name', 'position', 'team', 'height', 'weight', 'jerseyNumber', 'bio', 'hometown', 'birthDate'] as const;
-    const data: Record<string, any> = {};
+    const data: Record<string, unknown> = {};
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
         data[field] = field === 'jerseyNumber' ? Number(req.body[field]) : req.body[field];
@@ -544,11 +545,31 @@ export async function registerRoutes(
     if (Object.keys(data).length === 0) {
       return res.status(400).json({ error: "No valid fields to update" });
     }
-    const updated = await storage.updatePlayer(id, data);
-    if (!updated) {
+    if (!Number.isNaN(idNum)) {
+      try {
+        const updated = await storage.updatePlayer(idNum, data as Parameters<typeof storage.updatePlayer>[1]);
+        if (!updated) {
+          return res.status(404).json({ error: "Player not found" });
+        }
+        return res.json(updated);
+      } catch (err) {
+        console.error("[PATCH /api/players/:id] update failed:", err);
+        return res.status(500).json({ error: "Failed to save changes." });
+      }
+    }
+    const fromExternal = await getPlayerInfoByPlayerId(idParam);
+    if (!fromExternal) {
       return res.status(404).json({ error: "Player not found" });
     }
-    res.json(updated);
+    const ok = await updateExternalPlayerByPlayerId(idParam, data as Parameters<typeof updateExternalPlayerByPlayerId>[1]);
+    if (!ok) {
+      return res.status(500).json({ error: "Failed to save changes." });
+    }
+    const updated = await getPlayerInfoByPlayerId(idParam);
+    if (!updated) {
+      return res.json(fromExternal);
+    }
+    return res.json(normalizePlayerForApi(updated as Record<string, unknown>));
   });
 
   app.patch("/api/players/:id/profile-views", async (req, res) => {

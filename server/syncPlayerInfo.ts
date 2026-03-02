@@ -638,6 +638,71 @@ export async function setExternalHeadshotById(id: number, headshotUrl: string): 
   }
 }
 
+/** Update a player in the external "Player info" table by player_id (e.g. "jamesle01"). Used when PATCH /api/players/:id receives a string id. */
+export async function updateExternalPlayerByPlayerId(
+  playerId: string,
+  data: Partial<{ name: string; position: string; team: string; height: string; weight: string; jerseyNumber: number; bio: string | null; hometown: string | null; birthDate: string | null }>
+): Promise<boolean> {
+  const id = String(playerId || "").trim();
+  if (!id || Object.keys(data).length === 0) return false;
+  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  const updates: string[] = [];
+  const values: unknown[] = [];
+  let idx = 1;
+  if (data.name !== undefined) {
+    updates.push(`name = $${idx++}`);
+    values.push(data.name);
+  }
+  if (data.position !== undefined) {
+    updates.push(`position = $${idx++}`);
+    values.push(data.position);
+  }
+  if (data.team !== undefined) {
+    updates.push(`team = $${idx++}`);
+    values.push(data.team);
+  }
+  if (data.height !== undefined) {
+    updates.push(`height = $${idx++}`);
+    values.push(data.height);
+  }
+  if (data.weight !== undefined) {
+    updates.push(`weight = $${idx++}`);
+    values.push(data.weight);
+  }
+  if (data.jerseyNumber !== undefined) {
+    updates.push(`jersey_number = $${idx++}`);
+    values.push(data.jerseyNumber);
+  }
+  if (data.bio !== undefined) {
+    updates.push(`bio = $${idx++}`);
+    values.push(data.bio);
+  }
+  if (data.hometown !== undefined) {
+    updates.push(`hometown = $${idx++}`);
+    values.push(data.hometown);
+  }
+  if (data.birthDate !== undefined) {
+    updates.push(`birth_date = $${idx++}`);
+    values.push(data.birthDate);
+  }
+  if (updates.length === 0) return false;
+  values.push(id);
+  const setClause = updates.join(", ");
+  const whereClause = ` WHERE player_id = $${idx}`;
+  for (const table of tables) {
+    try {
+      const res = await pool.query(
+        `UPDATE ${table} SET ${setClause}${whereClause}`,
+        values
+      );
+      if (res.rowCount != null && res.rowCount > 0) return true;
+    } catch {
+      continue;
+    }
+  }
+  return false;
+}
+
 /** Get profile_views for a player by numeric id from the external table(s). Used so GET /api/players/:id returns the updated count after admin sets it (external table may be the one we wrote). */
 export async function getExternalProfileViewsById(id: number): Promise<number | null> {
   const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
