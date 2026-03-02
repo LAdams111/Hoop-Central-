@@ -460,7 +460,7 @@ export async function registerRoutes(
       console.error("[profile-views] app table update failed:", appErr);
       try {
         await setExternalProfileViewsById(id, profileViews);
-        return res.json({ success: true });
+        return res.json({ success: true, profileViews: profileViews });
       } catch (extErr) {
         console.error("[profile-views] external table update failed:", extErr);
         return res.status(500).json({ error: "Failed to update profile views" });
@@ -471,7 +471,7 @@ export async function registerRoutes(
     } catch {
       // optional: external table may not exist; app table is updated
     }
-    res.json({ success: true });
+    res.json({ success: true, profileViews: profileViews });
   });
 
   // Total player count

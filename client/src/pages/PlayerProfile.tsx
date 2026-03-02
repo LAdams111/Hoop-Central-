@@ -132,8 +132,18 @@ export default function PlayerProfile() {
         toast({ title: msg, variant: "destructive" });
         return;
       }
+      const data = (await res.json().catch(() => ({}))) as { success?: boolean; profileViews?: number };
+      const newViews = typeof data.profileViews === "number" ? data.profileViews : value;
+      queryClient.setQueryData(
+        [api.players.get.path, String(player.id)],
+        (prev: unknown) =>
+          prev && typeof prev === "object" && "profileViews" in prev
+            ? { ...(prev as Record<string, unknown>), profileViews: newViews }
+            : prev
+      );
+      setProfileViewsInput(String(newViews));
       queryClient.invalidateQueries({ queryKey: [api.players.get.path, String(player.id)] });
-      toast({ title: "Profile views updated", description: `Set to ${value}.` });
+      toast({ title: "Profile views updated", description: `Set to ${newViews}.` });
     } catch {
       toast({ title: "Update failed", description: "Network or server error.", variant: "destructive" });
     } finally {
