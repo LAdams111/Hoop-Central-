@@ -1,6 +1,7 @@
 import { useRoute, useLocation } from "wouter";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { usePreviousPath } from "@/contexts/PreviousPathContext";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -142,6 +143,13 @@ export default function Roster() {
     enabled: !!team && !!season,
   });
 
+  const previousPath = usePreviousPath();
+
+  const handleBack = () => {
+    const goTo = previousPath && !previousPath.startsWith("/roster/") ? previousPath : "/leagues";
+    setLocation(goTo);
+  };
+
   const handleSeasonChange = (newSeason: string) => {
     setLocation(`/roster/${encodeURIComponent(team)}/${encodeURIComponent(newSeason)}`);
   };
@@ -166,7 +174,7 @@ export default function Roster() {
               variant="outline"
               size="sm"
               className="rounded-full mb-8"
-              onClick={() => setLocation("/leagues")}
+              onClick={handleBack}
               data-testid="button-back"
             >
               <ArrowLeft className="w-4 h-4 mr-2 inline" />
@@ -193,7 +201,7 @@ export default function Roster() {
             variant="outline"
             size="sm"
             className="rounded-full mb-8"
-            onClick={() => setLocation("/leagues")}
+            onClick={handleBack}
             data-testid="button-back"
           >
             <ArrowLeft className="w-4 h-4 mr-2 inline" />
