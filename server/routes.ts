@@ -112,8 +112,38 @@ export async function registerRoutes(
 
   app.get("/api/featured-players", async (_req, res) => {
     try {
-      const featuredPlayers = await storage.getFeaturedPlayers();
-      res.json(featuredPlayers);
+      const ids = await storage.getFeaturedPlayerIds();
+      if (ids.length === 0) {
+        res.json([]);
+        return;
+      }
+      const fromApp = await storage.getFeaturedPlayers();
+      const byId = new Map<number, Record<string, unknown>>();
+      for (const p of fromApp) {
+        byId.set(Number(p.id), { ...p });
+      }
+      for (const id of ids) {
+        if (byId.has(id)) continue;
+        const external = await getPlayerInfoById(id);
+        if (external) {
+          byId.set(id, {
+            id: external.id,
+            name: external.name,
+            position: external.position,
+            team: external.team,
+            height: external.height,
+            weight: external.weight,
+            jerseyNumber: external.jerseyNumber,
+            headshotUrl: external.headshotUrl || "",
+            bio: external.bio ?? null,
+            profileViews: external.profileViews ?? 50,
+            hometown: external.hometown ?? null,
+            birthDate: external.birthDate ?? null,
+          });
+        }
+      }
+      const list = ids.map((id) => byId.get(id)).filter(Boolean) as Record<string, unknown>[];
+      res.json(list.map((p) => normalizePlayerForApi(p)));
     } catch {
       res.json([]);
     }
