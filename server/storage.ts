@@ -342,9 +342,10 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async setFeaturedPlayersSnapshot(players: Player[]): Promise<void> {
+  async setFeaturedPlayersSnapshot(players: (Player & { player_id?: string | null })[]): Promise<void> {
     const list = (players || []).slice(0, 5).map((p) => ({
       id: p.id,
+      player_id: (p as Record<string, unknown>).player_id ?? null,
       name: p.name,
       position: p.position ?? "",
       team: p.team ?? "",

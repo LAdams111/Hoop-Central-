@@ -435,6 +435,7 @@ export async function registerRoutes(
       .slice(0, FEATURED_MAX)
       .map((p: Record<string, unknown>) => ({
         id: Number((p.id as number) ?? 0),
+        player_id: p.player_id != null && p.player_id !== "" ? String(p.player_id) : null,
         name: String(p.name ?? ""),
         position: String(p.position ?? ""),
         team: String(p.team ?? ""),
@@ -745,16 +746,6 @@ export async function registerRoutes(
                   (out as Record<string, unknown>).headshotUrl = appPlayer.headshotUrl;
               } catch { /* ignore */ }
               return res.json(out);
-            }
-          } catch {
-            // ignore
-          }
-          try {
-            const featured = await storage.getFeaturedPlayers();
-            const fromFeatured = featured.find((p) => Number(p.id) === idNum);
-            if (fromFeatured) {
-              const out = normalizePlayerForApi(fromFeatured as Record<string, unknown>);
-              return res.json({ ...out, stats: [], awards: [] });
             }
           } catch {
             // ignore
