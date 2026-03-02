@@ -661,6 +661,7 @@ export async function registerRoutes(
       if (fromExternal.length > 0) {
         const list = fromExternal.map((p) => ({
           id: p.id,
+          player_id: p.player_id || undefined,
           name: p.name,
           position: p.position,
           team: p.team,
