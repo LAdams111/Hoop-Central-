@@ -526,6 +526,23 @@ export async function incrementProfileViewsByPlayerId(playerId: string): Promise
   }
 }
 
+/** Set profile_views for a player by numeric id in the external "Player info" table(s). Used when admin updates view count and the profile is served from external table. */
+export async function setExternalProfileViewsById(id: number, profileViews: number): Promise<void> {
+  const value = Math.max(0, Math.floor(Number(profileViews)));
+  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  for (const table of tables) {
+    try {
+      const res = await pool.query(
+        `UPDATE ${table} SET profile_views = $1 WHERE id = $2`,
+        [value, id]
+      );
+      if (res.rowCount && res.rowCount > 0) return;
+    } catch {
+      continue;
+    }
+  }
+}
+
 export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; updated: number; errors: string[] }> {
   const result = { created: 0, updated: 0, errors: [] as string[] };
 

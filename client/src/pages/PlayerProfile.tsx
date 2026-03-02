@@ -122,11 +122,20 @@ export default function PlayerProfile() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ profileViews: value }),
       });
-      if (!res.ok) throw new Error("Failed to update");
+      if (res.status === 401) {
+        toast({ title: "Session expired", description: "Please log in as admin again (lock icon below).", variant: "destructive" });
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg = (data as { error?: string })?.error ?? "Update failed";
+        toast({ title: msg, variant: "destructive" });
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: [api.players.get.path, String(player.id)] });
       toast({ title: "Profile views updated", description: `Set to ${value}.` });
     } catch {
-      toast({ title: "Update failed", variant: "destructive" });
+      toast({ title: "Update failed", description: "Network or server error.", variant: "destructive" });
     } finally {
       setSavingProfileViews(false);
     }
