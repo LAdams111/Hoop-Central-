@@ -112,43 +112,8 @@ export async function registerRoutes(
 
   app.get("/api/featured-players", async (_req, res) => {
     try {
-      const rawIds = await storage.getFeaturedPlayerIds();
-      const ids = rawIds.map((id) => Number(id)).filter((n) => !Number.isNaN(n) && n > 0);
-      if (ids.length === 0) {
-        res.json([]);
-        return;
-      }
-      const fromApp = await storage.getFeaturedPlayers();
-      const byId = new Map<number, Record<string, unknown>>();
-      for (const p of fromApp) {
-        byId.set(Number(p.id), { ...p });
-      }
-      const missingIds = ids.filter((id) => !byId.has(id));
-      if (missingIds.length > 0) {
-        const idSet = new Set(missingIds);
-        const allRows = await getPlayerInfoRows();
-        for (const p of allRows) {
-          const n = Number(p.id);
-          if (!Number.isNaN(n) && idSet.has(n)) {
-            byId.set(n, {
-              id: p.id,
-              name: p.name,
-              position: p.position,
-              team: p.team,
-              height: p.height,
-              weight: p.weight,
-              jerseyNumber: p.jerseyNumber,
-              headshotUrl: p.headshotUrl || "",
-              bio: p.bio ?? null,
-              profileViews: p.profileViews ?? 50,
-              hometown: p.hometown ?? null,
-              birthDate: p.birthDate ?? null,
-            });
-          }
-        }
-      }
-      const list = ids.map((id) => byId.get(id)).filter(Boolean) as Record<string, unknown>[];
-      res.json(list.map((p) => normalizePlayerForApi(p)));
+      const list = await storage.getFeaturedPlayers();
+      res.json(list.map((p) => normalizePlayerForApi(p as Record<string, unknown>)));
     } catch (e) {
       console.error("[featured-players] GET failed:", e);
       res.json([]);
@@ -455,17 +420,38 @@ export async function registerRoutes(
     res.json({ playersInserted, statsInserted, errors });
   });
 
+  const FEATURED_MAX = 5;
   app.post("/api/featured-players", async (req, res) => {
     const token = req.headers.authorization?.replace("Bearer ", "");
     if (!isValidAdminToken(token)) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    const { ids } = req.body;
-    if (!Array.isArray(ids) || ids.some((id: any) => typeof id !== "number")) {
-      return res.status(400).json({ error: "ids must be an array of numbers" });
+    const { players: rawPlayers } = req.body;
+    if (!Array.isArray(rawPlayers) || rawPlayers.length > FEATURED_MAX) {
+      return res.status(400).json({ error: `Send { players: [...] } with up to ${FEATURED_MAX} player objects` });
+    }
+    const players = rawPlayers
+      .filter((p: unknown) => p && typeof p === "object" && "id" in p && "name" in p)
+      .slice(0, FEATURED_MAX)
+      .map((p: Record<string, unknown>) => ({
+        id: Number((p.id as number) ?? 0),
+        name: String(p.name ?? ""),
+        position: String(p.position ?? ""),
+        team: String(p.team ?? ""),
+        height: String(p.height ?? ""),
+        weight: String(p.weight ?? ""),
+        jerseyNumber: Number(p.jerseyNumber) ?? 0,
+        headshotUrl: String(p.headshotUrl ?? ""),
+        bio: p.bio != null ? String(p.bio) : null,
+        profileViews: Number(p.profileViews) ?? 50,
+        hometown: p.hometown != null ? String(p.hometown) : null,
+        birthDate: p.birthDate != null ? String(p.birthDate) : null,
+      }));
+    if (players.length === 0) {
+      return res.status(400).json({ error: "At least one valid player (id, name) required" });
     }
     try {
-      await storage.setFeaturedPlayerIds(ids);
+      await storage.setFeaturedPlayersSnapshot(players as import("@shared/schema").Player[]);
       res.json({ success: true });
     } catch (e) {
       try {
@@ -478,7 +464,7 @@ export async function registerRoutes(
         await pool.query(`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS "key" TEXT`);
         await pool.query(`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS value TEXT NOT NULL DEFAULT ''`);
         await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS site_settings_key_idx ON site_settings ("key")`);
-        await storage.setFeaturedPlayerIds(ids);
+        await storage.setFeaturedPlayersSnapshot(players as import("@shared/schema").Player[]);
         res.json({ success: true });
       } catch (retryErr) {
         console.error("[featured-players] save failed:", retryErr);

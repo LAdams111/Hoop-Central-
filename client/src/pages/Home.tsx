@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { ArrowRight, Search, Activity, Users, Trophy, Lock, X, Plus, Minus, LogOut } from "lucide-react";
-import { useQuery, useMutation, useQueries } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { usePlayers } from "@/hooks/use-players";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
@@ -38,109 +38,72 @@ export default function Home() {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState("");
+  const FEATURED_MAX = 5;
   const [showFeaturedPicker, setShowFeaturedPicker] = useState(false);
   const [featuredSearch, setFeaturedSearch] = useState("");
   const [debouncedFeaturedSearch, setDebouncedFeaturedSearch] = useState("");
-  const [pendingFeaturedIds, setPendingFeaturedIds] = useState<number[] | null>(null);
+  const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedFeaturedSearch(featuredSearch), 300);
     return () => clearTimeout(t);
   }, [featuredSearch]);
 
-  const { data: featuredIds } = useQuery<number[]>({ queryKey: ["/api/featured-player-ids"] });
   const { data: featuredSearchResults, isLoading: isLoadingFeaturedSearch } = usePlayers(
     debouncedFeaturedSearch.trim() ? { search: debouncedFeaturedSearch.trim() } : undefined
   );
 
-  const effectiveFeaturedIds = pendingFeaturedIds ?? featuredIds ?? [];
-
-  const featuredPlayerQueries = useQueries({
-    queries: effectiveFeaturedIds.slice(0, 10).map((id) => ({
-      queryKey: ["/api/players", String(id)],
-      queryFn: async (): Promise<Player | null> => {
-        const res = await fetch(`/api/players/${encodeURIComponent(id)}`);
-        if (res.status === 404 || !res.ok) return null;
-        const data = await res.json();
-        return data as Player;
-      },
-      enabled: effectiveFeaturedIds.length > 0,
-      staleTime: 60_000,
-    })),
-  });
-
-  const resolvedFeaturedByIds = featuredPlayerQueries
-    .map((q) => q.data)
-    .filter((p): p is Player => p != null && typeof p === "object" && "id" in p);
-
-  const byIdFromCache = new Map<number, Player>();
-  for (const p of resolvedFeaturedByIds) byIdFromCache.set(Number(p.id), p);
-  for (const p of [...(players ?? []), ...(featuredSearchResults ?? [])]) {
-    const n = Number(p.id);
-    if (!Number.isNaN(n) && !byIdFromCache.has(n)) byIdFromCache.set(n, p);
-  }
-  const resolvedFromAnySource = effectiveFeaturedIds
-    .map((id) => byIdFromCache.get(id))
-    .filter((p): p is Player => p != null);
+  useEffect(() => {
+    if (showFeaturedPicker && featuredPlayers) {
+      setSelectedPlayers(featuredPlayers.slice(0, FEATURED_MAX));
+    }
+  }, [showFeaturedPicker, featuredPlayers?.length]);
 
   const featuredMutation = useMutation({
-    mutationFn: async (ids: number[]) => {
+    mutationFn: async (playersToSave: Player[]) => {
       const token = localStorage.getItem("admin_token");
       const res = await fetch("/api/featured-players", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ids }),
+        body: JSON.stringify({ players: playersToSave }),
       });
       if (!res.ok) throw new Error("Failed to update featured players");
     },
-    onSuccess: (_data, idsToSave) => {
-      setPendingFeaturedIds(idsToSave);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/featured-players"] });
       queryClient.invalidateQueries({ queryKey: ["/api/featured-player-ids"] });
     },
   });
 
-  useEffect(() => {
-    if (featuredIds) {
-      setPendingFeaturedIds(featuredIds);
-    }
-  }, [featuredIds?.join(",")]);
-
-  const hasSavedFeatured =
-    (featuredIds?.length ?? 0) > 0 ||
-    (featuredPlayers?.length ?? 0) > 0 ||
-    (effectiveFeaturedIds.length > 0 && resolvedFromAnySource.length > 0);
-
-  const initialFeaturedIds = featuredIds ?? [];
+  const hasSavedFeatured = (featuredPlayers?.length ?? 0) > 0;
   const hasFeaturedChanges =
-    pendingFeaturedIds !== null &&
-    JSON.stringify(pendingFeaturedIds) !== JSON.stringify(initialFeaturedIds);
+    JSON.stringify(selectedPlayers.map((p) => p.id)) !==
+    JSON.stringify((featuredPlayers ?? []).map((p) => p.id));
 
   const handleSaveFeatured = () => {
-    if (!hasFeaturedChanges) return;
-    const idsToSave = (pendingFeaturedIds ?? []).map((id) => Number(id));
-    if (idsToSave.length > 10) return;
-    featuredMutation.mutate(idsToSave);
+    if (!hasFeaturedChanges || selectedPlayers.length === 0) return;
+    featuredMutation.mutate(selectedPlayers.slice(0, FEATURED_MAX));
   };
 
-  /** Remove a player from featured only (used by X on featured cards). */
+  const addToFeatured = (player: Player) => {
+    const id = Number(player.id);
+    if (selectedPlayers.some((p) => Number(p.id) === id)) return;
+    if (selectedPlayers.length >= FEATURED_MAX) return;
+    setSelectedPlayers((prev) => [...prev, player].slice(0, FEATURED_MAX));
+  };
+
   const removeFromFeatured = (playerId: number | string) => {
     const numId = Number(playerId);
-    if (Number.isNaN(numId)) return;
-    const current = effectiveFeaturedIds;
-    if (!current.includes(numId)) return;
-    const newIds = current.filter((id) => id !== numId);
-    setPendingFeaturedIds(newIds);
+    setSelectedPlayers((prev) => prev.filter((p) => Number(p.id) !== numId));
   };
 
-  const toggleFeatured = (playerId: number | string) => {
-    const numId = Number(playerId);
-    if (Number.isNaN(numId)) return;
-    const current = effectiveFeaturedIds;
-    const newIds = current.includes(numId)
-      ? current.filter((id) => id !== numId)
-      : current.length >= 10 ? current : [...current, numId];
-    setPendingFeaturedIds(newIds.map((id) => Number(id)));
+  const toggleFeatured = (player: Player) => {
+    const id = Number(player.id);
+    if (selectedPlayers.some((p) => Number(p.id) === id)) {
+      removeFromFeatured(id);
+    } else {
+      addToFeatured(player);
+    }
   };
 
   useEffect(() => {
@@ -229,11 +192,7 @@ export default function Home() {
   const hasSuggestions = combined.length > 0;
 
   const displayFeatured =
-    (featuredPlayers?.length ?? 0) > 0
-      ? featuredPlayers!
-      : effectiveFeaturedIds.length > 0 && resolvedFromAnySource.length > 0
-        ? resolvedFromAnySource
-        : players?.slice(0, 5) || [];
+    (featuredPlayers?.length ?? 0) > 0 ? featuredPlayers! : players?.slice(0, 5) || [];
 
   const featuredPickerResults =
     featuredSearch.trim().length > 0
@@ -450,44 +409,33 @@ export default function Home() {
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
                   <Lock className="w-4 h-4 text-primary" />
-                  <span className="font-display text-sm uppercase tracking-wider">Admin: Select Featured Players (max 10)</span>
+                  <span className="font-display text-sm uppercase tracking-wider">Admin: Pick 5 Featured Players</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">
-                    {effectiveFeaturedIds.length}/10 selected
+                    {selectedPlayers.length}/{FEATURED_MAX} selected
                   </span>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={handleSaveFeatured}
-                    disabled={!hasFeaturedChanges || featuredMutation.isPending}
+                    disabled={!hasFeaturedChanges || featuredMutation.isPending || selectedPlayers.length === 0}
                   >
                     {featuredMutation.isPending ? "Saving..." : "Save"}
                   </Button>
                 </div>
               </div>
-              {effectiveFeaturedIds.length > 0 && (
+              {selectedPlayers.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
-                    {effectiveFeaturedIds.map((id) => {
-                    const p = players?.find((pl) => pl.id === id || Number(pl.id) === id);
-                    if (!p) return (
-                      <Badge key={id} variant="secondary" className="gap-1 pr-1" data-testid={`featured-badge-${id}`}>
-                        <span className="font-mono text-xs">ID {id}</span>
-                        <button type="button" className="ml-1 inline-flex items-center justify-center" onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFeatured(id); }} data-testid={`button-remove-featured-${id}`}>
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    );
-                    return (
-                      <Badge key={id} variant="secondary" className="gap-1 pr-1" data-testid={`featured-badge-${id}`}>
-                        <img src={p.headshotUrl || DEFAULT_HEADSHOT} alt="" className="w-5 h-5 rounded-full object-cover object-top" onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }} />
-                        {p.name}
-                        <button type="button" className="ml-1 inline-flex items-center justify-center" onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFeatured(id); }} data-testid={`button-remove-featured-${id}`}>
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    );
-                  })}
+                  {selectedPlayers.map((p) => (
+                    <Badge key={p.id} variant="secondary" className="gap-1 pr-1" data-testid={`featured-badge-${p.id}`}>
+                      <img src={p.headshotUrl || DEFAULT_HEADSHOT} alt="" className="w-5 h-5 rounded-full object-cover object-top" onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT; }} />
+                      {p.name}
+                      <button type="button" className="ml-1 inline-flex items-center justify-center" onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFromFeatured(p.id); }} data-testid={`button-remove-featured-${p.id}`}>
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  ))}
                 </div>
               )}
               <div className="relative">
@@ -508,13 +456,13 @@ export default function Home() {
               ) : featuredPickerResults.length > 0 ? (
                 <div className="mt-2 border border-border rounded-md overflow-hidden max-h-64 overflow-y-auto">
                   {featuredPickerResults.map((p) => {
-                    const isFeatured = effectiveFeaturedIds.includes(Number(p.id));
+                    const isSelected = selectedPlayers.some((s) => Number(s.id) === Number(p.id));
                     return (
                       <button
                         key={p.id}
                         type="button"
                         className="w-full flex items-center gap-3 px-3 py-2 hover-elevate text-left transition-colors disabled:opacity-60"
-                        onClick={() => toggleFeatured(p.id)}
+                        onClick={() => toggleFeatured(p)}
                         disabled={featuredMutation.isPending}
                         data-testid={`featured-option-${p.id}`}
                       >
@@ -525,7 +473,7 @@ export default function Home() {
                           <div className="font-display font-bold text-sm text-foreground truncate">{p.name}</div>
                           <div className="text-xs text-muted-foreground font-mono uppercase">{p.team} • #{p.jerseyNumber}</div>
                         </div>
-                        {isFeatured ? (
+                        {isSelected ? (
                           <Badge variant="default" className="flex-shrink-0"><Minus className="w-3 h-3 mr-1" />Remove</Badge>
                         ) : (
                           <Badge variant="outline" className="flex-shrink-0">
@@ -554,14 +502,19 @@ export default function Home() {
                 {displayFeatured.slice(0, 6).map((player) => (
                   <div key={player.id} className="relative group">
                     <PlayerCard player={player} />
-                    {isAdmin && effectiveFeaturedIds.length > 0 && displayFeatured.length > 0 && (
+                    {isAdmin && hasSavedFeatured && (
                       <div className="absolute top-1 right-1 z-[100] pointer-events-none">
                         <Button
                           type="button"
                           size="icon"
                           variant="destructive"
                           className="pointer-events-auto opacity-90 hover:opacity-100 shadow-md h-7 w-7 rounded-full"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFromFeatured(player.id); }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const next = (featuredPlayers ?? []).filter((p) => Number(p.id) !== Number(player.id));
+                            featuredMutation.mutate(next);
+                          }}
                           disabled={featuredMutation.isPending}
                           title="Remove from featured"
                           data-testid={`button-remove-featured-card-${player.id}`}
@@ -577,14 +530,19 @@ export default function Home() {
                 {displayFeatured.slice(0, 5).map((player) => (
                   <div key={player.id} className="relative group">
                     <PlayerCard player={player} />
-                    {isAdmin && effectiveFeaturedIds.length > 0 && displayFeatured.length > 0 && (
+                    {isAdmin && hasSavedFeatured && (
                       <div className="absolute top-1 right-1 z-[100] pointer-events-none">
                         <Button
                           type="button"
                           size="icon"
                           variant="destructive"
                           className="pointer-events-auto opacity-90 hover:opacity-100 shadow-md h-7 w-7 rounded-full"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFromFeatured(player.id); }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const next = (featuredPlayers ?? []).filter((p) => Number(p.id) !== Number(player.id));
+                            featuredMutation.mutate(next);
+                          }}
                           disabled={featuredMutation.isPending}
                           title="Remove from featured"
                           data-testid={`button-remove-featured-card-${player.id}`}

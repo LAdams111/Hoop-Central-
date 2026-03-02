@@ -72,10 +72,12 @@ export interface IStorage {
   getAllTeamsWithLeague(): Promise<{ team: string; league: string; season: string }[]>;
   getTotalTeamCount(): Promise<number>;
 
-  // Site Settings (Featured Players)
+  // Site Settings (Featured Players) — store full snapshot so no lookup needed
   getFeaturedPlayerIds(): Promise<number[]>;
   setFeaturedPlayerIds(ids: number[]): Promise<void>;
   getFeaturedPlayers(): Promise<Player[]>;
+  /** Overwrite featured list with full player objects (max 5). Used by admin save. */
+  setFeaturedPlayersSnapshot(players: Player[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -314,9 +316,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFeaturedPlayerIds(): Promise<number[]> {
-    const row = await db.select().from(siteSettings).where(eq(siteSettings.key, "featured_players")).limit(1);
-    if (row.length === 0) return [];
-    try { return JSON.parse(row[0].value); } catch { return []; }
+    const list = await this.getFeaturedPlayers();
+    return list.map((p) => Number(p.id)).filter((n) => !Number.isNaN(n));
   }
 
   async setFeaturedPlayerIds(ids: number[]): Promise<void> {
@@ -325,11 +326,40 @@ export class DatabaseStorage implements IStorage {
       .onConflictDoUpdate({ target: siteSettings.key, set: { value } });
   }
 
+  /** Returns stored snapshot (array of player objects). If value is legacy array of ids, returns []. */
   async getFeaturedPlayers(): Promise<Player[]> {
-    const ids = await this.getFeaturedPlayerIds();
-    if (ids.length === 0) return [];
-    const result = await db.select().from(players).where(inArray(players.id, ids));
-    return ids.map(id => result.find(p => p.id === id)).filter(Boolean) as Player[];
+    const row = await db.select().from(siteSettings).where(eq(siteSettings.key, "featured_players")).limit(1);
+    if (row.length === 0) return [];
+    try {
+      const raw = JSON.parse(row[0].value);
+      if (!Array.isArray(raw) || raw.length === 0) return [];
+      const first = raw[0];
+      if (typeof first === "number") return []; // legacy: stored as ids only
+      if (first && typeof first === "object" && "id" in first && "name" in first) return raw as Player[];
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  async setFeaturedPlayersSnapshot(players: Player[]): Promise<void> {
+    const list = (players || []).slice(0, 5).map((p) => ({
+      id: p.id,
+      name: p.name,
+      position: p.position ?? "",
+      team: p.team ?? "",
+      height: p.height ?? "",
+      weight: p.weight ?? "",
+      jerseyNumber: Number(p.jerseyNumber) || 0,
+      headshotUrl: p.headshotUrl ?? "",
+      bio: p.bio ?? null,
+      profileViews: Number(p.profileViews) || 50,
+      hometown: p.hometown ?? null,
+      birthDate: p.birthDate ?? null,
+    }));
+    const value = JSON.stringify(list);
+    await db.insert(siteSettings).values({ key: "featured_players", value })
+      .onConflictDoUpdate({ target: siteSettings.key, set: { value } });
   }
 }
 
