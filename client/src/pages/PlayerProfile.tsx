@@ -67,6 +67,8 @@ export default function PlayerProfile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profileViewsInput, setProfileViewsInput] = useState("");
   const [savingProfileViews, setSavingProfileViews] = useState(false);
+  /** After admin saves, this overrides the displayed count so the UI updates even if refetch/cache doesn't. */
+  const [displayedProfileViews, setDisplayedProfileViews] = useState<number | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -84,6 +86,10 @@ export default function PlayerProfile() {
   useEffect(() => {
     if (player?.profileViews != null) setProfileViewsInput(String(player.profileViews));
   }, [player?.profileViews]);
+
+  useEffect(() => {
+    setDisplayedProfileViews(null);
+  }, [id]);
 
   const handleAdminLogin = async () => {
     setAdminError("");
@@ -134,6 +140,7 @@ export default function PlayerProfile() {
       }
       const data = (await res.json().catch(() => ({}))) as { success?: boolean; profileViews?: number };
       const newViews = typeof data.profileViews === "number" ? data.profileViews : value;
+      setDisplayedProfileViews(newViews);
       queryClient.setQueryData(
         [api.players.get.path, String(player.id)],
         (prev: unknown) =>
@@ -425,7 +432,7 @@ export default function PlayerProfile() {
             <div className="flex flex-col items-center gap-3">
               <div className="flex items-center gap-3 text-muted-foreground bg-card w-fit px-6 py-3 rounded-2xl border border-border shadow-sm">
                 <Eye className="w-6 h-6 text-primary" />
-                <span className="font-display text-2xl uppercase tracking-wider font-bold"><span className="text-black dark:text-white">{player.profileViews}</span><span className="ml-3">Profile Views</span></span>
+                <span className="font-display text-2xl uppercase tracking-wider font-bold"><span className="text-black dark:text-white">{displayedProfileViews ?? player?.profileViews ?? 0}</span><span className="ml-3">Profile Views</span></span>
               </div>
               {isAdmin && (
                 <div className="flex items-center gap-2 bg-card px-4 py-2 rounded-xl border border-border">
