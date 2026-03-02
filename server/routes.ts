@@ -113,7 +113,28 @@ export async function registerRoutes(
   app.get("/api/featured-players", async (_req, res) => {
     try {
       const list = await storage.getFeaturedPlayers();
-      res.json(list.map((p) => normalizePlayerForApi(p as Record<string, unknown>)));
+      const withIds = list as (Record<string, unknown>)[];
+      const needPlayerId = withIds.filter((p) => p.id != null && !p.player_id);
+      if (needPlayerId.length > 0) {
+        try {
+          const allRows = await getPlayerInfoRows();
+          const byId = new Map<number, string>();
+          for (const r of allRows) {
+            const n = Number(r.id);
+            if (!Number.isNaN(n) && r.player_id) byId.set(n, String(r.player_id));
+          }
+          for (const p of withIds) {
+            const n = Number(p.id);
+            if (!Number.isNaN(n) && !p.player_id) {
+              const pid = byId.get(n);
+              if (pid) p.player_id = pid;
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+      res.json(withIds.map((p) => normalizePlayerForApi(p)));
     } catch (e) {
       console.error("[featured-players] GET failed:", e);
       res.json([]);
