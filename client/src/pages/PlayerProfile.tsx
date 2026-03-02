@@ -48,6 +48,14 @@ function isCombinedStatRow(stat: { team?: string | number | null }): boolean {
   return false;
 }
 
+/** Display hometown; show "Washington, D.C." instead of "Washington, District of Columbia" etc. */
+function formatHometownDisplay(hometown: string | null | undefined): string {
+  const s = String(hometown ?? "").trim();
+  if (!s) return "";
+  if (/district\s+of\s+columbia/i.test(s) || /Washington,\s*D\.?C\.?/i.test(s)) return "Washington, D.C.";
+  return s;
+}
+
 export default function PlayerProfile() {
   const [, params] = useRoute("/players/:id");
   const [, setLocation] = useLocation();
@@ -441,7 +449,7 @@ export default function PlayerProfile() {
                   <div className="flex items-center gap-2 px-4 py-3 bg-primary/5 rounded-xl border border-primary/20 w-fit">
                     <div className="flex flex-col">
                       <span className="text-[10px] uppercase tracking-[0.2em] text-primary/70 font-bold leading-none mb-2">Hometown</span>
-                      <span className="text-lg text-foreground font-mono font-bold">{player.hometown}</span>
+                      <span className="text-lg text-foreground font-mono font-bold">{formatHometownDisplay(player.hometown)}</span>
                     </div>
                   </div>
                 )}
