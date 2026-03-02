@@ -106,8 +106,8 @@ export default function PlayerProfile() {
         body: JSON.stringify({ password: adminPassword }),
       });
       const data = await res.json();
-      if (res.ok && data.token) {
-        localStorage.setItem("admin_token", data.token);
+      if (res.ok) {
+        localStorage.setItem("admin_token", adminPassword);
         setIsAdmin(true);
         setShowAdminLogin(false);
         setAdminPassword("");

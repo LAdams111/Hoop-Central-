@@ -15,6 +15,47 @@ function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
   return { ...p, birthDate, hometown } as T;
 }
 
+const ADMIN_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function getAdminSecret(): string {
+  return process.env.ADMIN_PASSWORD || process.env.SESSION_SECRET || "Hockey86";
+}
+
+/** Create a signed admin token that survives server restarts (e.g. Railway deploy). */
+function createSignedAdminToken(): string {
+  const secret = getAdminSecret();
+  const payload = JSON.stringify({ admin: true, exp: Date.now() + ADMIN_TOKEN_TTL_MS });
+  const payloadB64 = Buffer.from(payload, "utf8").toString("base64url");
+  const sig = crypto.createHmac("sha256", secret).update(payloadB64).digest("base64url");
+  return `${payloadB64}.${sig}`;
+}
+
+/** Returns true if the token is valid (password, in-memory session, or valid signed token). */
+function isValidAdminToken(token: string | undefined): boolean {
+  if (!token?.trim()) return false;
+  const secret = getAdminSecret();
+  // Accept raw admin password so no token is required (works across restarts)
+  try {
+    const a = Buffer.from(token, "utf8");
+    const b = Buffer.from(secret, "utf8");
+    if (a.length === b.length && crypto.timingSafeEqual(a, b)) return true;
+  } catch {
+    /* ignore */
+  }
+  if (adminSessions.has(token)) return true;
+  const parts = token.split(".");
+  if (parts.length !== 2) return false;
+  const [payloadB64, sig] = parts;
+  try {
+    const expectedSig = crypto.createHmac("sha256", secret).update(payloadB64).digest("base64url");
+    if (expectedSig !== sig) return false;
+    const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8"));
+    return payload?.admin === true && typeof payload.exp === "number" && payload.exp > Date.now();
+  } catch {
+    return false;
+  }
+}
+
 export const adminSessions = new Set<string>();
 
 export async function registerRoutes(
@@ -24,18 +65,18 @@ export async function registerRoutes(
 
   app.post("/api/admin/login", (req, res) => {
     const { password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD || process.env.SESSION_SECRET || "Hockey86";
+    const adminPassword = getAdminSecret();
     if (!adminPassword || password !== adminPassword) {
       return res.status(401).json({ error: "Invalid password" });
     }
-    const token = crypto.randomBytes(32).toString("hex");
+    const token = createSignedAdminToken();
     adminSessions.add(token);
     res.json({ token });
   });
 
   app.get("/api/admin/check", (req, res) => {
     const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token || !adminSessions.has(token)) {
+    if (!isValidAdminToken(token)) {
       return res.status(401).json({ authenticated: false });
     }
     res.json({ authenticated: true });
@@ -380,7 +421,7 @@ export async function registerRoutes(
 
   app.post("/api/featured-players", async (req, res) => {
     const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token || !adminSessions.has(token)) {
+    if (!isValidAdminToken(token)) {
       return res.status(401).json({ error: "Unauthorized" });
     }
     const { ids } = req.body;
@@ -412,7 +453,7 @@ export async function registerRoutes(
 
   app.post("/api/players/:id/headshot", async (req, res) => {
     const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token || !adminSessions.has(token)) {
+    if (!isValidAdminToken(token)) {
       return res.status(401).json({ error: "Unauthorized" });
     }
     const id = Number(req.params.id);
@@ -435,7 +476,7 @@ export async function registerRoutes(
 
   app.use("/api/uploads", (req, res, next) => {
     const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token || !adminSessions.has(token)) {
+    if (!isValidAdminToken(token)) {
       return res.status(401).json({ error: "Unauthorized" });
     }
     next();
@@ -445,7 +486,7 @@ export async function registerRoutes(
 
   app.patch("/api/players/:id", async (req, res) => {
     const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token || !adminSessions.has(token)) {
+    if (!isValidAdminToken(token)) {
       return res.status(401).json({ error: "Unauthorized" });
     }
     const id = Number(req.params.id);
@@ -468,7 +509,7 @@ export async function registerRoutes(
 
   app.patch("/api/players/:id/profile-views", async (req, res) => {
     const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token || !adminSessions.has(token)) {
+    if (!isValidAdminToken(token)) {
       return res.status(401).json({ error: "Unauthorized" });
     }
     const id = Number(req.params.id);

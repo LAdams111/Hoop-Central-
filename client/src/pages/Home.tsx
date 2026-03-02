@@ -99,7 +99,7 @@ export default function Home() {
       });
       const data = await res.json();
       if (res.ok) {
-        localStorage.setItem("admin_token", data.token);
+        localStorage.setItem("admin_token", adminPassword);
         setIsAdmin(true);
         setShowAdminLogin(false);
         setAdminPassword("");
