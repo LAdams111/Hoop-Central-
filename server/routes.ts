@@ -595,13 +595,13 @@ export async function registerRoutes(
     }
   });
 
-  // Players List — show from "Player info" first; cap at 50 when no search so directory doesn't overload
+  // Players List — cap at 50, sorted by view count (highest first) unless sortBy=name
   const DIRECTORY_LIST_LIMIT = 50;
   app.get(api.players.list.path, async (req, res) => {
     const search = req.query.search as string | undefined;
     const position = req.query.position as string | undefined;
     const sortBy = req.query.sortBy as "views" | "name" | undefined;
-    const hasSearch = (search?.trim() ?? "") !== "" || (position && position !== "ALL");
+    const sortByViews = sortBy !== "name"; // default: by views (highest first)
 
     let players: { id: number; name: string; position: string; team: string; height: string; weight: string; jerseyNumber: number; headshotUrl: string; profileViews: number }[];
     try {
@@ -612,9 +612,9 @@ export async function registerRoutes(
         const searchLower = search?.toLowerCase().trim();
         if (searchLower) list = list.filter((p) => p.name.toLowerCase().includes(searchLower));
         if (position && position !== "ALL") list = list.filter((p) => p.position === position);
-        if (sortBy === "views") list = [...list].sort((a, b) => (b.profileViews ?? 0) - (a.profileViews ?? 0));
+        if (sortByViews) list = [...list].sort((a, b) => (b.profileViews ?? 0) - (a.profileViews ?? 0));
         else list = [...list].sort((a, b) => a.name.localeCompare(b.name));
-        if (!hasSearch) list = list.slice(0, DIRECTORY_LIST_LIMIT);
+        list = list.slice(0, DIRECTORY_LIST_LIMIT);
         res.json(list);
         return;
       }
@@ -623,16 +623,16 @@ export async function registerRoutes(
     }
 
     try {
-      players = await storage.getPlayers(search, position, sortBy);
+      players = await storage.getPlayers(search, position, sortByViews ? "views" : "name");
       if (players.length === 0) {
         try {
           await syncPlayerInfoFromPostgres();
-          players = await storage.getPlayers(search, position, sortBy);
+          players = await storage.getPlayers(search, position, sortByViews ? "views" : "name");
         } catch {
           // ignore
         }
       }
-      if (!hasSearch) players = players.slice(0, DIRECTORY_LIST_LIMIT);
+      players = players.slice(0, DIRECTORY_LIST_LIMIT);
       res.json(players);
       return;
     } catch {
@@ -643,9 +643,9 @@ export async function registerRoutes(
         const searchLower = search?.toLowerCase().trim();
         if (searchLower) list = list.filter((p) => p.name.toLowerCase().includes(searchLower));
         if (position && position !== "ALL") list = list.filter((p) => p.position === position);
-        if (sortBy === "views") list = [...list].sort((a, b) => (b.profileViews ?? 0) - (a.profileViews ?? 0));
+        if (sortByViews) list = [...list].sort((a, b) => (b.profileViews ?? 0) - (a.profileViews ?? 0));
         else list = [...list].sort((a, b) => a.name.localeCompare(b.name));
-        if (!hasSearch) list = list.slice(0, DIRECTORY_LIST_LIMIT);
+        list = list.slice(0, DIRECTORY_LIST_LIMIT);
         res.json(list);
         return;
       } catch {
