@@ -7,7 +7,7 @@ import { syncPlayerInfoFromPostgres } from "./syncPlayerInfo";
 import { pool } from "./db";
 import { storage } from "./storage";
 
-/** Create site_settings table if missing (e.g. production DB never ran full schema push). */
+/** Create site_settings table if missing and ensure it has "key" and value columns (e.g. production DB may have different schema). */
 async function ensureSiteSettingsTable(): Promise<void> {
   try {
     await pool.query(`
@@ -15,6 +15,15 @@ async function ensureSiteSettingsTable(): Promise<void> {
         "key" TEXT PRIMARY KEY,
         value TEXT NOT NULL
       )
+    `);
+    await pool.query(`
+      ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS "key" TEXT;
+    `);
+    await pool.query(`
+      ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS value TEXT NOT NULL DEFAULT '';
+    `);
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS site_settings_key_idx ON site_settings ("key");
     `);
   } catch (err: unknown) {
     console.warn("Could not ensure site_settings table:", (err as Error)?.message ?? err);

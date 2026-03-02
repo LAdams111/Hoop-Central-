@@ -398,6 +398,9 @@ export async function registerRoutes(
             value TEXT NOT NULL
           )
         `);
+        await pool.query(`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS "key" TEXT`);
+        await pool.query(`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS value TEXT NOT NULL DEFAULT ''`);
+        await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS site_settings_key_idx ON site_settings ("key")`);
         await storage.setFeaturedPlayerIds(ids);
         res.json({ success: true });
       } catch (retryErr) {
