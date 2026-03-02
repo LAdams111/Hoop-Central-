@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { ArrowRight, Search, Activity, Users, Trophy, Lock, X, Plus, Minus } from "lucide-react";
+import { ArrowRight, Search, Activity, Users, Trophy, Lock, X, Plus, Minus, LogOut } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { usePlayers } from "@/hooks/use-players";
 import { PlayerCard } from "@/components/PlayerCard";
@@ -106,6 +106,11 @@ export default function Home() {
         setAdminError(data.error || "Login failed");
       }
     } catch { setAdminError("Login failed"); }
+  };
+
+  const handleAdminLogout = () => {
+    localStorage.removeItem("admin_token");
+    setIsAdmin(false);
   };
 
   const LEAGUE_TIER: Record<string, number> = {
@@ -454,12 +459,44 @@ export default function Home() {
             <>
               <div className="grid grid-cols-3 gap-2 sm:gap-6 md:hidden">
                 {displayFeatured.slice(0, 6).map((player) => (
-                  <PlayerCard key={player.id} player={player} />
+                  <div key={player.id} className="relative group">
+                    <PlayerCard player={player} />
+                    {isAdmin && (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="destructive"
+                        className="absolute top-1 right-1 h-7 w-7 rounded-full opacity-90 hover:opacity-100 shadow-md z-10"
+                        onClick={() => toggleFeatured(player.id)}
+                        disabled={featuredMutation.isPending}
+                        title="Remove from featured"
+                        data-testid={`button-remove-featured-card-${player.id}`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 ))}
               </div>
               <div className="hidden md:grid md:grid-cols-5 gap-6 md:gap-8">
                 {displayFeatured.slice(0, 5).map((player) => (
-                  <PlayerCard key={player.id} player={player} />
+                  <div key={player.id} className="relative group">
+                    <PlayerCard player={player} />
+                    {isAdmin && (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="destructive"
+                        className="absolute top-1 right-1 h-7 w-7 rounded-full opacity-90 hover:opacity-100 shadow-md z-10"
+                        onClick={() => toggleFeatured(player.id)}
+                        disabled={featuredMutation.isPending}
+                        title="Remove from featured"
+                        data-testid={`button-remove-featured-card-${player.id}`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 ))}
               </div>
             </>
@@ -515,9 +552,21 @@ export default function Home() {
         )}
 
         {isAdmin && !showAdminLogin && (
-          <Badge variant="outline" className="bg-card border-primary/30 text-primary px-3 py-1">
-            <Lock className="w-3 h-3 mr-1" /> Admin
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-card border-primary/30 text-primary px-3 py-1">
+              <Lock className="w-3 h-3 mr-1" /> Admin
+            </Badge>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="text-muted-foreground hover:text-foreground text-xs"
+              onClick={handleAdminLogout}
+              data-testid="button-admin-logout"
+            >
+              <LogOut className="w-3 h-3 mr-1" /> Logout
+            </Button>
+          </div>
         )}
       </div>
     </div>
