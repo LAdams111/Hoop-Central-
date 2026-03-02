@@ -5,6 +5,7 @@ import { createServer } from "http";
 import { scrapeNBAPlayers } from "./scraper";
 import { syncPlayerInfoFromPostgres } from "./syncPlayerInfo";
 import { pool } from "./db";
+import { storage } from "./storage";
 
 /** Create site_settings table if missing (e.g. production DB never ran full schema push). */
 async function ensureSiteSettingsTable(): Promise<void> {
@@ -129,6 +130,14 @@ app.use((req, res, next) => {
         }
       } catch (err: any) {
         log(`Startup sync skipped: ${err?.message ?? String(err)}`, "startup");
+      }
+      try {
+        const backfillUpdated = await storage.backfillNbaProfileViews();
+        if (backfillUpdated > 0) {
+          log(`NBA profile views backfill: ${backfillUpdated} player(s) updated`, "startup");
+        }
+      } catch (err: any) {
+        log(`NBA profile views backfill skipped: ${err?.message ?? String(err)}`, "startup");
       }
       startWeeklyScraperSchedule();
       startPlayerInfoSyncSchedule();

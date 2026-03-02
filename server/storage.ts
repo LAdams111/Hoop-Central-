@@ -62,6 +62,8 @@ export interface IStorage {
   getPlayerHasNbaStats(playerId: number): Promise<boolean>;
   /** Add a one-time random boost (10,000–16,000) to profile_views for players who have played in the NBA. */
   addNbaProfileViewsBoost(playerId: number): Promise<void>;
+  /** One-time backfill: add NBA views boost to all players with NBA stats and profile_views < 10000. Returns count updated. */
+  backfillNbaProfileViews(): Promise<number>;
 
   // League Teams
   getTeamsByLeague(league: string): Promise<{ team: string; season: string }[]>;
@@ -223,6 +225,25 @@ export class DatabaseStorage implements IStorage {
     await db.update(players)
       .set({ profileViews: sql`${players.profileViews} + ${boost}` })
       .where(eq(players.id, playerId));
+  }
+
+  async backfillNbaProfileViews(): Promise<number> {
+    const rows = await db
+      .selectDistinct({ id: players.id })
+      .from(players)
+      .innerJoin(playerStats, eq(players.id, playerStats.playerId))
+      .where(
+        and(
+          sql`LOWER(${playerStats.league}) = 'nba'`,
+          sql`${players.profileViews} < 10000`
+        )
+      );
+    let updated = 0;
+    for (const { id } of rows) {
+      await this.addNbaProfileViewsBoost(id);
+      updated++;
+    }
+    return updated;
   }
 
   async getTeamRecord(team: string, season: string): Promise<TeamRecord | undefined> {

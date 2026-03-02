@@ -95,6 +95,15 @@ export const TEAM_ABBREV_TO_FULL: Record<string, string> = {
   // Relocated / rebranded (former names for season history)
   BUF: "Buffalo Braves", CIN: "Cincinnati Royals", KCO: "Kansas City-Omaha Kings",
   KCK: "Kansas City Kings", SDC: "San Diego Clippers",
+  SFW: "San Francisco Warriors",   // pre–Golden State (moved 1971)
+  // ABA (American Basketball Association)
+  PTC: "Pittsburgh Condors",       // also Pittsburgh Pipers
+  MMT: "Memphis Tams",             // Memphis Pros / Memphis Tams
+  KEN: "Kentucky Colonels", MNS: "Minnesota Muskies", NYA: "New York Nets",
+  OAK: "Oakland Oaks", DNR: "Denver Rockets", HOU: "Houston Rockets",   // HOU shared with NBA
+  IND: "Indiana Pacers", DAL: "Dallas Chaparrals", SAS: "San Antonio Spurs",   // IND/DAL/SAS shared
+  UTA: "Utah Stars", VIR: "Virginia Squires", CAR: "Carolina Cougars",
+  SDR: "San Diego Conquistadors", SLC: "Spirits of St. Louis",
   // Defunct / historical (BAA/NBA)
   AND: "Anderson Packers", BAL: "Baltimore Bullets", BLB: "Baltimore Bullets",
   CHS: "Chicago Stags", CLR: "Cleveland Rebels", DNN: "Denver Nuggets",
