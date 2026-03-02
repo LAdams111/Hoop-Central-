@@ -85,6 +85,8 @@ export default function Home() {
     },
   });
 
+  const hasSavedFeatured = (featuredPlayers?.length ?? 0) > 0;
+
   /** Remove a player from featured only (used by X on featured cards). */
   const removeFromFeatured = (playerId: number | string) => {
     const numId = Number(playerId);
@@ -191,7 +193,7 @@ export default function Home() {
   const hasSuggestions = combined.length > 0;
 
   const displayFeatured =
-    featuredPlayers && featuredPlayers.length > 0 ? featuredPlayers : players?.slice(0, 5) || [];
+    hasSavedFeatured ? featuredPlayers! : players?.slice(0, 5) || [];
 
   const featuredPickerResults =
     featuredSearch.trim().length > 0
@@ -497,7 +499,7 @@ export default function Home() {
                 {displayFeatured.slice(0, 6).map((player) => (
                   <div key={player.id} className="relative group">
                     <PlayerCard player={player} />
-                    {isAdmin && (
+                    {isAdmin && hasSavedFeatured && (
                       <div className="absolute top-1 right-1 z-[100] pointer-events-none">
                         <Button
                           type="button"
@@ -520,7 +522,7 @@ export default function Home() {
                 {displayFeatured.slice(0, 5).map((player) => (
                   <div key={player.id} className="relative group">
                     <PlayerCard player={player} />
-                    {isAdmin && (
+                    {isAdmin && hasSavedFeatured && (
                       <div className="absolute top-1 right-1 z-[100] pointer-events-none">
                         <Button
                           type="button"
