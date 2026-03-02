@@ -261,11 +261,24 @@ export class DatabaseStorage implements IStorage {
 
   async getTeamRecord(team: string, season: string): Promise<TeamRecord | undefined> {
     const teamLower = team.toLowerCase();
-    const [record] = await db
-      .select()
-      .from(teamRecords)
-      .where(sql`LOWER(${teamRecords.team}) = ${teamLower} AND ${teamRecords.season} = ${season}`);
-    return record;
+    const seasonNorm = (season ?? "").trim();
+    const seasonCandidates: string[] = seasonNorm ? [seasonNorm] : [];
+    if (/^\d{4}$/.test(seasonNorm)) {
+      const y = parseInt(seasonNorm, 10);
+      seasonCandidates.push(`${y}-${String(y + 1).slice(-2)}`);
+    }
+    const rangeMatch = seasonNorm.match(/^(\d{4})-(\d{2})$/);
+    if (rangeMatch && !seasonCandidates.includes(rangeMatch[1])) {
+      seasonCandidates.push(rangeMatch[1]);
+    }
+    for (const s of seasonCandidates) {
+      const [record] = await db
+        .select()
+        .from(teamRecords)
+        .where(and(sql`LOWER(${teamRecords.team}) = ${teamLower}`, eq(teamRecords.season, s)));
+      if (record) return record;
+    }
+    return undefined;
   }
 
   async createTeamRecord(record: InsertTeamRecord): Promise<TeamRecord> {

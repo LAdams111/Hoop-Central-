@@ -1126,6 +1126,12 @@ async function seedTeamRecords() {
   // Dallas Mavericks
   await storage.createTeamRecord({ team: "Dallas Mavericks", season: "2025-26", wins: 33, losses: 19 });
 
+  // Boston Celtics
+  await storage.createTeamRecord({ team: "Boston Celtics", season: "2025-26", wins: 58, losses: 14 });
+  await storage.createTeamRecord({ team: "Boston Celtics", season: "2024-25", wins: 64, losses: 18 });
+  await storage.createTeamRecord({ team: "Boston Celtics", season: "2023-24", wins: 64, losses: 18 });
+  await storage.createTeamRecord({ team: "Boston Celtics", season: "2022-23", wins: 57, losses: 25 });
+
   // G League Teams
   await storage.createTeamRecord({ team: "South Bay Lakers", season: "2023-24", wins: 20, losses: 14, league: "G League" });
   await storage.createTeamRecord({ team: "South Bay Lakers", season: "2021-22", wins: 17, losses: 15, league: "G League" });
