@@ -98,6 +98,15 @@ async function ensurePlayerStatsColumns(): Promise<void> {
   }
 }
 
+/** Ensure player_stats.season is TEXT (for NCAA "2025-26"). Run on startup if column was created as INTEGER. */
+async function ensurePlayerStatsSeasonText(): Promise<void> {
+  try {
+    await pool.query(`ALTER TABLE player_stats ALTER COLUMN season TYPE TEXT USING season::text`);
+  } catch (err: unknown) {
+    console.warn("Could not alter player_stats.season to TEXT:", (err as Error)?.message ?? err);
+  }
+}
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -210,6 +219,11 @@ app.use((req, res, next) => {
   }
   try {
     await ensurePlayerStatsColumns();
+  } catch {
+    // non-fatal
+  }
+  try {
+    await ensurePlayerStatsSeasonText();
   } catch {
     // non-fatal
   }
