@@ -3,8 +3,10 @@
  * Fetches all NCAA teams (by school slug), then for each school and season
  * parses the Per Game roster table and upserts player_info + player_stats (league NCAA).
  * Existing players are matched by name (case-insensitive); new players get a row in player_info.
+ * Sports Reference wraps roster tables in HTML comments; we strip comments then parse with cheerio.
  */
 
+import * as cheerio from "cheerio";
 import { db } from "./db";
 import { storage } from "./storage";
 import { players, playerStats } from "@shared/schema";
@@ -92,179 +94,66 @@ export interface NcaaPlayerRow {
 
 /**
  * Parse the first "Per Game" (season) stats table from a roster page HTML.
- * Skips "Team Totals" and conference-only table. Returns array of player rows.
- * Prefer parsing by data-stat attributes (sports-reference); fallback to column index.
+ * Sports Reference CBB wraps tables in HTML comments; we remove comments then parse with cheerio.
+ * CBB roster per-game table id is "per_game". Skips "Team Totals" row.
  */
 function parsePerGameTable(html: string): NcaaPlayerRow[] {
+  const cleaned = html.replace(/<!--/g, "").replace(/-->/g, "");
+  const $ = cheerio.load(cleaned);
+
+  // CBB roster per-game table: wrapper div#per_game or table#per_game on sports-reference.com/cbb
+  let $table = $("#per_game table");
+  if (!$table.length) $table = $('table#per_game');
+  if (!$table.length) $table = $("table.stats_table").first();
+  if (!$table.length) {
+    console.log("[NCAA parser] no roster table found (#per_game or .stats_table)");
+    return [];
+  }
+
   const out: NcaaPlayerRow[] = [];
+  const $rows = $table.find("tbody tr");
+  $rows.each((_, el) => {
+    const $row = $(el);
+    const $playerCell = $row.find('td[data-stat="player"]');
+    if (!$playerCell.length) return;
 
-  // Find all tables that contain player links and a PTS header
-  const allTables = html.match(/<table[^>]*>[\s\S]*?<\/table>/gi) || [];
-  const candidateTables: string[] = [];
-  for (const t of allTables) {
-    if (/<a href="\/cbb\/players\//i.test(t) && /PTS/i.test(t)) candidateTables.push(t);
-  }
+    const nameRaw = $playerCell.find('a[href*="/cbb/players/"]').text().trim();
+    if (!nameRaw || /team totals/i.test(nameRaw)) return;
 
-  for (const table of candidateTables) {
-    const rows = table.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || [];
+    const name = nameRaw.replace(/&amp;/g, "&").replace(/&#x27;/g, "'");
 
-    // Strategy A: parse by data-stat (sports-reference)
-    for (const row of rows) {
-      if (!/data-stat="player"/i.test(row) || !/<td/i.test(row)) continue;
-      const linkMatch = row.match(/<a href="\/cbb\/players\/[^"]+"[^>]*>([^<]+)<\/a>/i);
-      if (!linkMatch) continue;
-      const name = linkMatch[1].replace(/&amp;/g, "&").replace(/&#x27;/g, "'").trim();
-      if (/team totals/i.test(name)) continue;
+    const g = parseInt($row.find('td[data-stat="g"]').text().replace(/,/g, "").trim(), 10) || 0;
+    if (g === 0) return;
 
-      const getStat = (stat: string): string => {
-        const re = new RegExp(
-          `<t[dh][^>]*data-stat="${stat.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[^>]*>([\\s\\S]*?)</t[dh]>`,
-          "i"
-        );
-        const m = row.match(re);
-        if (!m) return "";
-        return m[1].replace(/<[^>]+>/g, "").replace(/,/g, "").trim();
-      };
-      const getStatOr = (primary: string, fallback: string): string =>
-        getStat(primary) || getStat(fallback);
-      const g = parseInt(getStat("g"), 10) || 0;
-      if (g === 0) continue;
-
-      const pts = parseFloat(getStatOr("pts", "pts_per_g")) || 0;
-      const trb = parseFloat(getStatOr("trb", "trb_per_g")) || 0;
-      const ast = parseFloat(getStatOr("ast", "ast_per_g")) || 0;
-      const stl = parseFloat(getStatOr("stl", "stl_per_g")) || 0;
-      const blk = parseFloat(getStatOr("blk", "blk_per_g")) || 0;
-      let fgPct = parseFloat(getStatOr("fg_pct", "fg_pct")) || 0;
-      if (fgPct > 1) fgPct /= 100;
-      const pos = (getStat("pos") || "G").toUpperCase().trim() || "G";
-
-      out.push({
-        name,
-        pos,
-        g,
-        ppg: pts,
-        rpg: trb,
-        apg: ast,
-        spg: stl,
-        bpg: blk,
-        fgPct,
-      });
-    }
-
-    if (out.length > 0) return out;
-  }
-
-  // Strategy B: column-index parsing (original)
-  let tableMatch = html.match(/<table[^>]*id="per_game"[^>]*>[\s\S]*?<\/table>/i);
-  if (!tableMatch) {
-    const statsTable = html.match(/<table[^>]*class="[^"]*stats_table[^"]*"[^>]*>[\s\S]*?<\/table>/i);
-    if (statsTable) tableMatch = statsTable;
-  }
-  if (!tableMatch) {
-    for (const t of allTables) {
-      if (/<a href="\/cbb\/players\//i.test(t) && /<th[^>]*>[\s\S]*?PTS[\s\S]*?<\/th>/i.test(t)) {
-        tableMatch = [t];
-        break;
-      }
-    }
-  }
-  if (!tableMatch) return out;
-
-  const table = tableMatch[0];
-  const rows = table.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || [];
-  let headerRow: string | null = null;
-  const colIndex: Record<string, number> = {};
-
-  const firstDataRow = rows.find((r) => /data-stat="player"/i.test(r) && /<td/i.test(r));
-  if (firstDataRow) {
-    const headerRowForStat = rows.find((r) => /<th[^>]*data-stat="/i.test(r));
-    if (headerRowForStat) {
-      const statMatches = headerRowForStat.match(/<t[dh][^>]*data-stat="([^"]+)"[^>]*>/gi) || [];
-      statMatches.forEach((tag, idx) => {
-        const stat = (tag.match(/data-stat="([^"]+)"/i)?.[1] || "").toLowerCase();
-        if (["g", "fg_pct", "trb", "ast", "stl", "blk", "pts", "pos"].includes(stat)) colIndex[stat] = idx;
-      });
-      if (Object.keys(colIndex).length >= 5) headerRow = headerRowForStat;
-    }
-    if (Object.keys(colIndex).length < 5) {
-      colIndex["pos"] = 2;
-      colIndex["g"] = 3;
-      colIndex["fg_pct"] = 8;
-      colIndex["trb"] = 21;
-      colIndex["ast"] = 22;
-      colIndex["stl"] = 23;
-      colIndex["blk"] = 24;
-      colIndex["pts"] = 27;
-    }
-  }
-
-  if (!headerRow || Object.keys(colIndex).length < 5) {
-    for (const row of rows) {
-      const thCells = row.match(/<th[^>]*>[\s\S]*?<\/th>/gi);
-      if (thCells && thCells.length > 2) {
-        headerRow = row;
-        const cellTexts = thCells.map((c) => (c.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim()));
-        ["g", "fg_pct", "trb", "ast", "stl", "blk", "pts"].forEach((key) => {
-          const i = cellTexts.findIndex((t) => t.toUpperCase() === key.toUpperCase() || (key === "g" && t === "G") || (key === "pts" && t === "PTS"));
-          if (i >= 0) colIndex[key] = i;
-        });
-        const posI = cellTexts.findIndex((t) => /^pos$/i.test(t));
-        if (posI >= 0) colIndex["pos"] = posI;
-        break;
-      }
-    }
-  }
-
-  if (!headerRow || Object.keys(colIndex).length < 5) {
-    colIndex["pos"] = 2;
-    colIndex["g"] = 3;
-    colIndex["fg_pct"] = 8;
-    colIndex["trb"] = 21;
-    colIndex["ast"] = 22;
-    colIndex["stl"] = 23;
-    colIndex["blk"] = 24;
-    colIndex["pts"] = 27;
-  } else if (colIndex["pos"] === undefined) {
-    colIndex["pos"] = 2;
-  }
-
-  for (const row of rows) {
-    const linkMatch = row.match(/<a href="\/cbb\/players\/[^"]+"[^>]*>([^<]+)<\/a>/i);
-    if (!linkMatch) continue;
-    const name = linkMatch[1].replace(/&amp;/g, "&").replace(/&#x27;/g, "'").trim();
-    if (/team totals/i.test(name)) continue;
-
-    const tds = row.match(/<td[^>]*>[\s\S]*?<\/td>/gi);
-    if (!tds || tds.length < 15) continue;
-
-    const getNum = (key: string): number => {
-      const i = colIndex[key];
-      if (i === undefined || i >= tds.length) return 0;
-      const raw = tds[i].replace(/<[^>]+>/g, "").replace(/,/g, "").trim();
-      const n = parseFloat(raw);
+    const getNum = (stat: string): number => {
+      const text = $row.find(`td[data-stat="${stat}"]`).text().replace(/,/g, "").trim();
+      const n = parseFloat(text);
       return Number.isFinite(n) ? n : 0;
     };
-    const g = Math.max(0, Math.round(getNum("g")));
-    if (g === 0) continue;
-
-    const ppg = getNum("pts");
-    const rpg = getNum("trb");
-    const apg = getNum("ast");
-    const spg = getNum("stl");
-    const bpg = getNum("blk");
+    const pts = getNum("pts") || getNum("pts_per_g");
+    const trb = getNum("trb") || getNum("trb_per_g");
+    const ast = getNum("ast") || getNum("ast_per_g");
+    const stl = getNum("stl") || getNum("stl_per_g");
+    const blk = getNum("blk") || getNum("blk_per_g");
     let fgPct = getNum("fg_pct");
     if (fgPct > 1) fgPct /= 100;
 
-    const posIdx = colIndex["pos"];
-    let pos = "G";
-    if (posIdx !== undefined && posIdx < tds.length) {
-      pos = tds[posIdx].replace(/<[^>]+>/g, "").trim().toUpperCase() || "G";
-    }
+    const pos = ($row.find('td[data-stat="pos"]').text().trim().toUpperCase() || "G").slice(0, 5);
 
-    out.push({ name, pos, g, ppg, rpg, apg, spg, bpg, fgPct });
-  }
+    out.push({
+      name,
+      pos: pos || "G",
+      g,
+      ppg: pts,
+      rpg: trb,
+      apg: ast,
+      spg: stl,
+      bpg: blk,
+      fgPct,
+    });
+  });
 
+  console.log("[NCAA parser] rows found after parsing:", out.length);
   return out;
 }
 
