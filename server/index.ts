@@ -60,6 +60,24 @@ async function ensurePlayerInfoHeadshotUrlColumn(): Promise<void> {
   }
 }
 
+/** Create team_records table if missing so seed and standings can insert. Without this, production may have no W-L data. */
+async function ensureTeamRecordsTable(): Promise<void> {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS team_records (
+        id SERIAL PRIMARY KEY,
+        team TEXT NOT NULL,
+        season TEXT NOT NULL,
+        wins INTEGER NOT NULL,
+        losses INTEGER NOT NULL,
+        league TEXT NOT NULL DEFAULT 'NBA'
+      )
+    `);
+  } catch (err: unknown) {
+    console.warn("Could not ensure team_records table:", (err as Error)?.message ?? err);
+  }
+}
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -117,6 +135,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Ensure team_records exists before registerRoutes so seedDatabase can insert W-L data
+  if (process.env.DATABASE_URL || process.env.RAILWAY_POSTGRESQL_URL || process.env.PGHOST) {
+    try {
+      await ensureTeamRecordsTable();
+    } catch {
+      // non-fatal
+    }
+  }
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
