@@ -5,7 +5,7 @@ import { usePreviousPath } from "@/contexts/PreviousPathContext";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Calendar, Trophy } from "lucide-react";
+import { ArrowLeft, Users, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import { Player, TeamRecord } from "@shared/schema";
 import { DEFAULT_HEADSHOT } from "@/lib/constants";
@@ -245,7 +245,6 @@ export default function Roster() {
                 </p>
                 {teamRecord != null ? (
                   <p className="mt-2 flex items-center gap-2 font-display text-2xl font-bold tracking-tight" data-testid="team-record-header">
-                    <Trophy className="w-5 h-5 text-primary" />
                     <span className="text-primary">{teamRecord.wins}</span>
                     <span className="text-muted-foreground">-</span>
                     <span className="text-muted-foreground">{teamRecord.losses}</span>
@@ -253,7 +252,6 @@ export default function Roster() {
                   </p>
                 ) : (
                   <p className="mt-2 flex items-center gap-2 font-display text-2xl font-bold tracking-tight text-muted-foreground" data-testid="team-record-header">
-                    <Trophy className="w-5 h-5" />
                     <span>0</span>
                     <span>-</span>
                     <span>0</span>
@@ -295,7 +293,6 @@ export default function Roster() {
           </div>
           {teamRecord != null ? (
             <div className="flex items-center gap-3" data-testid="team-record">
-              <Trophy className="w-4 h-4 text-primary" />
               <span className="font-display text-2xl font-bold tracking-tight">
                 <span className="text-primary">{teamRecord.wins}</span>
                 <span className="text-muted-foreground mx-1">-</span>
@@ -305,7 +302,6 @@ export default function Roster() {
             </div>
           ) : (
             <div className="flex items-center gap-3 text-muted-foreground" data-testid="team-record">
-              <Trophy className="w-4 h-4" />
               <span className="font-display text-2xl font-bold tracking-tight">0-0</span>
               <span className="text-xs font-mono uppercase tracking-widest">W-L</span>
             </div>
