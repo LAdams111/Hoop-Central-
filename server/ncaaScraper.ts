@@ -31,6 +31,45 @@ function endYearToSeason(endYear: number): string {
   return `${start}-${endStr}`;
 }
 
+/** Build both candidate URLs (with and without /men/) for a school/year. */
+function rosterPageUrls(slug: string, year: number): [string, string] {
+  const base = `${BASE_URL}/cbb/schools/${slug}`;
+  return [`${base}/${year}.html`, `${base}/men/${year}.html`];
+}
+
+/**
+ * Fetch a roster page, trying both URL formats (without and with /men/).
+ * Returns the first response that is 200 and parses to at least one player, or the first 200 response.
+ * Returns { rateLimited: true } on 429 so caller can count it.
+ */
+async function fetchRosterPage(
+  slug: string,
+  year: number
+): Promise<{ url: string; html: string } | { rateLimited: true } | null> {
+  const [urlWithoutMen, urlWithMen] = rosterPageUrls(slug, year);
+  for (const url of [urlWithoutMen, urlWithMen]) {
+    console.log("[NCAA scraper] full URL:", url);
+    const res = await fetchWithRetry(url);
+    console.log("[NCAA scraper] fetch status:", res.status, "url:", url);
+    if (res.status === 429) return { rateLimited: true };
+    if (res.status === 404) continue;
+    if (!res.ok) continue;
+    let html: string;
+    try {
+      html = await res.text();
+    } catch {
+      continue;
+    }
+    const rows = parsePerGameTable(html);
+    if (rows.length > 0) {
+      if (url === urlWithMen) console.log("[NCAA scraper] used fallback URL (with /men/)");
+      return { url, html };
+    }
+    if (url === urlWithoutMen) console.log("[NCAA scraper] 0 players from first URL, trying with /men/");
+  }
+  return null;
+}
+
 /** Fetch with retries on 429 (rate limit) or 5xx. Uses exponential backoff. */
 async function fetchWithRetry(url: string): Promise<Response> {
   let lastRes: Response | null = null;
@@ -186,10 +225,35 @@ export async function testFetchOnePage(
   error?: string;
   rateLimited?: boolean;
 }> {
-  const url = `${BASE_URL}/cbb/schools/${slug}/men/${year}.html`;
+  const [url1, url2] = rosterPageUrls(slug, year);
+  console.log("[NCAA scraper] full URL (trying both):", url1, "|", url2);
   try {
-    const res = await fetchWithRetry(url);
-    const html = await res.text();
+    const got = await fetchRosterPage(slug, year);
+    if (got === null) {
+      return {
+        url: url1,
+        status: 200,
+        contentLength: 0,
+        hasPlayerLinks: false,
+        hasPerGameTable: false,
+        playerRowsFound: 0,
+        sampleNames: [],
+        rateLimited: false,
+      };
+    }
+    if ("rateLimited" in got) {
+      return {
+        url: url1,
+        status: 429,
+        contentLength: 0,
+        hasPlayerLinks: false,
+        hasPerGameTable: false,
+        playerRowsFound: 0,
+        sampleNames: [],
+        rateLimited: true,
+      };
+    }
+    const { url, html } = got;
     const hasPlayerLinks = /<a href="\/cbb\/players\//i.test(html);
     const hasPerGameTable =
       /<table[^>]*id="per_game"/i.test(html) ||
@@ -198,17 +262,17 @@ export async function testFetchOnePage(
     const rows = parsePerGameTable(html);
     return {
       url,
-      status: res.status,
+      status: 200,
       contentLength: html.length,
       hasPlayerLinks,
       hasPerGameTable,
       playerRowsFound: rows.length,
       sampleNames: rows.slice(0, 5).map((r) => r.name),
-      rateLimited: res.status === 429,
+      rateLimited: false,
     };
   } catch (e) {
     return {
-      url,
+      url: url1,
       status: 0,
       contentLength: 0,
       hasPlayerLinks: false,
@@ -294,30 +358,21 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
 
       for (let year = startYear; year >= endYear; year--) {
         const season = endYearToSeason(year);
-        const url = `${BASE_URL}/cbb/schools/${slug}/men/${year}.html`;
 
         try {
-          const res = await fetchWithRetry(url);
-          console.log("[NCAA scraper] fetch status:", res.status, "url:", url);
-
-          if (!res.ok) {
-            if (res.status === 404) {
-              continue;
-            }
-            if (res.status === 429) result.pages429!++;
-            result.errors.push(`${slug}/${year}: HTTP ${res.status}`);
-            console.warn("[NCAA scraper] non-ok response:", res.status, slug, year);
+          const got = await fetchRosterPage(slug, year);
+          if (got === null) {
+            result.pagesParseZero!++;
+            console.warn("[NCAA scraper] fetched zero players for", slug, year, "(tried both URL formats)");
             continue;
           }
-
-          let html: string;
-          try {
-            html = await res.text();
-          } catch (err) {
-            result.errors.push(`${slug}/${year}: failed to read body ${err instanceof Error ? err.message : String(err)}`);
-            console.error("[NCAA scraper] failed to read response body:", slug, year, err);
+          if ("rateLimited" in got) {
+            result.pages429!++;
+            result.errors.push(`${slug}/${year}: HTTP 429`);
+            console.warn("[NCAA scraper] rate limited:", slug, year);
             continue;
           }
+          const { url, html } = got;
 
           if (!schoolName) schoolName = parseSchoolName(html, slug);
 

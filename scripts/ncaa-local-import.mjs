@@ -29,18 +29,24 @@ function getYears() {
 }
 
 async function fetchRoster(slug, year) {
-  const url = `${BASE_URL}/cbb/schools/${slug}/men/${year}.html`;
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9",
-      Referer: "https://www.sports-reference.com/",
-    },
-  });
-  if (!res.ok) return { ok: false, status: res.status, html: null };
-  const html = await res.text();
-  return { ok: true, status: res.status, html };
+  const urls = [
+    `${BASE_URL}/cbb/schools/${slug}/${year}.html`,
+    `${BASE_URL}/cbb/schools/${slug}/men/${year}.html`,
+  ];
+  for (const url of urls) {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        Referer: "https://www.sports-reference.com/",
+      },
+    });
+    if (!res.ok) continue;
+    const html = await res.text();
+    return { ok: true, status: res.status, html };
+  }
+  return { ok: false, status: 404, html: null };
 }
 
 async function main() {
