@@ -509,3 +509,132 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
 
   return result;
 }
+
+/** One player-season row for import (same shape as NBA stats in DB). */
+export interface NcaaImportRow {
+  name: string;
+  school: string;
+  season: string;
+  g: number;
+  ppg: number;
+  rpg: number;
+  apg: number;
+  spg: number;
+  bpg: number;
+  fg_pct: number;
+}
+
+export interface NcaaImportResult {
+  playersAdded: number;
+  playersMatched: number;
+  statsInserted: number;
+  statsUpdated: number;
+  errors: string[];
+}
+
+/** Import NCAA player-season stats (like NBA API flow). Call from POST /api/ncaa/import with JSON body. */
+export async function importNcaaPlayerSeasons(rows: NcaaImportRow[]): Promise<NcaaImportResult> {
+  const result: NcaaImportResult = { playersAdded: 0, playersMatched: 0, statsInserted: 0, statsUpdated: 0, errors: [] };
+  const playerCache = new Map<string, number>();
+
+  for (const row of rows) {
+    try {
+      const nameNorm = row.name.trim().toLowerCase();
+      const school = (row.school || "").trim();
+      const season = (row.season || "").trim();
+      if (!nameNorm || !school || !season) {
+        result.errors.push("Missing name, school, or season");
+        continue;
+      }
+
+      let playerId = playerCache.get(nameNorm);
+      if (!playerId) {
+        const existing = await db.select().from(players).where(sql`LOWER(TRIM(${players.name})) = ${nameNorm}`).limit(1);
+        if (existing.length > 0) {
+          playerId = existing[0].id;
+          result.playersMatched++;
+        } else {
+          const newPlayer = await storage.createPlayer({
+            name: row.name.trim(),
+            position: "G",
+            team: school,
+            height: "—",
+            weight: "—",
+            jerseyNumber: 0,
+            headshotUrl: "",
+          });
+          playerId = newPlayer.id;
+          result.playersAdded++;
+        }
+        playerCache.set(nameNorm, playerId);
+      }
+
+      const g = Math.max(0, Math.round(Number(row.g) || 0));
+      if (g === 0) continue;
+
+      const existing = await db.select().from(playerStats).where(
+        and(
+          eq(playerStats.playerId, playerId),
+          sql`CAST(${playerStats.season} AS text) = ${season}`,
+          eq(playerStats.league, "NCAA"),
+          sql`LOWER(${playerStats.team}) = ${school.toLowerCase()}`
+        )
+      ).limit(1);
+
+      const fgPct = Number(row.fg_pct);
+      const statRow = {
+        playerId,
+        season,
+        team: school,
+        league: "NCAA",
+        gamesPlayed: g,
+        pointsPerGame: (Number(row.ppg) || 0).toFixed(1),
+        reboundsPerGame: (Number(row.rpg) || 0).toFixed(1),
+        assistsPerGame: (Number(row.apg) || 0).toFixed(1),
+        stealsPerGame: (Number(row.spg) || 0).toFixed(1),
+        blocksPerGame: (Number(row.bpg) || 0).toFixed(1),
+        fieldGoalPct: (Number.isFinite(fgPct) ? (fgPct > 1 ? fgPct : fgPct * 100) : 0).toFixed(1),
+      };
+
+      if (existing.length > 0) {
+        await db.update(playerStats).set({
+          gamesPlayed: statRow.gamesPlayed,
+          pointsPerGame: statRow.pointsPerGame,
+          reboundsPerGame: statRow.reboundsPerGame,
+          assistsPerGame: statRow.assistsPerGame,
+          stealsPerGame: statRow.stealsPerGame,
+          blocksPerGame: statRow.blocksPerGame,
+          fieldGoalPct: statRow.fieldGoalPct,
+        }).where(eq(playerStats.id, existing[0].id));
+        result.statsUpdated++;
+      } else {
+        await storage.createPlayerStats(statRow);
+        result.statsInserted++;
+      }
+    } catch (err) {
+      result.errors.push(`${row.name}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  return result;
+}
+
+/** Accept HTML from a roster page (e.g. from local script), parse and import. Same storage as NBA. */
+export async function importNcaaRosterHtml(schoolSlug: string, year: number, html: string): Promise<NcaaImportResult> {
+  const schoolName = parseSchoolName(html, schoolSlug) || schoolSlug;
+  const season = endYearToSeason(year);
+  const rows = parsePerGameTable(html);
+  const importRows: NcaaImportRow[] = rows.map((r) => ({
+    name: r.name,
+    school: schoolName,
+    season,
+    g: r.g,
+    ppg: r.ppg,
+    rpg: r.rpg,
+    apg: r.apg,
+    spg: r.spg,
+    bpg: r.bpg,
+    fg_pct: r.fgPct * 100,
+  }));
+  return importNcaaPlayerSeasons(importRows);
+}

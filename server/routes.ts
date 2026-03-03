@@ -1167,6 +1167,52 @@ export async function registerRoutes(
     }
   });
 
+  /** Import NCAA stats from JSON (e.g. from a local script). Same storage as NBA so data shows on site. */
+  app.post("/api/ncaa/import", async (req, res) => {
+    try {
+      const body = req.body as { players?: Array<{ name: string; school: string; season: string; g?: number; ppg?: number; rpg?: number; apg?: number; spg?: number; bpg?: number; fg_pct?: number }> };
+      const players = Array.isArray(body?.players) ? body.players : [];
+      if (players.length === 0) {
+        return res.status(400).json({ message: "Body must include players array" });
+      }
+      const { importNcaaPlayerSeasons } = await import("./ncaaScraper");
+      const rows = players.map((p) => ({
+        name: p.name,
+        school: p.school,
+        season: String(p.season),
+        g: Number(p.g) || 0,
+        ppg: Number(p.ppg) || 0,
+        rpg: Number(p.rpg) || 0,
+        apg: Number(p.apg) || 0,
+        spg: Number(p.spg) || 0,
+        bpg: Number(p.bpg) || 0,
+        fg_pct: Number(p.fg_pct) ?? 0,
+      }));
+      const result = await importNcaaPlayerSeasons(rows);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message ?? "NCAA import failed" });
+    }
+  });
+
+  /** Import from HTML (local script fetches page and POSTs here to avoid 429 on server). */
+  app.post("/api/ncaa/import-html", async (req, res) => {
+    try {
+      const body = req.body as { schoolSlug?: string; year?: number; html?: string };
+      const schoolSlug = typeof body?.schoolSlug === "string" ? body.schoolSlug.trim() : "";
+      const year = typeof body?.year === "number" ? body.year : parseInt(String(body?.year || "2024"), 10);
+      const html = typeof body?.html === "string" ? body.html : "";
+      if (!schoolSlug || !html) {
+        return res.status(400).json({ message: "Body must include schoolSlug and html" });
+      }
+      const { importNcaaRosterHtml } = await import("./ncaaScraper");
+      const result = await importNcaaRosterHtml(schoolSlug, year, html);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message ?? "NCAA import-html failed" });
+    }
+  });
+
   app.post("/api/scraper/bios", async (req, res) => {
     if (isBioScraperRunning()) {
       return res.status(409).json({ message: "Bio scraper is already running. Please wait." });
