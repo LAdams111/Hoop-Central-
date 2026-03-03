@@ -1136,6 +1136,24 @@ export async function registerRoutes(
     }
   });
 
+  /** Returns how many NCAA stat rows and how many distinct players have NCAA stats (to verify scraper is ingesting). */
+  app.get("/api/ncaa/count", async (req, res) => {
+    try {
+      const statRows = await pool.query<{ count: string }>(
+        `SELECT COUNT(*) AS count FROM player_stats WHERE LOWER(league) = 'ncaa'`
+      );
+      const playerRows = await pool.query<{ count: string }>(
+        `SELECT COUNT(DISTINCT player_id) AS count FROM player_stats WHERE LOWER(league) = 'ncaa'`
+      );
+      res.json({
+        ncaaStatRows: parseInt(statRows.rows[0]?.count ?? "0", 10),
+        playersWithNcaaStats: parseInt(playerRows.rows[0]?.count ?? "0", 10),
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message ?? "NCAA count failed" });
+    }
+  });
+
   app.post("/api/scraper/bios", async (req, res) => {
     if (isBioScraperRunning()) {
       return res.status(409).json({ message: "Bio scraper is already running. Please wait." });

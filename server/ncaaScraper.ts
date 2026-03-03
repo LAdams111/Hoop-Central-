@@ -82,12 +82,27 @@ export interface NcaaPlayerRow {
 /**
  * Parse the first "Per Game" (season) stats table from a roster page HTML.
  * Skips "Team Totals" and conference-only table. Returns array of player rows.
+ * Tries multiple strategies: id=per_game, stats_table class, then any table with player links + PTS header.
  */
 function parsePerGameTable(html: string): NcaaPlayerRow[] {
   const out: NcaaPlayerRow[] = [];
-  // Find first table that looks like per-game player stats: has "PTS" and player links
-  const tableMatch = html.match(/<table[^>]*id="per_game"[^>]*>[\s\S]*?<\/table>/i)
-    || html.match(/<table[^>]*class="[^"]*stats_table[^"]*"[^>]*>[\s\S]*?<\/table>/i);
+  // Strategy 1: id="per_game"
+  let tableMatch = html.match(/<table[^>]*id="per_game"[^>]*>[\s\S]*?<\/table>/i);
+  // Strategy 2: class contains stats_table (first such table)
+  if (!tableMatch) {
+    const statsTable = html.match(/<table[^>]*class="[^"]*stats_table[^"]*"[^>]*>[\s\S]*?<\/table>/i);
+    if (statsTable) tableMatch = statsTable;
+  }
+  // Strategy 3: any table that contains both player link and PTS in header (first such table)
+  if (!tableMatch) {
+    const tables = html.match(/<table[^>]*>[\s\S]*?<\/table>/gi) || [];
+    for (const t of tables) {
+      if (/<a href="\/cbb\/players\//i.test(t) && /<th[^>]*>[\s\S]*?PTS[\s\S]*?<\/th>/i.test(t)) {
+        tableMatch = [t];
+        break;
+      }
+    }
+  }
   if (!tableMatch) return out;
 
   const table = tableMatch[0];
@@ -95,23 +110,48 @@ function parsePerGameTable(html: string): NcaaPlayerRow[] {
   let headerRow: string | null = null;
   const colIndex: Record<string, number> = {};
 
-  for (const row of rows) {
-    const thCells = row.match(/<th[^>]*>[\s\S]*?<\/th>/gi);
-    if (thCells && thCells.length > 2) {
-      headerRow = row;
-      const cellTexts = thCells.map((c) => (c.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim()));
-      ["g", "fg_pct", "trb", "ast", "stl", "blk", "pts"].forEach((key) => {
-        const i = cellTexts.findIndex((t) => t.toUpperCase() === key.toUpperCase() || (key === "g" && t === "G") || (key === "pts" && t === "PTS"));
-        if (i >= 0) colIndex[key] = i;
+  // Try data-stat attributes first (sports-reference uses these)
+  const firstDataRow = rows.find((r) => /data-stat="player"/i.test(r) && /<td/i.test(r));
+  if (firstDataRow) {
+    const headerRowForStat = rows.find((r) => /<th[^>]*data-stat="/i.test(r));
+    if (headerRowForStat) {
+      const statMatches = headerRowForStat.match(/<t[dh][^>]*data-stat="([^"]+)"[^>]*>/gi) || [];
+      statMatches.forEach((tag, idx) => {
+        const stat = (tag.match(/data-stat="([^"]+)"/i)?.[1] || "").toLowerCase();
+        if (["g", "fg_pct", "trb", "ast", "stl", "blk", "pts", "pos"].includes(stat)) colIndex[stat] = idx;
       });
-      const posI = cellTexts.findIndex((t) => /^pos$/i.test(t));
-      if (posI >= 0) colIndex["pos"] = posI;
-      break;
+      if (Object.keys(colIndex).length >= 5) headerRow = headerRowForStat;
+    }
+    if (Object.keys(colIndex).length < 5) {
+      colIndex["pos"] = 2;
+      colIndex["g"] = 3;
+      colIndex["fg_pct"] = 8;
+      colIndex["trb"] = 21;
+      colIndex["ast"] = 22;
+      colIndex["stl"] = 23;
+      colIndex["blk"] = 24;
+      colIndex["pts"] = 27;
     }
   }
 
   if (!headerRow || Object.keys(colIndex).length < 5) {
-    // Fallback: assume standard column order from SR (Rk, Player, Pos, G, GS, MP, FG, FGA, FG%, ..., TRB, AST, STL, BLK, TOV, PF, PTS)
+    for (const row of rows) {
+      const thCells = row.match(/<th[^>]*>[\s\S]*?<\/th>/gi);
+      if (thCells && thCells.length > 2) {
+        headerRow = row;
+        const cellTexts = thCells.map((c) => (c.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim()));
+        ["g", "fg_pct", "trb", "ast", "stl", "blk", "pts"].forEach((key) => {
+          const i = cellTexts.findIndex((t) => t.toUpperCase() === key.toUpperCase() || (key === "g" && t === "G") || (key === "pts" && t === "PTS"));
+          if (i >= 0) colIndex[key] = i;
+        });
+        const posI = cellTexts.findIndex((t) => /^pos$/i.test(t));
+        if (posI >= 0) colIndex["pos"] = posI;
+        break;
+      }
+    }
+  }
+
+  if (!headerRow || Object.keys(colIndex).length < 5) {
     colIndex["pos"] = 2;
     colIndex["g"] = 3;
     colIndex["fg_pct"] = 8;
@@ -131,7 +171,7 @@ function parsePerGameTable(html: string): NcaaPlayerRow[] {
     if (/team totals/i.test(name)) continue;
 
     const tds = row.match(/<td[^>]*>[\s\S]*?<\/td>/gi);
-    if (!tds || tds.length < 20) continue;
+    if (!tds || tds.length < 15) continue;
 
     const getNum = (key: string): number => {
       const i = colIndex[key];
@@ -189,6 +229,10 @@ export interface NcaaScraperResult {
   statsInserted: number;
   statsUpdated: number;
   errors: string[];
+  /** Pages that returned HTTP 429 (rate limit) after retries */
+  pages429?: number;
+  /** Pages that returned 200 but parser found 0 player rows */
+  pagesParseZero?: number;
 }
 
 let ncaaScraperRunning = false;
@@ -224,6 +268,8 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
     statsInserted: 0,
     statsUpdated: 0,
     errors: [],
+    pages429: 0,
+    pagesParseZero: 0,
   };
 
   const playerCache = new Map<string, number>();
@@ -240,6 +286,7 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
           const res = await fetchWithRetry(url);
           if (!res.ok) {
             if (res.status === 404) continue;
+            if (res.status === 429) result.pages429!++;
             result.errors.push(`${slug}/${year}: HTTP ${res.status}`);
             continue;
           }
@@ -248,7 +295,10 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
           if (!schoolName) schoolName = parseSchoolName(html, slug);
 
           const rows = parsePerGameTable(html);
-          if (rows.length === 0) continue;
+          if (rows.length === 0) {
+            result.pagesParseZero!++;
+            continue;
+          }
 
           for (const row of rows) {
             const nameNorm = row.name.trim().toLowerCase();
@@ -333,6 +383,12 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
     ncaaScraperRunning = false;
     lastNcaaScraperResult = result;
     lastNcaaScraperCompletedAt = new Date();
+    console.log(
+      `[NCAA scraper] Done: ${result.schoolsProcessed} roster pages, ${result.playersAdded} new players, ${result.playersMatched} matched, ${result.statsInserted} stats inserted, ${result.statsUpdated} updated. ` +
+        (result.pages429 ? `429s: ${result.pages429}. ` : "") +
+        (result.pagesParseZero ? `Parse-0 rows: ${result.pagesParseZero}. ` : "") +
+        (result.errors.length ? `Errors: ${result.errors.length}` : "")
+    );
   }
 
   return result;
