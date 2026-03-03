@@ -140,10 +140,14 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
           continue;
         }
 
+        const cleanHtml = html
+          .replace(/<!--/g, "")
+          .replace(/-->/g, "");
+
         if (!schoolName) schoolName = parseSchoolName(html, slug);
 
-        const roster = parseRoster(html);
-        const statsByPlayer = parseStats(html);
+        const roster = parseRoster(cleanHtml);
+        const statsByPlayer = parseStats(cleanHtml);
         console.log("[scraper] players parsed:", roster.length, "stats parsed:", Object.keys(statsByPlayer).length);
 
         if (roster.length === 0) {

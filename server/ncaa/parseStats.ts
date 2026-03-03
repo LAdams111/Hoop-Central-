@@ -5,7 +5,6 @@
  */
 
 import * as cheerio from "cheerio";
-import { stripComments } from "./request";
 
 export interface PerGameStats {
   games: number;
@@ -36,13 +35,21 @@ function toInt(val: unknown): number {
 }
 
 export function parseStats(html: string): StatsByPlayerName {
-  const cleaned = stripComments(html);
-  const $ = cheerio.load(cleaned);
+  const cleanHtml = html
+    .replace(/<!--/g, "")
+    .replace(/-->/g, "");
+
+  const $ = cheerio.load(cleanHtml);
   const stats: StatsByPlayerName = {};
 
-  $("#per_game tbody tr").each((_, el) => {
+  const $rows = $("#per_game tbody tr");
+  const perGameRowCount = $rows.length;
+  const perGameTableExists = $("#per_game").length > 0;
+  console.log("[scraper] #per_game table exists:", perGameTableExists, "stats rows found:", perGameRowCount);
+
+  $rows.each((_, el) => {
     const $row = $(el);
-    const $playerLink = $row.find('td[data-stat="player"] a[href*="/cbb/players/"]');
+    const $playerLink = $row.find('[data-stat="player"] a[href*="/cbb/players/"]');
     if (!$playerLink.length) return;
     const nameRaw = $playerLink.first().text().trim();
     if (!nameRaw || /team totals|totals/i.test(nameRaw)) return;
@@ -77,5 +84,6 @@ export function parseStats(html: string): StatsByPlayerName {
     };
   });
 
+  console.log("[scraper] stats parsed (player count):", Object.keys(stats).length);
   return stats;
 }
