@@ -33,7 +33,13 @@ function endYearToSeason(endYear: number): string {
 async function fetchWithRetry(url: string): Promise<Response> {
   let lastRes: Response | null = null;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const res = await fetch(url, { headers: REQUEST_HEADERS });
+    let res: Response;
+    try {
+      res = await fetch(url, { headers: REQUEST_HEADERS });
+    } catch (err) {
+      console.error("[NCAA scraper] fetch threw:", err instanceof Error ? err.message : String(err), url);
+      throw err;
+    }
     if (res.ok || res.status === 404) return res;
     if (res.status !== 429 && res.status < 500) return res;
     lastRes = res;
@@ -41,6 +47,7 @@ async function fetchWithRetry(url: string): Promise<Response> {
     const waitMs =
       parseInt(res.headers.get("Retry-After") ?? "", 10) * 1000 ||
       RETRY_BACKOFF_MS * Math.pow(2, attempt);
+    console.log("[NCAA scraper] rate limit or 5xx, retrying after", waitMs, "ms:", url, "status:", res.status);
     await new Promise((r) => setTimeout(r, waitMs));
   }
   return lastRes!;
@@ -376,6 +383,8 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
 
   const slugsToUse = maxSchools ? schoolSlugs.slice(0, maxSchools) : schoolSlugs;
 
+  console.log("[NCAA scraper] starting: schools=" + slugsToUse.length + ", startYear=" + startYear + ", endYear=" + endYear);
+
   const result: NcaaScraperResult = {
     schoolsProcessed: 0,
     schoolsSkipped: 0,
@@ -400,23 +409,50 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
 
         try {
           const res = await fetchWithRetry(url);
+          console.log("[NCAA scraper] fetch status:", res.status, "url:", url);
+
           if (!res.ok) {
-            if (res.status === 404) continue;
+            if (res.status === 404) {
+              continue;
+            }
             if (res.status === 429) result.pages429!++;
             result.errors.push(`${slug}/${year}: HTTP ${res.status}`);
+            console.warn("[NCAA scraper] non-ok response:", res.status, slug, year);
             continue;
           }
 
-          const html = await res.text();
+          let html: string;
+          try {
+            html = await res.text();
+          } catch (err) {
+            result.errors.push(`${slug}/${year}: failed to read body ${err instanceof Error ? err.message : String(err)}`);
+            console.error("[NCAA scraper] failed to read response body:", slug, year, err);
+            continue;
+          }
+
           if (!schoolName) schoolName = parseSchoolName(html, slug);
 
-          const rows = parsePerGameTable(html);
-          if (rows.length === 0) {
-            result.pagesParseZero!++;
+          let rows: NcaaPlayerRow[];
+          try {
+            rows = parsePerGameTable(html);
+          } catch (parseErr) {
+            result.errors.push(`${slug}/${year}: parse error ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`);
+            console.error("[NCAA scraper] parse error:", slug, year, parseErr);
             continue;
           }
 
+          console.log("[NCAA scraper] parsed players:", rows.length, slug, year);
+          if (rows.length === 0) {
+            result.pagesParseZero!++;
+            console.warn("[NCAA scraper] fetched zero players for", slug, year);
+            continue;
+          }
+
+          let batchInserted = 0;
+          let batchUpdated = 0;
+
           for (const row of rows) {
+            try {
             const nameNorm = row.name.trim().toLowerCase();
             let playerId = playerCache.get(nameNorm);
 
@@ -454,11 +490,12 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
               )
             ).limit(1);
 
+            /** Explicit league = 'NCAA' for every insert/update. */
             const statRow = {
               playerId,
               season: seasonDisplay,
               team: schoolName || slug,
-              league: "NCAA",
+              league: "NCAA" as const,
               gamesPlayed: row.g,
               pointsPerGame: row.ppg.toFixed(1),
               reboundsPerGame: row.rpg.toFixed(1),
@@ -479,15 +516,27 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
                 fieldGoalPct: statRow.fieldGoalPct,
               }).where(eq(playerStats.id, existing[0].id));
               result.statsUpdated++;
+              batchUpdated++;
             } else {
               await storage.createPlayerStats(statRow);
               result.statsInserted++;
+              batchInserted++;
             }
+            } catch (rowErr) {
+              result.errors.push(`${slug}/${year} ${row.name}: ${rowErr instanceof Error ? rowErr.message : String(rowErr)}`);
+              console.error("[NCAA scraper] insert/update failed for row:", row.name, slug, year, rowErr);
+            }
+          }
+
+          if (batchInserted > 0 || batchUpdated > 0) {
+            console.log("[NCAA scraper] batch done:", slug, year, "inserted:", batchInserted, "updated:", batchUpdated);
           }
 
           result.schoolsProcessed++;
         } catch (err) {
-          result.errors.push(`${slug}/${year}: ${err instanceof Error ? err.message : String(err)}`);
+          const msg = err instanceof Error ? err.message : String(err);
+          result.errors.push(`${slug}/${year}: ${msg}`);
+          console.error("[NCAA scraper] page error:", slug, year, err);
         }
 
         await new Promise((r) => setTimeout(r, delayMs));
