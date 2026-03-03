@@ -24,6 +24,24 @@ const REQUEST_DELAY_MS = 6000;
 const MAX_RETRIES = 3;
 const RETRY_BACKOFF_MS = 15000;
 
+/** Treat empty string, dash, whitespace as null; parse integer safely. Never use "" for INTEGER columns. */
+function toIntOrNull(val: unknown): number | null {
+  if (val === null || val === undefined) return null;
+  const s = typeof val === "string" ? val.trim() : String(val).trim();
+  if (s === "" || s === "-" || /^\s*$/.test(s)) return null;
+  const n = parseInt(s, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Treat empty string, dash, whitespace as null; parse float safely. Never use "" for NUMERIC columns. */
+function toFloatOrNull(val: unknown): number | null {
+  if (val === null || val === undefined) return null;
+  const s = typeof val === "string" ? val.trim() : String(val).trim();
+  if (s === "" || s === "-" || /^\s*$/.test(s)) return null;
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : null;
+}
+
 /** End year for season: 2024 -> "2023-24". */
 function endYearToSeason(endYear: number): string {
   const start = endYear - 1;
@@ -423,19 +441,20 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
               )
             ).limit(1);
 
-            /** Explicit league = 'NCAA' for every insert/update. */
+            /** Explicit league = 'NCAA' for every insert/update. Sanitize numerics to avoid 22P02. */
+            const fgRaw = toFloatOrNull(row.fgPct) ?? 0;
             const statRow = {
               playerId,
               season: seasonDisplay,
               team: schoolName || slug,
               league: "NCAA" as const,
-              gamesPlayed: row.g,
-              pointsPerGame: row.ppg.toFixed(1),
-              reboundsPerGame: row.rpg.toFixed(1),
-              assistsPerGame: row.apg.toFixed(1),
-              stealsPerGame: row.spg.toFixed(1),
-              blocksPerGame: row.bpg.toFixed(1),
-              fieldGoalPct: (row.fgPct * 100).toFixed(1),
+              gamesPlayed: toIntOrNull(row.g) ?? 0,
+              pointsPerGame: (toFloatOrNull(row.ppg) ?? 0).toFixed(1),
+              reboundsPerGame: (toFloatOrNull(row.rpg) ?? 0).toFixed(1),
+              assistsPerGame: (toFloatOrNull(row.apg) ?? 0).toFixed(1),
+              stealsPerGame: (toFloatOrNull(row.spg) ?? 0).toFixed(1),
+              blocksPerGame: (toFloatOrNull(row.bpg) ?? 0).toFixed(1),
+              fieldGoalPct: (fgRaw > 1 ? fgRaw : fgRaw * 100).toFixed(1),
             };
 
             if (existing.length > 0) {
@@ -551,7 +570,7 @@ export async function importNcaaPlayerSeasons(rows: NcaaImportRow[]): Promise<Nc
         playerCache.set(nameNorm, playerId);
       }
 
-      const g = Math.max(0, Math.round(Number(row.g) || 0));
+      const g = toIntOrNull(row.g) ?? 0;
       if (g === 0) continue;
 
       const existing = await db.select().from(playerStats).where(
@@ -563,19 +582,19 @@ export async function importNcaaPlayerSeasons(rows: NcaaImportRow[]): Promise<Nc
         )
       ).limit(1);
 
-      const fgPct = Number(row.fg_pct);
+      const fgRaw = toFloatOrNull(row.fg_pct) ?? 0;
       const statRow = {
         playerId,
         season,
         team: school,
         league: "NCAA",
         gamesPlayed: g,
-        pointsPerGame: (Number(row.ppg) || 0).toFixed(1),
-        reboundsPerGame: (Number(row.rpg) || 0).toFixed(1),
-        assistsPerGame: (Number(row.apg) || 0).toFixed(1),
-        stealsPerGame: (Number(row.spg) || 0).toFixed(1),
-        blocksPerGame: (Number(row.bpg) || 0).toFixed(1),
-        fieldGoalPct: (Number.isFinite(fgPct) ? (fgPct > 1 ? fgPct : fgPct * 100) : 0).toFixed(1),
+        pointsPerGame: (toFloatOrNull(row.ppg) ?? 0).toFixed(1),
+        reboundsPerGame: (toFloatOrNull(row.rpg) ?? 0).toFixed(1),
+        assistsPerGame: (toFloatOrNull(row.apg) ?? 0).toFixed(1),
+        stealsPerGame: (toFloatOrNull(row.spg) ?? 0).toFixed(1),
+        blocksPerGame: (toFloatOrNull(row.bpg) ?? 0).toFixed(1),
+        fieldGoalPct: (Number.isFinite(fgRaw) && fgRaw > 1 ? fgRaw : fgRaw * 100).toFixed(1),
       };
 
       if (existing.length > 0) {
