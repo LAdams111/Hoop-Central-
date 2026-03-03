@@ -326,13 +326,19 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
   if (ncaaScraperRunning) throw new Error("NCAA scraper is already running");
   ncaaScraperRunning = true;
 
+  const currentYear = new Date().getFullYear();
+  const latestSeason = currentYear; // Sports Reference CBB uses ending year (e.g. 2026.html = 2025-26 season)
+
   const {
     schoolSlugs = DEFAULT_SCHOOL_SLUGS,
-    startYear = new Date().getFullYear() + 1,
-    endYear = 1990,
     delayMs = REQUEST_DELAY_MS,
     maxSchools,
   } = options;
+
+  // Last 4 seasons by default; never fetch a future year
+  let startYear = options.startYear ?? latestSeason;
+  let endYear = options.endYear ?? latestSeason - 3;
+  if (startYear > currentYear) startYear = currentYear;
 
   const slugsToUse = maxSchools ? schoolSlugs.slice(0, maxSchools) : schoolSlugs;
 
@@ -358,6 +364,7 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
 
       for (let year = startYear; year >= endYear; year--) {
         const season = endYearToSeason(year);
+        console.log("[NCAA scraper] scraping season year:", year);
 
         try {
           const got = await fetchRosterPage(slug, year);

@@ -242,8 +242,7 @@ app.use((req, res, next) => {
           import("./ncaaScraper").then(({ runNcaaScraper, isNcaaScraperRunning }) => {
             if (isNcaaScraperRunning()) return;
             log("NCAA scraper started in background (light: 20 schools, last 4 seasons)", "startup");
-            const endYear = new Date().getFullYear() - 2;
-            runNcaaScraper({ maxSchools: 20, endYear }).then((r) => {
+            runNcaaScraper({ maxSchools: 20 }).then((r) => {
               log(`NCAA scraper done: ${r.schoolsProcessed} roster pages, ${r.playersAdded} new players, ${r.playersMatched} matched, ${r.statsInserted} stats inserted, ${r.statsUpdated} updated`, "startup");
               if (r.pages429 && r.pages429 > 0) log(`NCAA 429s: ${r.pages429}`, "startup");
               if (r.errors.length > 0) {
@@ -309,8 +308,7 @@ function startWeeklyScraperSchedule() {
         const { runNcaaScraper, isNcaaScraperRunning } = await import("./ncaaScraper");
         if (!isNcaaScraperRunning()) {
           log("Starting scheduled NCAA scrape (light: 20 schools, last 4 seasons)...", "scheduler");
-          const endYear = new Date().getFullYear() - 2;
-          const ncaaResult = await runNcaaScraper({ maxSchools: 20, endYear });
+          const ncaaResult = await runNcaaScraper({ maxSchools: 20 });
           log(`NCAA scrape done: ${ncaaResult.schoolsProcessed} pages, ${ncaaResult.playersAdded} new, ${ncaaResult.statsInserted} stats inserted`, "scheduler");
         }
       } catch (err: any) {
