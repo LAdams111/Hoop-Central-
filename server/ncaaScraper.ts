@@ -140,11 +140,11 @@ export interface NcaaPlayerRow {
 
 /**
  * Parse the roster table from a CBB season page. Sports Reference uses <table id="roster">.
- * After stripping HTML comments, select #roster tbody tr. Name from <th>, position and stats from <td>.
+ * Call with comment-stripped HTML. After stripping HTML comments, select #roster tbody tr.
  */
 function parseRosterTable(html: string): NcaaPlayerRow[] {
-  const cleaned = html.replace(/<!--/g, "").replace(/-->/g, "");
-  const $ = cheerio.load(cleaned);
+  const cleanedHtml = html.replace(/<!--/g, "").replace(/-->/g, "");
+  const $ = cheerio.load(cleanedHtml);
 
   const $roster = $("#roster");
   const rosterExists = $roster.length > 0;
@@ -228,18 +228,27 @@ export interface PerGameStatsRow {
   ft_pct: number | null;
 }
 
-/** Parse #per_game table into a map by player name (trimmed lowercase). Used to merge stats with roster before insert. */
+/** Parse #per_game table into a map by player name (trimmed lowercase). Call with comment-stripped HTML. Only includes player rows (has link to /cbb/players/), not team totals. */
 function parsePerGameStats(html: string): Map<string, PerGameStatsRow> {
-  const cleaned = html.replace(/<!--/g, "").replace(/-->/g, "");
-  const $ = cheerio.load(cleaned);
+  const cleanedHtml = html.replace(/<!--/g, "").replace(/-->/g, "");
+  const $ = cheerio.load(cleanedHtml);
   const stats = new Map<string, PerGameStatsRow>();
 
+  const $perGame = $("#per_game");
+  const perGameTableExists = $perGame.length > 0;
   const $rows = $("#per_game tbody tr");
+  const perGameRowCount = $rows.length;
+  console.log("[NCAA parser] #per_game table exists:", perGameTableExists, "tbody tr count:", perGameRowCount);
+
   $rows.each((_, el) => {
     const $row = $(el);
-    const nameRaw = $row.find('td[data-stat="player"] a').text().trim();
-    if (!nameRaw || /team totals/i.test(nameRaw)) return;
+    const $playerCell = $row.find('td[data-stat="player"]');
+    const $playerLink = $playerCell.find('a[href*="/cbb/players/"]');
+    if (!$playerLink.length) return;
+    const nameRaw = $playerLink.first().text().trim();
+    if (!nameRaw || /team totals|totals/i.test(nameRaw)) return;
     const name = nameRaw.replace(/&amp;/g, "&").replace(/&#x27;/g, "'").trim();
+    if (!name) return;
     const nameKey = name.toLowerCase().trim();
 
     const g = toIntOrNull($row.find('td[data-stat="g"]').text()) ?? 0;
@@ -259,7 +268,7 @@ function parsePerGameStats(html: string): Map<string, PerGameStatsRow> {
 
     stats.set(nameKey, { g, gs, mp_per_g, ppg, rpg, apg, spg, bpg, fgPct, fg3_pct, ft_pct });
   });
-  console.log("[NCAA parser] #per_game stats entries:", stats.size);
+  console.log("[NCAA parser] #per_game player stats entries (excl. team totals):", stats.size);
   return stats;
 }
 
@@ -509,11 +518,12 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
           }
           const { url, html } = got;
 
+          const cleanedHtml = html.replace(/<!--/g, "").replace(/-->/g, "");
           if (!schoolName) schoolName = parseSchoolName(html, slug);
 
           let rows: NcaaPlayerRow[];
           try {
-            rows = parseRosterTable(html);
+            rows = parseRosterTable(cleanedHtml);
           } catch (parseErr) {
             result.errors.push(`${slug}/${year}: parse error ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`);
             console.error("[NCAA scraper] parse error:", slug, year, parseErr);
@@ -527,7 +537,7 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
             continue;
           }
 
-          const perGameStats = parsePerGameStats(html);
+          const perGameStats = parsePerGameStats(cleanedHtml);
 
           let batchInserted = 0;
           let batchUpdated = 0;
@@ -783,10 +793,11 @@ export async function importNcaaPlayerSeasons(rows: NcaaImportRow[]): Promise<Nc
 
 /** Accept HTML from a roster page (e.g. from local script), parse and import. Same storage as NBA. Merges #per_game stats. */
 export async function importNcaaRosterHtml(schoolSlug: string, year: number, html: string): Promise<NcaaImportResult> {
+  const cleanedHtml = html.replace(/<!--/g, "").replace(/-->/g, "");
   const schoolName = parseSchoolName(html, schoolSlug) || schoolSlug;
   const season = endYearToSeason(year);
-  const rows = parseRosterTable(html);
-  const perGameStats = parsePerGameStats(html);
+  const rows = parseRosterTable(cleanedHtml);
+  const perGameStats = parsePerGameStats(cleanedHtml);
   const importRows: NcaaImportRow[] = rows.map((r) => {
     const per = perGameStats.get(r.name.trim().toLowerCase());
     return {
