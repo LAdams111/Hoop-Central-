@@ -12,6 +12,12 @@ import { eq, and, sql } from "drizzle-orm";
 
 const BASE_URL = "https://www.sports-reference.com";
 const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+const REQUEST_HEADERS: Record<string, string> = {
+  "User-Agent": USER_AGENT,
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+  Referer: "https://www.sports-reference.com/",
+};
 const REQUEST_DELAY_MS = 2800;
 const MAX_RETRIES = 3;
 const RETRY_BACKOFF_MS = 8000;
@@ -27,9 +33,7 @@ function endYearToSeason(endYear: number): string {
 async function fetchWithRetry(url: string): Promise<Response> {
   let lastRes: Response | null = null;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const res = await fetch(url, {
-      headers: { "User-Agent": USER_AGENT, Accept: "text/html,application/xhtml+xml" },
-    });
+    const res = await fetch(url, { headers: REQUEST_HEADERS });
     if (res.ok || res.status === 404) return res;
     if (res.status !== 429 && res.status < 500) return res;
     lastRes = res;
@@ -212,6 +216,58 @@ function parseSchoolName(html: string, slug: string): string {
     if (m) return m[1].trim();
   }
   return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * Fetch one roster page and run the parser. Use for diagnostics (e.g. GET /api/ncaa/test-fetch).
+ * Returns status, content length, whether we found a table, and how many player rows we parsed.
+ */
+export async function testFetchOnePage(
+  slug: string = "duke",
+  year: number = 2024
+): Promise<{
+  url: string;
+  status: number;
+  contentLength: number;
+  hasPlayerLinks: boolean;
+  hasPerGameTable: boolean;
+  playerRowsFound: number;
+  sampleNames: string[];
+  error?: string;
+}> {
+  const url = `${BASE_URL}/cbb/schools/${slug}/men/${year}.html`;
+  try {
+    const res = await fetch(url, {
+      headers: REQUEST_HEADERS,
+    });
+    const html = await res.text();
+    const hasPlayerLinks = /<a href="\/cbb\/players\//i.test(html);
+    const hasPerGameTable =
+      /<table[^>]*id="per_game"/i.test(html) ||
+      /<table[^>]*class="[^"]*stats_table[^"]*"/i.test(html) ||
+      (hasPlayerLinks && /<th[^>]*>[\s\S]*?PTS[\s\S]*?<\/th>/i.test(html));
+    const rows = parsePerGameTable(html);
+    return {
+      url,
+      status: res.status,
+      contentLength: html.length,
+      hasPlayerLinks,
+      hasPerGameTable,
+      playerRowsFound: rows.length,
+      sampleNames: rows.slice(0, 5).map((r) => r.name),
+    };
+  } catch (e) {
+    return {
+      url,
+      status: 0,
+      contentLength: 0,
+      hasPlayerLinks: false,
+      hasPerGameTable: false,
+      playerRowsFound: 0,
+      sampleNames: [],
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
 }
 
 export interface NcaaScraperOptions {

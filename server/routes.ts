@@ -1154,6 +1154,19 @@ export async function registerRoutes(
     }
   });
 
+  /** Fetches one roster page (Duke 2024 by default) and returns parse diagnostics. Use to see why scraper gets 0 players. */
+  app.get("/api/ncaa/test-fetch", async (req, res) => {
+    try {
+      const slug = (req.query.slug as string) || "duke";
+      const year = parseInt(String(req.query.year || "2024"), 10) || 2024;
+      const { testFetchOnePage } = await import("./ncaaScraper");
+      const result = await testFetchOnePage(slug, year);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message ?? "NCAA test-fetch failed" });
+    }
+  });
+
   app.post("/api/scraper/bios", async (req, res) => {
     if (isBioScraperRunning()) {
       return res.status(409).json({ message: "Bio scraper is already running. Please wait." });
