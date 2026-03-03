@@ -231,6 +231,19 @@ export default function Roster() {
                 <p className="font-mono text-xl text-muted-foreground uppercase tracking-widest">
                   Team Roster
                 </p>
+                {teamRecord != null ? (
+                  <p className="mt-2 flex items-center gap-2 font-display text-2xl font-bold tracking-tight" data-testid="team-record-header">
+                    <Trophy className="w-5 h-5 text-primary" />
+                    <span className="text-primary">{teamRecord.wins}</span>
+                    <span className="text-muted-foreground">-</span>
+                    <span className="text-muted-foreground">{teamRecord.losses}</span>
+                    <span className="text-sm font-mono font-normal text-muted-foreground uppercase tracking-widest ml-1">W-L</span>
+                  </p>
+                ) : (
+                  <p className="mt-2 font-mono text-sm text-muted-foreground uppercase tracking-widest" data-testid="team-record-none">
+                    Season record not available
+                  </p>
+                )}
               </div>
             </div>
 
