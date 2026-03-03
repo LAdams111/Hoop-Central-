@@ -1093,6 +1093,16 @@ export async function registerRoutes(
     res.json({ running: scraperRunning, bioRunning: isBioScraperRunning() });
   });
 
+  app.post("/api/scraper/team-records", async (req, res) => {
+    try {
+      const { scrapeAllTeamRecordsFromBR } = await import("./teamRecordsScraper");
+      const result = await scrapeAllTeamRecordsFromBR();
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message ?? "Team records scrape failed" });
+    }
+  });
+
   app.post("/api/scraper/bios", async (req, res) => {
     if (isBioScraperRunning()) {
       return res.status(409).json({ message: "Bio scraper is already running. Please wait." });

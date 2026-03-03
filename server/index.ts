@@ -228,6 +228,15 @@ app.use((req, res, next) => {
         }).catch((err: any) => {
           log(`Standings backfill skipped: ${err?.message ?? String(err)}`, "startup");
         });
+        import("./teamRecordsScraper").then(({ scrapeAllTeamRecordsFromBR }) => {
+          scrapeAllTeamRecordsFromBR().then((r) => {
+            if (r.totalUpdated > 0 || r.totalInserted > 0) {
+              log(`BR team records: ${r.totalUpdated} updated, ${r.totalInserted} inserted`, "startup");
+            }
+          }).catch((err: any) => {
+            log(`BR team records scraper skipped: ${err?.message ?? String(err)}`, "startup");
+          });
+        });
       } catch (err: any) {
         log(`Zero historical records skipped: ${err?.message ?? String(err)}`, "startup");
       }
@@ -269,6 +278,15 @@ function startWeeklyScraperSchedule() {
         log(`Scheduled scrape complete! Added: ${result.playersAdded}, Updated: ${result.playersUpdated}, Stats: ${result.statsUpdated}, Seasons: ${result.seasonsProcessed.join(', ')}`, "scheduler");
       } catch (err: any) {
         log(`Scheduled scrape failed: ${err?.message ?? String(err)}`, "scheduler");
+      }
+      try {
+        const { scrapeAllTeamRecordsFromBR } = await import("./teamRecordsScraper");
+        const brResult = await scrapeAllTeamRecordsFromBR();
+        if (brResult.totalUpdated > 0 || brResult.totalInserted > 0) {
+          log(`BR team records: ${brResult.totalUpdated} updated, ${brResult.totalInserted} inserted`, "scheduler");
+        }
+      } catch (err: any) {
+        log(`BR team records scrape skipped: ${err?.message ?? String(err)}`, "scheduler");
       }
       // schedule the next run
       void scheduleNext();
