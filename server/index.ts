@@ -214,6 +214,23 @@ app.use((req, res, next) => {
       } catch (err: any) {
         log(`NBA profile views backfill skipped: ${err?.message ?? String(err)}`, "startup");
       }
+      try {
+        const { getCurrentSeasonForStandings, updateStandingsForAllSeasons } = await import("./standings");
+        const currentSeason = getCurrentSeasonForStandings();
+        const zeroed = await storage.setHistoricalNbaRecordsToZero(currentSeason);
+        if (zeroed > 0) {
+          log(`Zeroed ${zeroed} historical NBA records (non-${currentSeason}) to 0-0`, "startup");
+        }
+        updateStandingsForAllSeasons().then((r) => {
+          if (r.totalUpdated > 0 || r.totalInserted > 0) {
+            log(`Standings backfill: ${r.totalUpdated} updated, ${r.totalInserted} inserted across ${r.seasons.length} seasons`, "startup");
+          }
+        }).catch((err: any) => {
+          log(`Standings backfill skipped: ${err?.message ?? String(err)}`, "startup");
+        });
+      } catch (err: any) {
+        log(`Zero historical records skipped: ${err?.message ?? String(err)}`, "startup");
+      }
       startWeeklyScraperSchedule();
       startPlayerInfoSyncSchedule();
       startDailyStandingsSchedule();

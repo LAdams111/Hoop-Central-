@@ -1001,7 +1001,7 @@ export async function registerRoutes(
   });
 
   // Manual standings update (when automatic fetch fails, e.g. from Railway). POST body: { season: "2025-26", standings: [{ team, wins, losses }, ...] }
-  const { applyStandings, getCurrentSeasonForStandings } = await import("./standings");
+  const { applyStandings, getCurrentSeasonForStandings, updateStandingsForAllSeasons } = await import("./standings");
   app.post("/api/standings", async (req, res) => {
     try {
       const { season, standings } = req.body ?? {};
@@ -1032,6 +1032,16 @@ export async function registerRoutes(
       res.json({ currentSeason, updated });
     } catch (err: any) {
       res.status(500).json({ message: err?.message ?? "Failed to zero historical records" });
+    }
+  });
+
+  // Fetch standings for all seasons (current + historical) from NBA API and upsert. Use when API is reachable (e.g. with proxy).
+  app.post("/api/standings/fetch-all", async (_req, res) => {
+    try {
+      const result = await updateStandingsForAllSeasons();
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message ?? "Failed to fetch all standings" });
     }
   });
 

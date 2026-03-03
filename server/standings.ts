@@ -11,6 +11,13 @@ export function getCurrentSeasonForStandings(): string {
   return seasonToDisplay(getCurrentNBASeason());
 }
 
+/** Season start years we fetch standings for (matches roster dropdown). */
+const STANDINGS_SEASON_YEARS = [2025, 2024, 2023, 2022, 2021, 2020, 2018, 1997, 1995, 1992, 1987];
+
+export function getStandingsSeasonStrings(): string[] {
+  return STANDINGS_SEASON_YEARS.map((y) => seasonToDisplay(y));
+}
+
 /** NBA stats API returns "City Name" (e.g. "Los Angeles") + " TeamName" (e.g. "Clippers").
  * We store canonical names; map API combo to our value when different. */
 const API_TEAM_NAME_TO_CANONICAL: Record<string, string> = {
@@ -33,14 +40,10 @@ export interface StandingsUpdateResult {
 }
 
 /**
- * Fetch current season standings from stats.nba.com and upsert into team_records.
- * Runs daily to keep current season W-L up to date.
- * If stats.nba.com blocks the request (e.g. from Railway), set NBA_STANDINGS_URL
- * to a proxy or alternative JSON endpoint that returns the same shape.
+ * Fetch standings for a single season from stats.nba.com and upsert into team_records.
+ * Works for any season (e.g. "2024-25", "2020-21"). Used for both current and historical.
  */
-export async function updateCurrentSeasonStandings(): Promise<StandingsUpdateResult> {
-  const seasonStartYear = getCurrentNBASeason();
-  const season = seasonToDisplay(seasonStartYear);
+export async function fetchStandingsForSeason(season: string): Promise<StandingsUpdateResult> {
   const result: StandingsUpdateResult = { season, updated: 0, inserted: 0, errors: [] };
 
   const baseUrl = "https://stats.nba.com/stats/leaguestandingsv3";
@@ -133,6 +136,45 @@ export async function updateCurrentSeasonStandings(): Promise<StandingsUpdateRes
   }
 
   return result;
+}
+
+/**
+ * Fetch current season standings from stats.nba.com and upsert into team_records.
+ * Runs daily to keep current season W-L up to date.
+ */
+export async function updateCurrentSeasonStandings(): Promise<StandingsUpdateResult> {
+  return fetchStandingsForSeason(getCurrentSeasonForStandings());
+}
+
+export interface AllSeasonsStandingsResult {
+  seasons: { season: string; updated: number; inserted: number; errors: string[] }[];
+  totalUpdated: number;
+  totalInserted: number;
+}
+
+/**
+ * Fetch standings for all seasons (current + historical) that the roster dropdown shows,
+ * and upsert each into team_records. Use at startup or via script when API is reachable.
+ */
+export async function updateStandingsForAllSeasons(): Promise<AllSeasonsStandingsResult> {
+  const seasons = getStandingsSeasonStrings();
+  const results: AllSeasonsStandingsResult["seasons"] = [];
+  let totalUpdated = 0;
+  let totalInserted = 0;
+  for (let i = 0; i < seasons.length; i++) {
+    const season = seasons[i];
+    const result = await fetchStandingsForSeason(season);
+    results.push({ season, updated: result.updated, inserted: result.inserted, errors: result.errors });
+    totalUpdated += result.updated;
+    totalInserted += result.inserted;
+    if (result.errors.length > 0 && result.updated === 0 && result.inserted === 0) {
+      break;
+    }
+    if (i < seasons.length - 1) {
+      await new Promise((r) => setTimeout(r, 800));
+    }
+  }
+  return { seasons: results, totalUpdated, totalInserted };
 }
 
 /** Apply standings from a simple list (e.g. from manual POST or another API). Upserts into team_records. */
