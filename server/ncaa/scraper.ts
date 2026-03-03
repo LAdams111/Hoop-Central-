@@ -17,7 +17,7 @@ const BASE_URL = "https://www.sports-reference.com";
 const DELAY_MS = 2000;
 
 function teamSeasonUrl(slug: string, year: number): string {
-  return `${BASE_URL}/cbb/schools/${slug}/${year}.html`;
+  return `${BASE_URL}/cbb/schools/${slug}/men/${year}.html`;
 }
 
 function endYearToSeason(endYear: number): string {

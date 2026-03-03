@@ -42,22 +42,27 @@ export function parseStats(html: string): StatsByPlayerName {
   const $ = cheerio.load(cleanHtml);
   const stats: StatsByPlayerName = {};
 
-  const $rows = $("#per_game tbody tr");
-  const perGameRowCount = $rows.length;
-  const perGameTableExists = $("#per_game").length > 0;
-  console.log("[scraper] #per_game table exists:", perGameTableExists, "stats rows found:", perGameRowCount);
+  const $rows = $("#players_per_game tbody tr");
+  let perGameRowCount = $rows.length;
+  let perGameTableExists = $("#players_per_game").length > 0;
+  const $rowsFallback = perGameRowCount === 0 ? $("#per_game tbody tr") : $rows;
+  if (perGameRowCount === 0 && $rowsFallback.length > 0) {
+    perGameRowCount = $rowsFallback.length;
+    perGameTableExists = true;
+  }
+  console.log("[scraper] #players_per_game table exists:", perGameTableExists, "stats rows found:", perGameRowCount || $rowsFallback.length);
 
-  $rows.each((_, el) => {
+  $rowsFallback.each((_, el) => {
     const $row = $(el);
-    const $playerLink = $row.find('[data-stat="player"] a[href*="/cbb/players/"]');
+    const $playerLink = $row.find('[data-stat="player"] a[href*="/cbb/players/"], [data-stat="name_display"] a[href*="/cbb/players/"]');
     if (!$playerLink.length) return;
     const nameRaw = $playerLink.first().text().trim();
     if (!nameRaw || /team totals|totals/i.test(nameRaw)) return;
     const name = nameRaw.replace(/&amp;/g, "&").replace(/&#x27;/g, "'").trim();
     if (!name) return;
 
-    const games = toInt($row.find('td[data-stat="g"]').text());
-    const gs = toNum($row.find('td[data-stat="gs"]').text());
+    const games = toInt($row.find('td[data-stat="g"]').text()) || toInt($row.find('td[data-stat="games"]').text());
+    const gs = toNum($row.find('td[data-stat="gs"]').text()) ?? toNum($row.find('td[data-stat="games_started"]').text());
     let pts = toNum($row.find('td[data-stat="pts_per_g"]').text()) ?? toNum($row.find('td[data-stat="pts"]').text()) ?? 0;
     let trb = toNum($row.find('td[data-stat="trb_per_g"]').text()) ?? toNum($row.find('td[data-stat="trb"]').text()) ?? 0;
     let ast = toNum($row.find('td[data-stat="ast_per_g"]').text()) ?? toNum($row.find('td[data-stat="ast"]').text()) ?? 0;
