@@ -31,42 +31,30 @@ function endYearToSeason(endYear: number): string {
   return `${start}-${endStr}`;
 }
 
-/** Build both candidate URLs (with and without /men/) for a school/year. */
-function rosterPageUrls(slug: string, year: number): [string, string] {
-  const base = `${BASE_URL}/cbb/schools/${slug}`;
-  return [`${base}/${year}.html`, `${base}/men/${year}.html`];
+/** Build roster page URL. Only use slug/year.html (no /men/). */
+function rosterPageUrl(slug: string, year: number): string {
+  return `${BASE_URL}/cbb/schools/${slug}/${year}.html`;
 }
 
-/**
- * Fetch a roster page, trying both URL formats (without and with /men/).
- * Returns the first response that is 200 and parses to at least one player, or the first 200 response.
- * Returns { rateLimited: true } on 429 so caller can count it.
- */
+/** Fetch a roster page. Single URL only (no /men/). Returns { rateLimited: true } on 429. */
 async function fetchRosterPage(
   slug: string,
   year: number
 ): Promise<{ url: string; html: string } | { rateLimited: true } | null> {
-  const [urlWithoutMen, urlWithMen] = rosterPageUrls(slug, year);
-  for (const url of [urlWithoutMen, urlWithMen]) {
-    console.log("[NCAA scraper] full URL:", url);
-    const res = await fetchWithRetry(url);
-    console.log("[NCAA scraper] fetch status:", res.status, "url:", url);
-    if (res.status === 429) return { rateLimited: true };
-    if (res.status === 404) continue;
-    if (!res.ok) continue;
-    let html: string;
-    try {
-      html = await res.text();
-    } catch {
-      continue;
-    }
-    const rows = parsePerGameTable(html);
-    if (rows.length > 0) {
-      if (url === urlWithMen) console.log("[NCAA scraper] used fallback URL (with /men/)");
-      return { url, html };
-    }
-    if (url === urlWithoutMen) console.log("[NCAA scraper] 0 players from first URL, trying with /men/");
+  const url = rosterPageUrl(slug, year);
+  console.log("[NCAA scraper] full URL:", url);
+  const res = await fetchWithRetry(url);
+  console.log("[NCAA scraper] fetch status:", res.status, "url:", url);
+  if (res.status === 429) return { rateLimited: true };
+  if (res.status === 404 || !res.ok) return null;
+  let html: string;
+  try {
+    html = await res.text();
+  } catch {
+    return null;
   }
+  const rows = parseRosterTable(html);
+  if (rows.length > 0) return { url, html };
   return null;
 }
 
@@ -132,57 +120,58 @@ export interface NcaaPlayerRow {
 }
 
 /**
- * Parse the first "Per Game" (season) stats table from a roster page HTML.
- * Sports Reference CBB wraps tables in HTML comments; we remove comments then parse with cheerio.
- * CBB roster per-game table id is "per_game". Skips "Team Totals" row.
+ * Parse the roster table from a CBB season page. Sports Reference uses <table id="roster">.
+ * After stripping HTML comments, select #roster tbody tr. Name from <th>, position and stats from <td>.
  */
-function parsePerGameTable(html: string): NcaaPlayerRow[] {
+function parseRosterTable(html: string): NcaaPlayerRow[] {
   const cleaned = html.replace(/<!--/g, "").replace(/-->/g, "");
   const $ = cheerio.load(cleaned);
 
-  // CBB roster per-game table: wrapper div#per_game or table#per_game on sports-reference.com/cbb
-  let $table = $("#per_game table");
-  if (!$table.length) $table = $('table#per_game');
-  if (!$table.length) $table = $("table.stats_table").first();
-  if (!$table.length) {
-    console.log("[NCAA parser] no roster table found (#per_game or .stats_table)");
+  const $roster = $("#roster");
+  const rosterExists = $roster.length > 0;
+  console.log("[NCAA parser] #roster exists:", rosterExists);
+
+  if (!$roster.length) {
+    console.log("[NCAA parser] no #roster table found");
     return [];
   }
 
+  const $rows = $("#roster tbody tr");
+  const rowCount = $rows.length;
+  console.log("[NCAA parser] rows found:", rowCount);
+
   const out: NcaaPlayerRow[] = [];
-  const $rows = $table.find("tbody tr");
   $rows.each((_, el) => {
     const $row = $(el);
-    const $playerCell = $row.find('td[data-stat="player"]');
-    if (!$playerCell.length) return;
+    // Skip header rows (e.g. <tr> with only <th> or "Player" header)
+    const $th = $row.find("th");
+    if (!$th.length) return;
+    const nameRaw = $th.find('a[href*="/cbb/players/"]').text().trim() || $th.first().text().trim();
+    if (!nameRaw || /player|team totals/i.test(nameRaw)) return;
 
-    const nameRaw = $playerCell.find('a[href*="/cbb/players/"]').text().trim();
-    if (!nameRaw || /team totals/i.test(nameRaw)) return;
+    const name = nameRaw.replace(/&amp;/g, "&").replace(/&#x27;/g, "'").trim();
+    if (!name) return;
 
-    const name = nameRaw.replace(/&amp;/g, "&").replace(/&#x27;/g, "'");
+    const $tds = $row.find("td");
+    const getTdByStat = (stat: string): string =>
+      $row.find(`td[data-stat="${stat}"]`).text().replace(/,/g, "").trim();
+    const getTdByIndex = (i: number): string =>
+      $tds.eq(i).text().replace(/,/g, "").trim();
 
-    const g = parseInt($row.find('td[data-stat="g"]').text().replace(/,/g, "").trim(), 10) || 0;
-    if (g === 0) return;
-
-    const getNum = (stat: string): number => {
-      const text = $row.find(`td[data-stat="${stat}"]`).text().replace(/,/g, "").trim();
-      const n = parseFloat(text);
-      return Number.isFinite(n) ? n : 0;
-    };
-    const pts = getNum("pts") || getNum("pts_per_g");
-    const trb = getNum("trb") || getNum("trb_per_g");
-    const ast = getNum("ast") || getNum("ast_per_g");
-    const stl = getNum("stl") || getNum("stl_per_g");
-    const blk = getNum("blk") || getNum("blk_per_g");
-    let fgPct = getNum("fg_pct");
+    const pos = (getTdByStat("pos") || getTdByIndex(2) || "G").trim().toUpperCase().slice(0, 5) || "G";
+    const g = parseInt(getTdByStat("g") || getTdByIndex(3) || "0", 10) || 0;
+    const pts = parseFloat(getTdByStat("pts") || getTdByStat("pts_per_g") || getTdByIndex(27) || "0") || 0;
+    const trb = parseFloat(getTdByStat("trb") || getTdByStat("trb_per_g") || "0") || 0;
+    const ast = parseFloat(getTdByStat("ast") || getTdByStat("ast_per_g") || "0") || 0;
+    const stl = parseFloat(getTdByStat("stl") || getTdByStat("stl_per_g") || "0") || 0;
+    const blk = parseFloat(getTdByStat("blk") || getTdByStat("blk_per_g") || "0") || 0;
+    let fgPct = parseFloat(getTdByStat("fg_pct") || "0") || 0;
     if (fgPct > 1) fgPct /= 100;
-
-    const pos = ($row.find('td[data-stat="pos"]').text().trim().toUpperCase() || "G").slice(0, 5);
 
     out.push({
       name,
       pos: pos || "G",
-      g,
+      g: g || 1,
       ppg: pts,
       rpg: trb,
       apg: ast,
@@ -192,6 +181,9 @@ function parsePerGameTable(html: string): NcaaPlayerRow[] {
     });
   });
 
+  if (out.length > 0) {
+    console.log("[NCAA parser] first player name found:", out[0].name);
+  }
   console.log("[NCAA parser] rows found after parsing:", out.length);
   return out;
 }
@@ -209,7 +201,6 @@ function parseSchoolName(html: string, slug: string): string {
 
 /**
  * Fetch one roster page and run the parser. Use for diagnostics (e.g. GET /api/ncaa/test-fetch).
- * Returns status, content length, whether we found a table, and how many player rows we parsed.
  */
 export async function testFetchOnePage(
   slug: string = "duke",
@@ -218,24 +209,22 @@ export async function testFetchOnePage(
   url: string;
   status: number;
   contentLength: number;
-  hasPlayerLinks: boolean;
-  hasPerGameTable: boolean;
+  hasRosterTable: boolean;
   playerRowsFound: number;
   sampleNames: string[];
   error?: string;
   rateLimited?: boolean;
 }> {
-  const [url1, url2] = rosterPageUrls(slug, year);
-  console.log("[NCAA scraper] full URL (trying both):", url1, "|", url2);
+  const url = rosterPageUrl(slug, year);
+  console.log("[NCAA scraper] full URL:", url);
   try {
     const got = await fetchRosterPage(slug, year);
     if (got === null) {
       return {
-        url: url1,
+        url,
         status: 200,
         contentLength: 0,
-        hasPlayerLinks: false,
-        hasPerGameTable: false,
+        hasRosterTable: false,
         playerRowsFound: 0,
         sampleNames: [],
         rateLimited: false,
@@ -243,40 +232,33 @@ export async function testFetchOnePage(
     }
     if ("rateLimited" in got) {
       return {
-        url: url1,
+        url,
         status: 429,
         contentLength: 0,
-        hasPlayerLinks: false,
-        hasPerGameTable: false,
+        hasRosterTable: false,
         playerRowsFound: 0,
         sampleNames: [],
         rateLimited: true,
       };
     }
-    const { url, html } = got;
-    const hasPlayerLinks = /<a href="\/cbb\/players\//i.test(html);
-    const hasPerGameTable =
-      /<table[^>]*id="per_game"/i.test(html) ||
-      /<table[^>]*class="[^"]*stats_table[^"]*"/i.test(html) ||
-      (hasPlayerLinks && /<th[^>]*>[\s\S]*?PTS[\s\S]*?<\/th>/i.test(html));
-    const rows = parsePerGameTable(html);
+    const { url: usedUrl, html } = got;
+    const hasRosterTable = /id="roster"/i.test(html.replace(/<!--/g, "").replace(/-->/g, ""));
+    const rows = parseRosterTable(html);
     return {
-      url,
+      url: usedUrl,
       status: 200,
       contentLength: html.length,
-      hasPlayerLinks,
-      hasPerGameTable,
+      hasRosterTable,
       playerRowsFound: rows.length,
       sampleNames: rows.slice(0, 5).map((r) => r.name),
       rateLimited: false,
     };
   } catch (e) {
     return {
-      url: url1,
+      url,
       status: 0,
       contentLength: 0,
-      hasPlayerLinks: false,
-      hasPerGameTable: false,
+      hasRosterTable: false,
       playerRowsFound: 0,
       sampleNames: [],
       error: e instanceof Error ? e.message : String(e),
@@ -370,7 +352,7 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
           const got = await fetchRosterPage(slug, year);
           if (got === null) {
             result.pagesParseZero!++;
-            console.warn("[NCAA scraper] fetched zero players for", slug, year, "(tried both URL formats)");
+            console.warn("[NCAA scraper] fetched zero players for", slug, year);
             continue;
           }
           if ("rateLimited" in got) {
@@ -385,7 +367,7 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
 
           let rows: NcaaPlayerRow[];
           try {
-            rows = parsePerGameTable(html);
+            rows = parseRosterTable(html);
           } catch (parseErr) {
             result.errors.push(`${slug}/${year}: parse error ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`);
             console.error("[NCAA scraper] parse error:", slug, year, parseErr);
@@ -623,7 +605,7 @@ export async function importNcaaPlayerSeasons(rows: NcaaImportRow[]): Promise<Nc
 export async function importNcaaRosterHtml(schoolSlug: string, year: number, html: string): Promise<NcaaImportResult> {
   const schoolName = parseSchoolName(html, schoolSlug) || schoolSlug;
   const season = endYearToSeason(year);
-  const rows = parsePerGameTable(html);
+  const rows = parseRosterTable(html);
   const importRows: NcaaImportRow[] = rows.map((r) => ({
     name: r.name,
     school: schoolName,
