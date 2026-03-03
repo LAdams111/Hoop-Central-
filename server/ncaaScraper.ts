@@ -233,7 +233,7 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
                 result.playersMatched++;
               } else {
                 const posMap: Record<string, string> = {
-                  G: "PG", G-F: "SG", F: "SF", F-G: "SF", F-C: "PF", C: "C", C-F: "PF",
+                  G: "PG", "G-F": "SG", F: "SF", "F-G": "SF", "F-C": "PF", C: "C", "C-F": "PF",
                 };
                 const newPlayer = await storage.createPlayer({
                   name: row.name.trim(),

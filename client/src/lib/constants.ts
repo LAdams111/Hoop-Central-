@@ -129,9 +129,8 @@ export const TEAM_ABBREV_TO_FULL: Record<string, string> = {
   PTC: "Pittsburgh Condors",       // also Pittsburgh Pipers
   MMT: "Memphis Tams",             // Memphis Pros / Memphis Tams
   KEN: "Kentucky Colonels", MNS: "Minnesota Muskies", NYA: "New York Nets",
-  OAK: "Oakland Oaks", DNR: "Denver Rockets", HOU: "Houston Rockets",   // HOU shared with NBA
-  IND: "Indiana Pacers", SAS: "San Antonio Spurs",   // IND/SAS shared with NBA; DAL kept as Dallas Mavericks above
-  UTA: "Utah Stars", VIR: "Virginia Squires", CAR: "Carolina Cougars",
+  OAK: "Oakland Oaks", DNR: "Denver Rockets",
+  VIR: "Virginia Squires", CAR: "Carolina Cougars",
   SDR: "San Diego Conquistadors", SLC: "Spirits of St. Louis",
   // Defunct / historical (BAA/NBA)
   AND: "Anderson Packers", BAL: "Baltimore Bullets", BLB: "Baltimore Bullets",
