@@ -12,13 +12,34 @@ import { eq, and, sql } from "drizzle-orm";
 
 const BASE_URL = "https://www.sports-reference.com";
 const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
-const REQUEST_DELAY_MS = 1200;
+const REQUEST_DELAY_MS = 2800;
+const MAX_RETRIES = 3;
+const RETRY_BACKOFF_MS = 8000;
 
 /** End year for season: 2024 -> "2023-24". */
 function endYearToSeason(endYear: number): string {
   const start = endYear - 1;
   const endStr = String(endYear).slice(-2);
   return `${start}-${endStr}`;
+}
+
+/** Fetch with retries on 429 (rate limit) or 5xx. Uses exponential backoff. */
+async function fetchWithRetry(url: string): Promise<Response> {
+  let lastRes: Response | null = null;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const res = await fetch(url, {
+      headers: { "User-Agent": USER_AGENT, Accept: "text/html,application/xhtml+xml" },
+    });
+    if (res.ok || res.status === 404) return res;
+    if (res.status !== 429 && res.status < 500) return res;
+    lastRes = res;
+    if (attempt === MAX_RETRIES) return res;
+    const waitMs =
+      parseInt(res.headers.get("Retry-After") ?? "", 10) * 1000 ||
+      RETRY_BACKOFF_MS * Math.pow(2, attempt);
+    await new Promise((r) => setTimeout(r, waitMs));
+  }
+  return lastRes!;
 }
 
 /** Default list of school slugs (men's D1). Expand or fetch from /cbb/schools/ if needed. */
@@ -207,9 +228,7 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
         const url = `${BASE_URL}/cbb/schools/${slug}/men/${year}.html`;
 
         try {
-          const res = await fetch(url, {
-            headers: { "User-Agent": USER_AGENT, Accept: "text/html,application/xhtml+xml" },
-          });
+          const res = await fetchWithRetry(url);
           if (!res.ok) {
             if (res.status === 404) continue;
             result.errors.push(`${slug}/${year}: HTTP ${res.status}`);
