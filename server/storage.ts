@@ -54,6 +54,7 @@ export interface IStorage {
   // Team Records
   getTeamRecord(team: string, season: string): Promise<TeamRecord | undefined>;
   createTeamRecord(record: InsertTeamRecord): Promise<TeamRecord>;
+  updateTeamRecord(team: string, season: string, data: { wins: number; losses: number }): Promise<TeamRecord | undefined>;
 
   // Player Updates
   updatePlayerHeadshot(id: number, headshotUrl: string): Promise<void>;
@@ -284,6 +285,13 @@ export class DatabaseStorage implements IStorage {
   async createTeamRecord(record: InsertTeamRecord): Promise<TeamRecord> {
     const [created] = await db.insert(teamRecords).values(record).returning();
     return created;
+  }
+
+  async updateTeamRecord(team: string, season: string, data: { wins: number; losses: number }): Promise<TeamRecord | undefined> {
+    const existing = await this.getTeamRecord(team, season);
+    if (!existing) return undefined;
+    const [updated] = await db.update(teamRecords).set({ wins: data.wins, losses: data.losses }).where(eq(teamRecords.id, existing.id)).returning();
+    return updated;
   }
 
   async getAllTeamsWithLeague(): Promise<{ team: string; league: string; season: string }[]> {

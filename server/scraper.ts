@@ -155,7 +155,7 @@ function isMultiTeamAbbr(abbr: string): boolean {
 }
 
 /** Returns the start year of the current NBA season (e.g. 2025 for 2025-26). NBA APIs use start year. */
-function getCurrentNBASeason(): number {
+export function getCurrentNBASeason(): number {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
@@ -164,7 +164,7 @@ function getCurrentNBASeason(): number {
 }
 
 /** Format start year as "YYYY-YY" (e.g. 2025 → "2025-26"). */
-function seasonToDisplay(seasonStartYear: number): string {
+export function seasonToDisplay(seasonStartYear: number): string {
   const endShort = String(seasonStartYear + 1).slice(-2);
   return `${seasonStartYear}-${endShort}`;
 }

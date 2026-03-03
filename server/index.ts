@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { scrapeNBAPlayers } from "./scraper";
+import { updateCurrentSeasonStandings } from "./standings";
 import { syncPlayerInfoFromPostgres } from "./syncPlayerInfo";
 import { pool } from "./db";
 import { storage } from "./storage";
@@ -189,6 +190,7 @@ app.use((req, res, next) => {
       }
       startWeeklyScraperSchedule();
       startPlayerInfoSyncSchedule();
+      startDailyStandingsSchedule();
     },
   );
 })();
@@ -250,4 +252,31 @@ function startPlayerInfoSyncSchedule() {
     }
   }, INTERVAL_MS);
   log("Player info sync scheduled every 5 minutes", "sync");
+}
+
+/** Once per day, fetch current NBA season standings and upsert team_records so W-L stays up to date. */
+function startDailyStandingsSchedule() {
+  const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+  async function run() {
+    log("Starting daily current-season standings update...", "standings");
+    try {
+      const result = await updateCurrentSeasonStandings();
+      log(
+        `Standings update complete: ${result.season} — ${result.updated} updated, ${result.inserted} inserted`,
+        "standings"
+      );
+      if (result.errors.length > 0) {
+        log(`Standings errors: ${result.errors.slice(0, 3).join("; ")}`, "standings");
+      }
+    } catch (err: any) {
+      log(`Standings update failed: ${err?.message ?? String(err)}`, "standings");
+    }
+  }
+
+  // First run 1 minute after startup so DB and app are ready
+  setTimeout(() => void run(), 60 * 1000);
+  // Then every 24 hours
+  setInterval(() => void run(), TWENTY_FOUR_HOURS_MS);
+  log("Daily standings update scheduled (first in 1 min, then every 24h)", "standings");
 }
