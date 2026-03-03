@@ -25,11 +25,11 @@ export const playerStats = pgTable("player_stats", {
   team: text("team").notNull().default("NBA"), 
   league: text("league").notNull().default("NBA"), // Added league field
   gamesPlayed: integer("games_played").notNull(),
-  pointsPerGame: numeric("ppg").notNull(),
-  reboundsPerGame: numeric("rpg").notNull(),
-  assistsPerGame: numeric("apg").notNull(),
-  stealsPerGame: numeric("spg").notNull(),
-  blocksPerGame: numeric("bpg").notNull(),
+  pointsPerGame: numeric("pts_per_g").notNull(),
+  reboundsPerGame: numeric("trb_per_g").notNull(),
+  assistsPerGame: numeric("ast_per_g").notNull(),
+  stealsPerGame: numeric("stl_per_g").notNull(),
+  blocksPerGame: numeric("blk_per_g").notNull(),
   fieldGoalPct: numeric("fg_pct").notNull(),
 });
 

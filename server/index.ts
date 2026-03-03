@@ -78,15 +78,15 @@ async function ensureTeamRecordsTable(): Promise<void> {
   }
 }
 
-/** Ensure player_stats has columns required by NCAA/NBA scrapers (e.g. games_played). Run on startup so Railway stays in sync. */
+/** Ensure player_stats has columns required by NCAA/NBA scrapers. Uses NBA-style names: pts_per_g, trb_per_g, etc. */
 async function ensurePlayerStatsColumns(): Promise<void> {
   const alters = [
     "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS games_played INTEGER",
-    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS ppg NUMERIC",
-    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS rpg NUMERIC",
-    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS apg NUMERIC",
-    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS spg NUMERIC",
-    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS bpg NUMERIC",
+    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS pts_per_g NUMERIC",
+    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS trb_per_g NUMERIC",
+    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS ast_per_g NUMERIC",
+    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS stl_per_g NUMERIC",
+    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS blk_per_g NUMERIC",
     "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS fg_pct NUMERIC",
   ];
   for (const sql of alters) {
