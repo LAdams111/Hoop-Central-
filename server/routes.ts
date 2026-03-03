@@ -1122,6 +1122,20 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/scraper/ncaa/status", async (req, res) => {
+    try {
+      const { isNcaaScraperRunning, getLastNcaaScraperResult } = await import("./ncaaScraper");
+      const last = getLastNcaaScraperResult();
+      res.json({
+        running: isNcaaScraperRunning(),
+        lastResult: last ? last.result : null,
+        lastCompletedAt: last ? last.completedAt.toISOString() : null,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message ?? "NCAA status failed" });
+    }
+  });
+
   app.post("/api/scraper/bios", async (req, res) => {
     if (isBioScraperRunning()) {
       return res.status(409).json({ message: "Bio scraper is already running. Please wait." });

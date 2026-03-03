@@ -192,8 +192,17 @@ export interface NcaaScraperResult {
 }
 
 let ncaaScraperRunning = false;
+let lastNcaaScraperResult: NcaaScraperResult | null = null;
+let lastNcaaScraperCompletedAt: Date | null = null;
+
 export function isNcaaScraperRunning(): boolean {
   return ncaaScraperRunning;
+}
+
+/** Last run result and time, for status checks. */
+export function getLastNcaaScraperResult(): { result: NcaaScraperResult; completedAt: Date } | null {
+  if (!lastNcaaScraperResult || !lastNcaaScraperCompletedAt) return null;
+  return { result: lastNcaaScraperResult, completedAt: lastNcaaScraperCompletedAt };
 }
 
 export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<NcaaScraperResult> {
@@ -322,6 +331,8 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
     }
   } finally {
     ncaaScraperRunning = false;
+    lastNcaaScraperResult = result;
+    lastNcaaScraperCompletedAt = new Date();
   }
 
   return result;
