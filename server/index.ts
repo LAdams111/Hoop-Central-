@@ -237,6 +237,21 @@ app.use((req, res, next) => {
             log(`BR team records scraper skipped: ${err?.message ?? String(err)}`, "startup");
           });
         });
+        // NCAA scraper: start once in background after a short delay (so it doesn't compete with standings/BR)
+        setTimeout(() => {
+          import("./ncaaScraper").then(({ runNcaaScraper, isNcaaScraperRunning }) => {
+            if (isNcaaScraperRunning()) return;
+            log("NCAA scraper started in background", "startup");
+            runNcaaScraper().then((r) => {
+              log(`NCAA scraper done: ${r.schoolsProcessed} roster pages, ${r.playersAdded} new players, ${r.playersMatched} matched, ${r.statsInserted} stats inserted, ${r.statsUpdated} updated`, "startup");
+              if (r.errors.length > 0) {
+                log(`NCAA scraper errors (first 3): ${r.errors.slice(0, 3).join("; ")}`, "startup");
+              }
+            }).catch((err: any) => {
+              log(`NCAA scraper failed: ${err?.message ?? String(err)}`, "startup");
+            });
+          });
+        }, 2 * 60 * 1000);
       } catch (err: any) {
         log(`Zero historical records skipped: ${err?.message ?? String(err)}`, "startup");
       }
@@ -287,6 +302,16 @@ function startWeeklyScraperSchedule() {
         }
       } catch (err: any) {
         log(`BR team records scrape skipped: ${err?.message ?? String(err)}`, "scheduler");
+      }
+      try {
+        const { runNcaaScraper, isNcaaScraperRunning } = await import("./ncaaScraper");
+        if (!isNcaaScraperRunning()) {
+          log("Starting scheduled NCAA scrape...", "scheduler");
+          const ncaaResult = await runNcaaScraper();
+          log(`NCAA scrape done: ${ncaaResult.schoolsProcessed} pages, ${ncaaResult.playersAdded} new, ${ncaaResult.statsInserted} stats inserted`, "scheduler");
+        }
+      } catch (err: any) {
+        log(`NCAA scrape skipped: ${err?.message ?? String(err)}`, "scheduler");
       }
       // schedule the next run
       void scheduleNext();

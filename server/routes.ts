@@ -1089,8 +1089,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/scraper/status", (req, res) => {
-    res.json({ running: scraperRunning, bioRunning: isBioScraperRunning() });
+  app.get("/api/scraper/status", async (req, res) => {
+    const { isNcaaScraperRunning } = await import("./ncaaScraper");
+    res.json({ running: scraperRunning, bioRunning: isBioScraperRunning(), ncaaRunning: isNcaaScraperRunning() });
   });
 
   app.post("/api/scraper/team-records", async (req, res) => {
@@ -1100,6 +1101,24 @@ export async function registerRoutes(
       res.json(result);
     } catch (err: any) {
       res.status(500).json({ message: err?.message ?? "Team records scrape failed" });
+    }
+  });
+
+  app.post("/api/scraper/ncaa", async (req, res) => {
+    try {
+      const { runNcaaScraper, isNcaaScraperRunning } = await import("./ncaaScraper");
+      if (isNcaaScraperRunning()) {
+        return res.status(409).json({ message: "NCAA scraper is already running. Please wait." });
+      }
+      const body = (req.body || {}) as { schoolSlugs?: string[]; startYear?: number; endYear?: number };
+      const result = await runNcaaScraper({
+        schoolSlugs: body.schoolSlugs,
+        startYear: body.startYear,
+        endYear: body.endYear,
+      });
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message ?? "NCAA scraper failed" });
     }
   });
 
