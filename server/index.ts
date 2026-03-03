@@ -78,6 +78,26 @@ async function ensureTeamRecordsTable(): Promise<void> {
   }
 }
 
+/** Ensure player_stats has columns required by NCAA/NBA scrapers (e.g. games_played). Run on startup so Railway stays in sync. */
+async function ensurePlayerStatsColumns(): Promise<void> {
+  const alters = [
+    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS games_played INTEGER",
+    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS ppg NUMERIC",
+    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS rpg NUMERIC",
+    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS apg NUMERIC",
+    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS spg NUMERIC",
+    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS bpg NUMERIC",
+    "ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS fg_pct NUMERIC",
+  ];
+  for (const sql of alters) {
+    try {
+      await pool.query(sql);
+    } catch (err: unknown) {
+      console.warn("Could not ensure player_stats column:", (err as Error)?.message ?? err);
+    }
+  }
+}
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -185,6 +205,11 @@ app.use((req, res, next) => {
   }
   try {
     await ensurePlayerInfoHeadshotUrlColumn();
+  } catch {
+    // non-fatal
+  }
+  try {
+    await ensurePlayerStatsColumns();
   } catch {
     // non-fatal
   }
