@@ -136,7 +136,9 @@ export default function Roster() {
   const { data: teamRecord } = useQuery<TeamRecord | null>({
     queryKey: ['/api/teams', team, 'record', season],
     queryFn: async () => {
-      const res = await fetch(`/api/teams/${encodeURIComponent(team)}/record/${encodeURIComponent(season)}`);
+      const res = await fetch(`/api/teams/${encodeURIComponent(team)}/record/${encodeURIComponent(season)}`, {
+        cache: "no-store",
+      });
       if (!res.ok) return null;
       return res.json();
     },

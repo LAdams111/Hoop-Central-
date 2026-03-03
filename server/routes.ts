@@ -986,11 +986,20 @@ export async function registerRoutes(
 
   // Team Record (team_records table may not exist on all deploys). Return 200 with null when missing so frontend doesn't 404.
   app.get("/api/teams/:team/record/:season", async (req, res) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate");
     const team = decodeURIComponent(req.params.team ?? "").replace(/\+/g, " ").trim();
     const season = decodeURIComponent(req.params.season ?? "").trim();
     try {
       const record = await storage.getTeamRecord(team, season);
-      res.json(record ?? null);
+      if (record == null) return res.json(null);
+      res.json({
+        id: record.id,
+        team: record.team,
+        season: record.season,
+        wins: Number(record.wins),
+        losses: Number(record.losses),
+        league: record.league,
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("does not exist") || msg.includes("relation")) {
