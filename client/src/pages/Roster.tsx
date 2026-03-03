@@ -240,8 +240,12 @@ export default function Roster() {
                     <span className="text-sm font-mono font-normal text-muted-foreground uppercase tracking-widest ml-1">W-L</span>
                   </p>
                 ) : (
-                  <p className="mt-2 font-mono text-sm text-muted-foreground uppercase tracking-widest" data-testid="team-record-none">
-                    Season record not available
+                  <p className="mt-2 flex items-center gap-2 font-display text-2xl font-bold tracking-tight text-muted-foreground" data-testid="team-record-header">
+                    <Trophy className="w-5 h-5" />
+                    <span>0</span>
+                    <span>-</span>
+                    <span>0</span>
+                    <span className="text-sm font-mono font-normal uppercase tracking-widest ml-1">W-L</span>
                   </p>
                 )}
               </div>
@@ -277,7 +281,7 @@ export default function Roster() {
               <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-widest">{players.length} Active</Badge>
             )}
           </div>
-          {teamRecord && (
+          {teamRecord != null ? (
             <div className="flex items-center gap-3" data-testid="team-record">
               <Trophy className="w-4 h-4 text-primary" />
               <span className="font-display text-2xl font-bold tracking-tight">
@@ -286,6 +290,12 @@ export default function Roster() {
                 <span className="text-muted-foreground">{teamRecord.losses}</span>
               </span>
               <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">W-L</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 text-muted-foreground" data-testid="team-record">
+              <Trophy className="w-4 h-4" />
+              <span className="font-display text-2xl font-bold tracking-tight">0-0</span>
+              <span className="text-xs font-mono uppercase tracking-widest">W-L</span>
             </div>
           )}
         </div>

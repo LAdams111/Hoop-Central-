@@ -1000,6 +1000,30 @@ export async function registerRoutes(
     }
   });
 
+  // Manual standings update (when automatic fetch fails, e.g. from Railway). POST body: { season: "2025-26", standings: [{ team, wins, losses }, ...] }
+  const { applyStandings } = await import("./standings");
+  app.post("/api/standings", async (req, res) => {
+    try {
+      const { season, standings } = req.body ?? {};
+      const seasonStr = typeof season === "string" ? season.trim() : "";
+      const list = Array.isArray(standings) ? standings : [];
+      if (!seasonStr || list.length === 0) {
+        return res.status(400).json({ message: "Body must include season (string) and standings (array of { team, wins, losses })" });
+      }
+      const entries = list
+        .map((s: any) => ({
+          team: typeof s?.team === "string" ? s.team.trim() : "",
+          wins: Math.max(0, parseInt(String(s?.wins ?? 0), 10)),
+          losses: Math.max(0, parseInt(String(s?.losses ?? 0), 10)),
+        }))
+        .filter((e: { team: string }) => e.team.length > 0);
+      const result = await applyStandings(seasonStr, entries);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message ?? "Failed to apply standings" });
+    }
+  });
+
   app.get("/api/teams/count", async (req, res) => {
     const count = await storage.getTotalTeamCount();
     res.json({ count });
@@ -1107,10 +1131,7 @@ async function seedTeamRecords() {
       const season = seasonStrings[i];
       const existing = await storage.getTeamRecord(team, season);
       if (existing) continue;
-      const seed = team.length + season.length + i * 7;
-      const wins = 30 + (seed % 45);
-      const losses = 82 - wins;
-      await storage.createTeamRecord({ team, season, wins, losses });
+      await storage.createTeamRecord({ team, season, wins: 0, losses: 0 });
       inserted++;
     }
   }
