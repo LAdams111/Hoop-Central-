@@ -11,8 +11,14 @@ export function getCurrentSeasonForStandings(): string {
   return seasonToDisplay(getCurrentNBASeason());
 }
 
-/** Season start years we fetch standings for (matches roster dropdown). */
-const STANDINGS_SEASON_YEARS = [2025, 2024, 2023, 2022, 2021, 2020, 2018, 1997, 1995, 1992, 1987];
+/** Season start years we fetch standings for: current back through 1999-2000, plus earlier back to 1987-88 (matches roster dropdown). */
+const STANDINGS_SEASON_YEARS = (() => {
+  const start = getCurrentNBASeason();
+  const oldest = 1987;
+  const years: number[] = [];
+  for (let y = start; y >= oldest; y--) years.push(y);
+  return years;
+})();
 
 export function getStandingsSeasonStrings(): string[] {
   return STANDINGS_SEASON_YEARS.map((y) => seasonToDisplay(y));

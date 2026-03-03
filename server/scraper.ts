@@ -178,7 +178,8 @@ interface ScrapeResult {
   seasonsProcessed: string[];
 }
 
-const NUM_SEASONS = 5;
+/** Scrape all seasons from current back to this year (matches roster dropdown so every season has rosters). */
+const OLDEST_SEASON_START = 1987;
 
 async function fetchSeasonData(seasonYear: number): Promise<any[]> {
   let page = 1;
@@ -223,11 +224,10 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
   };
 
   const seasonYears: number[] = [];
-  for (let i = 0; i < NUM_SEASONS; i++) {
-    seasonYears.push(currentSeasonYear - i);
-  }
+  const current = getCurrentNBASeason();
+  for (let y = current; y >= OLDEST_SEASON_START; y--) seasonYears.push(y);
 
-  console.log(`[NBA Scraper] Starting scrape for ${NUM_SEASONS} seasons: ${seasonYears.map(s => seasonToDisplay(s)).join(', ')}...`);
+  console.log(`[NBA Scraper] Starting scrape for ${seasonYears.length} seasons (${seasonToDisplay(current)} through ${seasonToDisplay(OLDEST_SEASON_START)})...`);
 
   const playerCache = new Map<string, number>();
 
@@ -404,10 +404,10 @@ export async function scrapeNBAPlayers(): Promise<ScrapeResult> {
 
       console.log(`[NBA Scraper] Season ${seasonDisplay} done. Running totals - Added: ${result.playersAdded}, Updated: ${result.playersUpdated}, Stats: ${result.statsUpdated}`);
 
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 1500));
     }
 
-    console.log(`[NBA Scraper] All ${NUM_SEASONS} seasons complete! Added: ${result.playersAdded}, Updated: ${result.playersUpdated}, Stats: ${result.statsUpdated}`);
+    console.log(`[NBA Scraper] All ${seasonYears.length} seasons complete! Added: ${result.playersAdded}, Updated: ${result.playersUpdated}, Stats: ${result.statsUpdated}`);
   } catch (err: any) {
     result.errors.push(`Scraper error: ${err.message}`);
     console.error("[NBA Scraper] Fatal error:", err.message);

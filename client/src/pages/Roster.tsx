@@ -93,8 +93,18 @@ function getTeamLogoUrl(teamName: string): string | null {
   return null;
 }
 
-/** Starting years for season dropdown; value sent to backend is this integer year. */
-const AVAILABLE_SEASONS = [2025, 2024, 2023, 2022, 2021, 2020, 2018, 1997, 1995, 1992, 1987];
+/** Starting years for season dropdown: every season from current back to 1999-2000, plus earlier back to 1987-88. */
+function getCurrentNBASeasonStart(): number {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  return month >= 10 ? year : year - 1;
+}
+const OLDEST_SEASON_START = 1987;
+const AVAILABLE_SEASONS = (() => {
+  const start = getCurrentNBASeasonStart();
+  return Array.from({ length: start - OLDEST_SEASON_START + 1 }, (_, i) => start - i);
+})();
 
 function formatSeason(year: number): string {
   const next = String(year + 1).slice(-2);

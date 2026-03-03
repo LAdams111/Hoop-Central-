@@ -1162,7 +1162,12 @@ async function seedTeamRecords() {
     "Utah Jazz", "Washington Wizards",
   ];
 
-  const SEASON_YEARS = [2025, 2024, 2023, 2022, 2021, 2020, 2018, 1997, 1995, 1992, 1987];
+  const SEASON_YEARS = (() => {
+    const start = new Date().getMonth() >= 9 ? new Date().getFullYear() : new Date().getFullYear() - 1;
+    const years: number[] = [];
+    for (let y = start; y >= 1987; y--) years.push(y);
+    return years;
+  })();
   const seasonStrings = SEASON_YEARS.map((y) => `${y}-${String(y + 1).slice(-2)}`);
 
   let inserted = 0;
