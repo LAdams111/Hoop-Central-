@@ -128,6 +128,7 @@ const DEFAULT_SCHOOL_SLUGS: string[] = [
 export interface NcaaPlayerRow {
   name: string;
   pos: string;
+  profileUrl?: string;
   g: number;
   ppg: number;
   rpg: number;
@@ -170,6 +171,11 @@ function parseRosterTable(html: string): NcaaPlayerRow[] {
     const name = nameRaw.replace(/&amp;/g, "&").replace(/&#x27;/g, "'").trim();
     if (!name) return;
 
+    const playerLink = $th.find('a[href*="/cbb/players/"]').attr("href");
+    const profileUrl = playerLink
+      ? (playerLink.startsWith("http") ? playerLink : BASE_URL + playerLink)
+      : undefined;
+
     const $tds = $row.find("td");
     const getTdByStat = (stat: string): string =>
       $row.find(`td[data-stat="${stat}"]`).text().replace(/,/g, "").trim();
@@ -189,6 +195,7 @@ function parseRosterTable(html: string): NcaaPlayerRow[] {
     out.push({
       name,
       pos: pos || "G",
+      profileUrl,
       g: g || 1,
       ppg: pts,
       rpg: trb,
@@ -209,12 +216,16 @@ function parseRosterTable(html: string): NcaaPlayerRow[] {
 /** Per-game stats from #per_game table (same comment-stripped HTML as roster). Keyed by normalized name for merge. */
 export interface PerGameStatsRow {
   g: number;
+  gs: number | null;
+  mp_per_g: number | null;
   ppg: number;
   rpg: number;
   apg: number;
   spg: number;
   bpg: number;
   fgPct: number;
+  fg3_pct: number | null;
+  ft_pct: number | null;
 }
 
 /** Parse #per_game table into a map by player name (trimmed lowercase). Used to merge stats with roster before insert. */
@@ -232,6 +243,8 @@ function parsePerGameStats(html: string): Map<string, PerGameStatsRow> {
     const nameKey = name.toLowerCase().trim();
 
     const g = toIntOrNull($row.find('td[data-stat="g"]').text()) ?? 0;
+    const gs = toIntOrNull($row.find('td[data-stat="gs"]').text());
+    const mp_per_g = toFloatOrNull($row.find('td[data-stat="mp_per_g"]').text());
     const ppg = toFloatOrNull($row.find('td[data-stat="pts_per_g"]').text()) ?? toFloatOrNull($row.find('td[data-stat="pts"]').text()) ?? 0;
     const rpg = toFloatOrNull($row.find('td[data-stat="trb_per_g"]').text()) ?? toFloatOrNull($row.find('td[data-stat="trb"]').text()) ?? 0;
     const apg = toFloatOrNull($row.find('td[data-stat="ast_per_g"]').text()) ?? toFloatOrNull($row.find('td[data-stat="ast"]').text()) ?? 0;
@@ -239,11 +252,86 @@ function parsePerGameStats(html: string): Map<string, PerGameStatsRow> {
     const bpg = toFloatOrNull($row.find('td[data-stat="blk_per_g"]').text()) ?? toFloatOrNull($row.find('td[data-stat="blk"]').text()) ?? 0;
     let fgPct = toFloatOrNull($row.find('td[data-stat="fg_pct"]').text()) ?? 0;
     if (fgPct > 1) fgPct /= 100;
+    let fg3_pct = toFloatOrNull($row.find('td[data-stat="fg3_pct"]').text());
+    if (fg3_pct !== null && fg3_pct > 1) fg3_pct /= 100;
+    let ft_pct = toFloatOrNull($row.find('td[data-stat="ft_pct"]').text());
+    if (ft_pct !== null && ft_pct > 1) ft_pct /= 100;
 
-    stats.set(nameKey, { g, ppg, rpg, apg, spg, bpg, fgPct });
+    stats.set(nameKey, { g, gs, mp_per_g, ppg, rpg, apg, spg, bpg, fgPct, fg3_pct, ft_pct });
   });
   console.log("[NCAA parser] #per_game stats entries:", stats.size);
   return stats;
+}
+
+/** Bio fields we can fill in player_info from a player profile page. */
+export interface PlayerBioFromPage {
+  position?: string;
+  height?: string;
+  weight?: string;
+  hometown?: string;
+  birthDate?: string;
+  bio?: string;
+}
+
+/**
+ * Fetch a single player profile page (e.g. /cbb/players/xxx-1.html).
+ * Uses same retry/headers as roster. Caller should delay before calling to avoid rate limits.
+ */
+export async function fetchPlayerBio(profileUrl: string): Promise<string | null> {
+  try {
+    const res = await fetchWithRetry(profileUrl);
+    if (res.status === 429 || !res.ok) return null;
+    const html = await res.text();
+    return html;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Parse player bio from a Sports Reference CBB player page.
+ * Looks for "Position:", "Height:", "Weight:", "Hometown:", "High School:", "Birth Date:" in the page text.
+ */
+export function parsePlayerBioPage(html: string): PlayerBioFromPage {
+  const out: PlayerBioFromPage = {};
+  const cleaned = html.replace(/<!--/g, "").replace(/-->/g, "");
+  const $ = cheerio.load(cleaned);
+
+  // Sports Reference often has a div with player details; text appears in p or in a list.
+  const bodyText = $("body").text();
+  const lines = bodyText.split(/\n/).map((s) => s.trim()).filter(Boolean);
+
+  const getValueAfter = (label: string): string | undefined => {
+    for (const line of lines) {
+      const idx = line.indexOf(label);
+      if (idx === -1) continue;
+      const value = line.slice(idx + label.length).replace(/^[\s:]+/, "").trim();
+      if (value && value.length < 200) return value;
+    }
+    return undefined;
+  };
+
+  const position = getValueAfter("Position:");
+  if (position) out.position = position;
+
+  const height = getValueAfter("Height:");
+  if (height) out.height = height;
+
+  const weight = getValueAfter("Weight:");
+  if (weight) out.weight = weight;
+
+  const hometown = getValueAfter("Hometown:");
+  if (hometown) out.hometown = hometown;
+
+  const birthDate = getValueAfter("Birth Date:");
+  if (birthDate) out.birthDate = birthDate;
+
+  const highSchool = getValueAfter("High School:");
+  if (highSchool) {
+    out.bio = out.bio ? `${out.bio}\nHigh School: ${highSchool}` : `High School: ${highSchool}`;
+  }
+
+  return out;
 }
 
 /** Extract school display name from roster page (e.g. "Duke Blue Devils"). */
@@ -460,14 +548,36 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
                 const posMap: Record<string, string> = {
                   G: "PG", "G-F": "SG", F: "SF", "F-G": "SF", "F-C": "PF", C: "C", "C-F": "PF",
                 };
+                let bioData: PlayerBioFromPage | null = null;
+                if (row.profileUrl) {
+                  await new Promise((r) => setTimeout(r, delayMs));
+                  const bioHtml = await fetchPlayerBio(row.profileUrl);
+                  if (bioHtml) bioData = parsePlayerBioPage(bioHtml);
+                }
+                const position = (bioData?.position && bioData.position.length <= 20)
+                  ? (() => {
+                      const p = bioData!.position!;
+                      const lower = p.toLowerCase();
+                      if (["pg", "sg", "sf", "pf", "c", "g", "f"].includes(lower)) return p;
+                      if (lower.includes("guard")) return "G";
+                      if (lower.includes("forward")) return "F";
+                      if (lower.includes("center")) return "C";
+                      return p;
+                    })()
+                  : (posMap[row.pos] || "G");
+                const height = (bioData?.height && bioData.height.length <= 30) ? bioData.height : "—";
+                const weight = (bioData?.weight && bioData.weight.length <= 30) ? bioData.weight : "—";
                 const newPlayer = await storage.createPlayer({
                   name: row.name.trim(),
-                  position: posMap[row.pos] || "G",
+                  position,
                   team: schoolName || slug,
-                  height: "—",
-                  weight: "—",
+                  height,
+                  weight,
                   jerseyNumber: 0,
                   headshotUrl: "",
+                  ...(bioData?.hometown && { hometown: bioData.hometown }),
+                  ...(bioData?.birthDate && { birthDate: bioData.birthDate }),
+                  ...(bioData?.bio && { bio: bioData.bio }),
                 });
                 playerId = newPlayer.id;
                 result.playersAdded++;
