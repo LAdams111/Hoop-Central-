@@ -86,21 +86,76 @@ export interface NcaaPlayerRow {
 /**
  * Parse the first "Per Game" (season) stats table from a roster page HTML.
  * Skips "Team Totals" and conference-only table. Returns array of player rows.
- * Tries multiple strategies: id=per_game, stats_table class, then any table with player links + PTS header.
+ * Prefer parsing by data-stat attributes (sports-reference); fallback to column index.
  */
 function parsePerGameTable(html: string): NcaaPlayerRow[] {
   const out: NcaaPlayerRow[] = [];
-  // Strategy 1: id="per_game"
+
+  // Find all tables that contain player links and a PTS header
+  const allTables = html.match(/<table[^>]*>[\s\S]*?<\/table>/gi) || [];
+  const candidateTables: string[] = [];
+  for (const t of allTables) {
+    if (/<a href="\/cbb\/players\//i.test(t) && /PTS/i.test(t)) candidateTables.push(t);
+  }
+
+  for (const table of candidateTables) {
+    const rows = table.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || [];
+
+    // Strategy A: parse by data-stat (sports-reference)
+    for (const row of rows) {
+      if (!/data-stat="player"/i.test(row) || !/<td/i.test(row)) continue;
+      const linkMatch = row.match(/<a href="\/cbb\/players\/[^"]+"[^>]*>([^<]+)<\/a>/i);
+      if (!linkMatch) continue;
+      const name = linkMatch[1].replace(/&amp;/g, "&").replace(/&#x27;/g, "'").trim();
+      if (/team totals/i.test(name)) continue;
+
+      const getStat = (stat: string): string => {
+        const re = new RegExp(
+          `<t[dh][^>]*data-stat="${stat.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[^>]*>([\\s\\S]*?)</t[dh]>`,
+          "i"
+        );
+        const m = row.match(re);
+        if (!m) return "";
+        return m[1].replace(/<[^>]+>/g, "").replace(/,/g, "").trim();
+      };
+      const getStatOr = (primary: string, fallback: string): string =>
+        getStat(primary) || getStat(fallback);
+      const g = parseInt(getStat("g"), 10) || 0;
+      if (g === 0) continue;
+
+      const pts = parseFloat(getStatOr("pts", "pts_per_g")) || 0;
+      const trb = parseFloat(getStatOr("trb", "trb_per_g")) || 0;
+      const ast = parseFloat(getStatOr("ast", "ast_per_g")) || 0;
+      const stl = parseFloat(getStatOr("stl", "stl_per_g")) || 0;
+      const blk = parseFloat(getStatOr("blk", "blk_per_g")) || 0;
+      let fgPct = parseFloat(getStatOr("fg_pct", "fg_pct")) || 0;
+      if (fgPct > 1) fgPct /= 100;
+      const pos = (getStat("pos") || "G").toUpperCase().trim() || "G";
+
+      out.push({
+        name,
+        pos,
+        g,
+        ppg: pts,
+        rpg: trb,
+        apg: ast,
+        spg: stl,
+        bpg: blk,
+        fgPct,
+      });
+    }
+
+    if (out.length > 0) return out;
+  }
+
+  // Strategy B: column-index parsing (original)
   let tableMatch = html.match(/<table[^>]*id="per_game"[^>]*>[\s\S]*?<\/table>/i);
-  // Strategy 2: class contains stats_table (first such table)
   if (!tableMatch) {
     const statsTable = html.match(/<table[^>]*class="[^"]*stats_table[^"]*"[^>]*>[\s\S]*?<\/table>/i);
     if (statsTable) tableMatch = statsTable;
   }
-  // Strategy 3: any table that contains both player link and PTS in header (first such table)
   if (!tableMatch) {
-    const tables = html.match(/<table[^>]*>[\s\S]*?<\/table>/gi) || [];
-    for (const t of tables) {
+    for (const t of allTables) {
       if (/<a href="\/cbb\/players\//i.test(t) && /<th[^>]*>[\s\S]*?PTS[\s\S]*?<\/th>/i.test(t)) {
         tableMatch = [t];
         break;
@@ -114,7 +169,6 @@ function parsePerGameTable(html: string): NcaaPlayerRow[] {
   let headerRow: string | null = null;
   const colIndex: Record<string, number> = {};
 
-  // Try data-stat attributes first (sports-reference uses these)
   const firstDataRow = rows.find((r) => /data-stat="player"/i.test(r) && /<td/i.test(r));
   if (firstDataRow) {
     const headerRowForStat = rows.find((r) => /<th[^>]*data-stat="/i.test(r));
