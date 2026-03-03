@@ -206,6 +206,46 @@ function parseRosterTable(html: string): NcaaPlayerRow[] {
   return out;
 }
 
+/** Per-game stats from #per_game table (same comment-stripped HTML as roster). Keyed by normalized name for merge. */
+export interface PerGameStatsRow {
+  g: number;
+  ppg: number;
+  rpg: number;
+  apg: number;
+  spg: number;
+  bpg: number;
+  fgPct: number;
+}
+
+/** Parse #per_game table into a map by player name (trimmed lowercase). Used to merge stats with roster before insert. */
+function parsePerGameStats(html: string): Map<string, PerGameStatsRow> {
+  const cleaned = html.replace(/<!--/g, "").replace(/-->/g, "");
+  const $ = cheerio.load(cleaned);
+  const stats = new Map<string, PerGameStatsRow>();
+
+  const $rows = $("#per_game tbody tr");
+  $rows.each((_, el) => {
+    const $row = $(el);
+    const nameRaw = $row.find('td[data-stat="player"] a').text().trim();
+    if (!nameRaw || /team totals/i.test(nameRaw)) return;
+    const name = nameRaw.replace(/&amp;/g, "&").replace(/&#x27;/g, "'").trim();
+    const nameKey = name.toLowerCase().trim();
+
+    const g = toIntOrNull($row.find('td[data-stat="g"]').text()) ?? 0;
+    const ppg = toFloatOrNull($row.find('td[data-stat="pts_per_g"]').text()) ?? toFloatOrNull($row.find('td[data-stat="pts"]').text()) ?? 0;
+    const rpg = toFloatOrNull($row.find('td[data-stat="trb_per_g"]').text()) ?? toFloatOrNull($row.find('td[data-stat="trb"]').text()) ?? 0;
+    const apg = toFloatOrNull($row.find('td[data-stat="ast_per_g"]').text()) ?? toFloatOrNull($row.find('td[data-stat="ast"]').text()) ?? 0;
+    const spg = toFloatOrNull($row.find('td[data-stat="stl_per_g"]').text()) ?? toFloatOrNull($row.find('td[data-stat="stl"]').text()) ?? 0;
+    const bpg = toFloatOrNull($row.find('td[data-stat="blk_per_g"]').text()) ?? toFloatOrNull($row.find('td[data-stat="blk"]').text()) ?? 0;
+    let fgPct = toFloatOrNull($row.find('td[data-stat="fg_pct"]').text()) ?? 0;
+    if (fgPct > 1) fgPct /= 100;
+
+    stats.set(nameKey, { g, ppg, rpg, apg, spg, bpg, fgPct });
+  });
+  console.log("[NCAA parser] #per_game stats entries:", stats.size);
+  return stats;
+}
+
 /** Extract school display name from roster page (e.g. "Duke Blue Devils"). */
 function parseSchoolName(html: string, slug: string): string {
   const titleMatch = html.match(/<title>([^|]+)\s*\|/i);
@@ -399,12 +439,16 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
             continue;
           }
 
+          const perGameStats = parsePerGameStats(html);
+
           let batchInserted = 0;
           let batchUpdated = 0;
 
           for (const row of rows) {
             try {
             const nameNorm = row.name.trim().toLowerCase();
+            const playerStatsFromPerGame = perGameStats.get(nameNorm);
+
             let playerId = playerCache.get(nameNorm);
 
             if (!playerId) {
@@ -441,19 +485,26 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
               )
             ).limit(1);
 
-            /** Explicit league = 'NCAA' for every insert/update. Sanitize numerics to avoid 22P02. */
-            const fgRaw = toFloatOrNull(row.fgPct) ?? 0;
+            /** Merge #per_game stats with roster row; default to 0 so we never send invalid values. */
+            const g = playerStatsFromPerGame?.g ?? row.g;
+            const ppgVal = playerStatsFromPerGame?.ppg ?? row.ppg;
+            const rpgVal = playerStatsFromPerGame?.rpg ?? row.rpg;
+            const apgVal = playerStatsFromPerGame?.apg ?? row.apg;
+            const spgVal = playerStatsFromPerGame?.spg ?? row.spg;
+            const bpgVal = playerStatsFromPerGame?.bpg ?? row.bpg;
+            const fgVal = playerStatsFromPerGame?.fgPct ?? row.fgPct;
+            const fgRaw = toFloatOrNull(fgVal) ?? 0;
             const statRow = {
               playerId,
               season: seasonDisplay,
               team: schoolName || slug,
               league: "NCAA" as const,
-              gamesPlayed: toIntOrNull(row.g) ?? 0,
-              pointsPerGame: (toFloatOrNull(row.ppg) ?? 0).toFixed(1),
-              reboundsPerGame: (toFloatOrNull(row.rpg) ?? 0).toFixed(1),
-              assistsPerGame: (toFloatOrNull(row.apg) ?? 0).toFixed(1),
-              stealsPerGame: (toFloatOrNull(row.spg) ?? 0).toFixed(1),
-              blocksPerGame: (toFloatOrNull(row.bpg) ?? 0).toFixed(1),
+              gamesPlayed: toIntOrNull(g) ?? 0,
+              pointsPerGame: (toFloatOrNull(ppgVal) ?? 0).toFixed(1),
+              reboundsPerGame: (toFloatOrNull(rpgVal) ?? 0).toFixed(1),
+              assistsPerGame: (toFloatOrNull(apgVal) ?? 0).toFixed(1),
+              stealsPerGame: (toFloatOrNull(spgVal) ?? 0).toFixed(1),
+              blocksPerGame: (toFloatOrNull(bpgVal) ?? 0).toFixed(1),
               fieldGoalPct: (fgRaw > 1 ? fgRaw : fgRaw * 100).toFixed(1),
             };
 
@@ -620,22 +671,26 @@ export async function importNcaaPlayerSeasons(rows: NcaaImportRow[]): Promise<Nc
   return result;
 }
 
-/** Accept HTML from a roster page (e.g. from local script), parse and import. Same storage as NBA. */
+/** Accept HTML from a roster page (e.g. from local script), parse and import. Same storage as NBA. Merges #per_game stats. */
 export async function importNcaaRosterHtml(schoolSlug: string, year: number, html: string): Promise<NcaaImportResult> {
   const schoolName = parseSchoolName(html, schoolSlug) || schoolSlug;
   const season = endYearToSeason(year);
   const rows = parseRosterTable(html);
-  const importRows: NcaaImportRow[] = rows.map((r) => ({
-    name: r.name,
-    school: schoolName,
-    season,
-    g: r.g,
-    ppg: r.ppg,
-    rpg: r.rpg,
-    apg: r.apg,
-    spg: r.spg,
-    bpg: r.bpg,
-    fg_pct: r.fgPct * 100,
-  }));
+  const perGameStats = parsePerGameStats(html);
+  const importRows: NcaaImportRow[] = rows.map((r) => {
+    const per = perGameStats.get(r.name.trim().toLowerCase());
+    return {
+      name: r.name,
+      school: schoolName,
+      season,
+      g: per?.g ?? r.g,
+      ppg: per?.ppg ?? r.ppg,
+      rpg: per?.rpg ?? r.rpg,
+      apg: per?.apg ?? r.apg,
+      spg: per?.spg ?? r.spg,
+      bpg: per?.bpg ?? r.bpg,
+      fg_pct: (per?.fgPct ?? r.fgPct) * 100,
+    };
+  });
   return importNcaaPlayerSeasons(importRows);
 }
