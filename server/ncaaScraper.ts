@@ -18,9 +18,9 @@ const REQUEST_HEADERS: Record<string, string> = {
   "Accept-Language": "en-US,en;q=0.9",
   Referer: "https://www.sports-reference.com/",
 };
-const REQUEST_DELAY_MS = 2800;
+const REQUEST_DELAY_MS = 6000;
 const MAX_RETRIES = 3;
-const RETRY_BACKOFF_MS = 8000;
+const RETRY_BACKOFF_MS = 15000;
 
 /** End year for season: 2024 -> "2023-24". */
 function endYearToSeason(endYear: number): string {
@@ -288,12 +288,11 @@ export async function testFetchOnePage(
   playerRowsFound: number;
   sampleNames: string[];
   error?: string;
+  rateLimited?: boolean;
 }> {
   const url = `${BASE_URL}/cbb/schools/${slug}/men/${year}.html`;
   try {
-    const res = await fetch(url, {
-      headers: REQUEST_HEADERS,
-    });
+    const res = await fetchWithRetry(url);
     const html = await res.text();
     const hasPlayerLinks = /<a href="\/cbb\/players\//i.test(html);
     const hasPerGameTable =
@@ -309,6 +308,7 @@ export async function testFetchOnePage(
       hasPerGameTable,
       playerRowsFound: rows.length,
       sampleNames: rows.slice(0, 5).map((r) => r.name),
+      rateLimited: res.status === 429,
     };
   } catch (e) {
     return {
@@ -320,6 +320,7 @@ export async function testFetchOnePage(
       playerRowsFound: 0,
       sampleNames: [],
       error: e instanceof Error ? e.message : String(e),
+      rateLimited: false,
     };
   }
 }
@@ -329,6 +330,8 @@ export interface NcaaScraperOptions {
   startYear?: number;
   endYear?: number;
   delayMs?: number;
+  /** If set, only process this many schools (for "light" runs to avoid 429). */
+  maxSchools?: number;
 }
 
 export interface NcaaScraperResult {
@@ -368,7 +371,10 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
     startYear = new Date().getFullYear() + 1,
     endYear = 1990,
     delayMs = REQUEST_DELAY_MS,
+    maxSchools,
   } = options;
+
+  const slugsToUse = maxSchools ? schoolSlugs.slice(0, maxSchools) : schoolSlugs;
 
   const result: NcaaScraperResult = {
     schoolsProcessed: 0,
@@ -385,7 +391,7 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
   const playerCache = new Map<string, number>();
 
   try {
-    for (const slug of schoolSlugs) {
+    for (const slug of slugsToUse) {
       let schoolName: string | null = null;
 
       for (let year = startYear; year >= endYear; year--) {
