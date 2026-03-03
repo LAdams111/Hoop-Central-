@@ -6,6 +6,11 @@
 import { getCurrentNBASeason, seasonToDisplay } from "./scraper";
 import { storage } from "./storage";
 
+/** Return current NBA season string (e.g. "2025-26") for use by routes. */
+export function getCurrentSeasonForStandings(): string {
+  return seasonToDisplay(getCurrentNBASeason());
+}
+
 /** NBA stats API returns "City Name" (e.g. "Los Angeles") + " TeamName" (e.g. "Clippers").
  * We store canonical names; map API combo to our value when different. */
 const API_TEAM_NAME_TO_CANONICAL: Record<string, string> = {

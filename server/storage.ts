@@ -55,6 +55,8 @@ export interface IStorage {
   getTeamRecord(team: string, season: string): Promise<TeamRecord | undefined>;
   createTeamRecord(record: InsertTeamRecord): Promise<TeamRecord>;
   updateTeamRecord(team: string, season: string, data: { wins: number; losses: number }): Promise<TeamRecord | undefined>;
+  /** Set all NBA team records for seasons other than current to 0-0 (removes old placeholders). Returns count updated. */
+  setHistoricalNbaRecordsToZero(currentSeason: string): Promise<number>;
 
   // Player Updates
   updatePlayerHeadshot(id: number, headshotUrl: string): Promise<void>;
@@ -292,6 +294,21 @@ export class DatabaseStorage implements IStorage {
     if (!existing) return undefined;
     const [updated] = await db.update(teamRecords).set({ wins: data.wins, losses: data.losses }).where(eq(teamRecords.id, existing.id)).returning();
     return updated;
+  }
+
+  async setHistoricalNbaRecordsToZero(currentSeason: string): Promise<number> {
+    const seasonNorm = (currentSeason ?? "").trim();
+    if (!seasonNorm) return 0;
+    // Exclude current season in both forms (e.g. "2025-26" and "2025")
+    const startYear = seasonNorm.match(/^(\d{4})/)?.[1];
+    const conditions = [eq(teamRecords.league, "NBA"), sql`${teamRecords.season} <> ${seasonNorm}`];
+    if (startYear && startYear !== seasonNorm) conditions.push(sql`${teamRecords.season} <> ${startYear}`);
+    const updated = await db
+      .update(teamRecords)
+      .set({ wins: 0, losses: 0 })
+      .where(and(...conditions))
+      .returning({ id: teamRecords.id });
+    return updated.length;
   }
 
   async getAllTeamsWithLeague(): Promise<{ team: string; league: string; season: string }[]> {

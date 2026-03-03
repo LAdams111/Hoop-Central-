@@ -1001,7 +1001,7 @@ export async function registerRoutes(
   });
 
   // Manual standings update (when automatic fetch fails, e.g. from Railway). POST body: { season: "2025-26", standings: [{ team, wins, losses }, ...] }
-  const { applyStandings } = await import("./standings");
+  const { applyStandings, getCurrentSeasonForStandings } = await import("./standings");
   app.post("/api/standings", async (req, res) => {
     try {
       const { season, standings } = req.body ?? {};
@@ -1021,6 +1021,17 @@ export async function registerRoutes(
       res.json(result);
     } catch (err: any) {
       res.status(500).json({ message: err?.message ?? "Failed to apply standings" });
+    }
+  });
+
+  // Set all historical (non-current) NBA team records to 0-0. Call once to clear old placeholders.
+  app.post("/api/standings/zero-historical", async (_req, res) => {
+    try {
+      const currentSeason = getCurrentSeasonForStandings();
+      const updated = await storage.setHistoricalNbaRecordsToZero(currentSeason);
+      res.json({ currentSeason, updated });
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message ?? "Failed to zero historical records" });
     }
   });
 
