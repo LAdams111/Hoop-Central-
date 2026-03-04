@@ -8,7 +8,7 @@ import { api } from "@shared/routes";
 import { players } from "@shared/schema";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getRosterByCurrentTeamFromPlayerInfo, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getRosterByCurrentTeamFromPlayerInfo, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, getPlayerInfoIdByPlayerId, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -332,14 +332,19 @@ export async function registerRoutes(
     let inserted = 0;
     const errors: string[] = [];
     for (const item of list) {
-      const player_id = get(item, "player_id", "playerId") as string | undefined;
-      if (!player_id) {
+      const player_id = get(item, "player_id", "playerId") as string | number | undefined;
+      if (player_id == null || player_id === "") {
         errors.push("Missing player_id");
+        continue;
+      }
+      const playerInfoId = await getPlayerInfoIdByPlayerId(player_id);
+      if (playerInfoId == null) {
+        errors.push(`player_id ${player_id}: no matching player_info row (resolve to id for stats)`);
         continue;
       }
       try {
         await insertPlayerStatsRow({
-          player_id: String(player_id),
+          player_id: playerInfoId,
           season: get(item, "season", "year_id", "year") as string | undefined,
           team: get(item, "team", "team_name_abbr", "teamName") as string | undefined,
           league: get(item, "league", "comp_name_abbr", "league") as string | undefined,
@@ -397,9 +402,9 @@ export async function registerRoutes(
       }
       return 0;
     };
+      const jersey = getNumIngest(o, "jerseyNumber", "jersey_number", "number", "num", "jersey");
       try {
-        const jersey = getNumIngest(o, "jerseyNumber", "jersey_number", "number", "num", "jersey");
-        await insertIntoPlayerInfo({
+        const insertedId = await insertIntoPlayerInfo({
           player_id: String(player_id),
           name: String(name),
           team: get(o, "team", "team_name", "teamName") as string | undefined,
@@ -409,35 +414,37 @@ export async function registerRoutes(
           jersey_number: jersey,
         });
         playersInserted++;
+        const idForStats = insertedId ?? (await getPlayerInfoIdByPlayerId(player_id));
+        if (idForStats != null) {
+          const statsRaw = o.stats ?? o.seasons ?? [];
+          const statsList = Array.isArray(statsRaw) ? statsRaw : [];
+          for (const s of statsList) {
+            const statObj = s && typeof s === "object" ? (s as Record<string, unknown>) : {};
+            try {
+              await insertPlayerStatsRow({
+                player_id: idForStats,
+                season: get(statObj, "season", "year_id", "year") as string | undefined,
+                team: get(statObj, "team", "team_name_abbr", "teamName") as string | undefined,
+                league: get(statObj, "league", "comp_name_abbr", "league") as string | undefined,
+                games: Number(get(statObj, "games", "gp", "g")) || 0,
+                games_started: Number(get(statObj, "games_started", "gs")) || 0,
+                pts_per_g: get(statObj, "pts_per_g", "ppg", "pts"),
+                trb_per_g: get(statObj, "trb_per_g", "rpg", "reb"),
+                ast_per_g: get(statObj, "ast_per_g", "apg", "ast"),
+                stl_per_g: get(statObj, "stl_per_g", "spg", "stl"),
+                blk_per_g: get(statObj, "blk_per_g", "bpg", "blk"),
+                fg_pct: get(statObj, "fg_pct", "fg%"),
+                fg3_pct: get(statObj, "fg3_pct", "fg3%"),
+                ft_pct: get(statObj, "ft_pct", "ft%"),
+              });
+              statsInserted++;
+            } catch (err: unknown) {
+              errors.push(err instanceof Error ? err.message : String(err));
+            }
+          }
+        }
       } catch (err: unknown) {
         errors.push(err instanceof Error ? err.message : String(err));
-        continue;
-      }
-      const statsRaw = o.stats ?? o.seasons ?? [];
-      const statsList = Array.isArray(statsRaw) ? statsRaw : [];
-      for (const s of statsList) {
-        const statObj = s && typeof s === "object" ? (s as Record<string, unknown>) : {};
-        try {
-          await insertPlayerStatsRow({
-            player_id: String(player_id),
-            season: get(statObj, "season", "year_id", "year") as string | undefined,
-            team: get(statObj, "team", "team_name_abbr", "teamName") as string | undefined,
-            league: get(statObj, "league", "comp_name_abbr", "league") as string | undefined,
-            games: Number(get(statObj, "games", "gp", "g")) || 0,
-            games_started: Number(get(statObj, "games_started", "gs")) || 0,
-            pts_per_g: get(statObj, "pts_per_g", "ppg", "pts"),
-            trb_per_g: get(statObj, "trb_per_g", "rpg", "reb"),
-            ast_per_g: get(statObj, "ast_per_g", "apg", "ast"),
-            stl_per_g: get(statObj, "stl_per_g", "spg", "stl"),
-            blk_per_g: get(statObj, "blk_per_g", "bpg", "blk"),
-            fg_pct: get(statObj, "fg_pct", "fg%"),
-            fg3_pct: get(statObj, "fg3_pct", "fg3%"),
-            ft_pct: get(statObj, "ft_pct", "ft%"),
-          });
-          statsInserted++;
-        } catch (err: unknown) {
-          errors.push(err instanceof Error ? err.message : String(err));
-        }
       }
     }
     res.json({ playersInserted, statsInserted, errors });

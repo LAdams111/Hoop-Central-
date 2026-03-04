@@ -78,6 +78,18 @@ async function ensureTeamRecordsTable(): Promise<void> {
   }
 }
 
+/** Repair player_info: set player_id = id where player_id IS NULL so joins with player_stats work (p.id = s.player_id). */
+async function repairPlayerInfoPlayerIdNulls(): Promise<void> {
+  try {
+    const res = await pool.query("UPDATE player_info SET player_id = id WHERE player_id IS NULL");
+    if (res.rowCount != null && res.rowCount > 0) {
+      console.log(`[startup] Repaired ${res.rowCount} player_info rows: set player_id = id`);
+    }
+  } catch (err: unknown) {
+    console.warn("Could not repair player_info.player_id (column may not exist or type differs):", (err as Error)?.message ?? err);
+  }
+}
+
 /** Ensure player_stats has columns required by NCAA/NBA scrapers. Uses NBA-style names: pts_per_g, trb_per_g, etc. */
 async function ensurePlayerStatsColumns(): Promise<void> {
   const alters = [
@@ -214,6 +226,11 @@ app.use((req, res, next) => {
   }
   try {
     await ensurePlayerInfoHeadshotUrlColumn();
+  } catch {
+    // non-fatal
+  }
+  try {
+    await repairPlayerInfoPlayerIdNulls();
   } catch {
     // non-fatal
   }

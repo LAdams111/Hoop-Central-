@@ -391,7 +391,7 @@ function getSeasonVariants(season: string): string[] {
   return variants;
 }
 
-/** Roster using app tables only: players + playerStats (no teamRecords, no external tables). Season column may be integer or text in DB — always compare as text. Returns [] if join fails (e.g. player_stats.player_id is text). */
+/** Roster using app tables only: players + playerStats. Join p.id = s.player_id. */
 export async function getRosterFromExternalTableViaJoin(team: string, season: string) {
   const teamLower = team.toLowerCase();
   const seasonVariants = getSeasonVariants(season);
@@ -413,7 +413,7 @@ export async function getRosterFromExternalTableViaJoin(team: string, season: st
         hometown: players.hometown,
       })
       .from(playerStats)
-      .innerJoin(players, sql`${players.id} = CAST(${playerStats.playerId} AS INTEGER)`)
+      .innerJoin(players, eq(players.id, playerStats.playerId))
       .where(
         and(
           sql`LOWER(${playerStats.team}) = ${teamLower}`,
@@ -874,7 +874,37 @@ export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; u
   return result;
 }
 
-/** Ingest: insert one row into "Player info" (same table scraper uses). */
+/** Resolve player_id (string or number from ingest) to player_info.id for use in player_stats.player_id. Tries id match first, then player_id match. */
+export async function getPlayerInfoIdByPlayerId(playerIdOrId: string | number): Promise<number | null> {
+  const input = playerIdOrId;
+  const num = typeof input === "number" ? input : parseInt(String(input).trim(), 10);
+  if (!Number.isNaN(num) && num > 0) {
+    for (const table of PLAYER_INFO_TABLES) {
+      try {
+        const res = await pool.query<{ id: number }>(`SELECT id FROM ${table} WHERE id = $1 LIMIT 1`, [num]);
+        if (res.rows?.[0]) return res.rows[0].id;
+      } catch {
+        continue;
+      }
+    }
+  }
+  const str = String(input).trim();
+  if (!str) return null;
+  for (const table of PLAYER_INFO_TABLES) {
+    try {
+      const res = await pool.query<{ id: number }>(
+        `SELECT id FROM ${table} WHERE player_id::text = $1 LIMIT 1`,
+        [str]
+      );
+      if (res.rows?.[0]) return res.rows[0].id;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+/** Ingest: insert one row into "Player info" (same table scraper uses). Returns the inserted row's id for use as player_stats.player_id. */
 export async function insertIntoPlayerInfo(row: {
   player_id: string;
   name: string;
@@ -885,7 +915,7 @@ export async function insertIntoPlayerInfo(row: {
   jersey_number?: number;
   jerseyNumber?: number;
   number?: number;
-}): Promise<void> {
+}): Promise<number | null> {
   const tables = PLAYER_INFO_TABLES;
   const name = (row.name || "").trim();
   const team = (row.team || "").trim();
@@ -895,18 +925,18 @@ export async function insertIntoPlayerInfo(row: {
   const jersey = row.jersey_number ?? row.jerseyNumber ?? row.number ?? 0;
   for (const table of tables) {
     try {
-      await pool.query(
-        `INSERT INTO ${table} (player_id, name, team, position, height, weig, jersey_number) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      const res = await pool.query<{ id: number }>(
+        `INSERT INTO ${table} (player_id, name, team, position, height, weig, jersey_number) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
         [row.player_id, name, team, position, height, weight, jersey]
       );
-      return;
+      return res.rows?.[0]?.id ?? null;
     } catch {
       try {
-        await pool.query(
-          `INSERT INTO ${table} (player_id, name, team, position, height, weig) VALUES ($1, $2, $3, $4, $5, $6)`,
+        const res = await pool.query<{ id: number }>(
+          `INSERT INTO ${table} (player_id, name, team, position, height, weig) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
           [row.player_id, name, team, position, height, weight]
         );
-        return;
+        return res.rows?.[0]?.id ?? null;
       } catch {
         continue;
       }
@@ -915,9 +945,9 @@ export async function insertIntoPlayerInfo(row: {
   throw new Error("Could not insert into Player info (tried both table names)");
 }
 
-/** Ingest: insert one row into user's player_stats table (scraper calls after inserting into "Player info"). */
+/** Ingest: insert one row into user's player_stats table. player_id must be player_info.id (integer) so join p.id = s.player_id works. */
 export async function insertPlayerStatsRow(row: {
-  player_id: string;
+  player_id: number;
   season?: string;
   team?: string;
   league?: string;

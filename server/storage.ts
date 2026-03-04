@@ -1,5 +1,5 @@
 import { players, playerStats, awards, teamRecords, siteSettings, type Player, type InsertPlayer, type PlayerStats, type InsertPlayerStats, type Award, type InsertAward, type TeamRecord, type InsertTeamRecord } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, ilike, or, sql, and, inArray } from "drizzle-orm";
 
 /** Abbreviation → full name so roster can match either. */
@@ -126,7 +126,14 @@ export class DatabaseStorage implements IStorage {
 
   async createPlayer(insertPlayer: InsertPlayer): Promise<Player> {
     const [player] = await db.insert(players).values(insertPlayer).returning();
-    return player;
+    if (player) {
+      try {
+        await pool.query("UPDATE player_info SET player_id = id WHERE id = $1", [player.id]);
+      } catch {
+        // column may not exist or be different type; ignore
+      }
+    }
+    return player!;
   }
 
   async getPlayerStats(playerId: number): Promise<PlayerStats[]> {
@@ -158,7 +165,7 @@ export class DatabaseStorage implements IStorage {
       const results = await db
         .select({ player: players })
         .from(players)
-        .innerJoin(playerStats, sql`${players.id} = CAST(${playerStats.playerId} AS INTEGER)`)
+        .innerJoin(playerStats, eq(players.id, playerStats.playerId))
         .where(and(teamConditionStats, seasonCondition));
       console.log("[roster getRoster] query returned rows:", results.length);
       const seen = new Set<number>();
@@ -251,7 +258,7 @@ export class DatabaseStorage implements IStorage {
       const rows = await db
         .selectDistinct({ id: players.id })
         .from(players)
-        .innerJoin(playerStats, sql`${players.id} = CAST(${playerStats.playerId} AS INTEGER)`)
+        .innerJoin(playerStats, eq(players.id, playerStats.playerId))
         .where(
           and(
             sql`LOWER(${playerStats.league}) = 'nba'`,
