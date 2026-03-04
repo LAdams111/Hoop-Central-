@@ -158,7 +158,7 @@ export class DatabaseStorage implements IStorage {
     const results = await db
       .select({ player: players })
       .from(players)
-      .innerJoin(playerStats, eq(players.id, playerStats.playerId))
+      .innerJoin(playerStats, sql`${players.id} = CAST(${playerStats.playerId} AS INTEGER)`)
       .where(and(teamConditionStats, seasonCondition));
     console.log("[roster getRoster] query returned rows:", results.length);
     const seen = new Set<number>();
@@ -247,7 +247,7 @@ export class DatabaseStorage implements IStorage {
     const rows = await db
       .selectDistinct({ id: players.id })
       .from(players)
-      .innerJoin(playerStats, eq(players.id, playerStats.playerId))
+      .innerJoin(playerStats, sql`${players.id} = CAST(${playerStats.playerId} AS INTEGER)`)
       .where(
         and(
           sql`LOWER(${playerStats.league}) = 'nba'`,

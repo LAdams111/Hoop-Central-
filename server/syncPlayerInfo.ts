@@ -7,8 +7,10 @@ import { pool, db } from "./db";
 import { players, playerStats } from "@shared/schema";
 import { storage, getTeamMatchCandidates } from "./storage";
 
-const PLAYER_INFO_TABLE_QUOTED = "Player info"; // with space; use in SQL as "Player info"
-const PLAYER_INFO_TABLE_SNAKE = "player_info";  // fallback if DB uses snake_case
+const PLAYER_INFO_TABLE_QUOTED = "Player info"; // legacy name (with space)
+const PLAYER_INFO_TABLE_SNAKE = "player_info";  // use this first (Railway/Postgres standard)
+/** Order: try player_info first so Railway (snake_case) works; fallback to "Player info" for other envs. */
+const PLAYER_INFO_TABLES = [PLAYER_INFO_TABLE_SNAKE, `"${PLAYER_INFO_TABLE_QUOTED}"`, `"player info"`];
 
 function normalizePosition(position: string): string {
   const p = (position || "").toLowerCase();
@@ -254,7 +256,7 @@ function mapRowToPlayer(row: PlayerInfoRow): PlayerInfoMapped {
 
 /** Return total count of players (for "Active Players" stat). Uses same source as list. */
 export async function getPlayerInfoCount(): Promise<number> {
-  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  const tables = PLAYER_INFO_TABLES;
   for (const table of tables) {
     try {
       const res = await pool.query<{ count: number | string }>(`SELECT COUNT(*)::int AS count FROM ${table}`);
@@ -324,11 +326,7 @@ export async function getPlayersByBirthYearFromExternalTable(year: number, limit
 
 /** Try "Player info", then player_info, then "player info" (lowercase); return rows in API shape. */
 export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
-  const tables = [
-    `"${PLAYER_INFO_TABLE_QUOTED}"`,
-    PLAYER_INFO_TABLE_SNAKE,
-    `"player info"`,
-  ];
+  const tables = PLAYER_INFO_TABLES;
   for (const table of tables) {
     try {
       const res = await pool.query<PlayerInfoRow>(`SELECT * FROM ${table}`);
@@ -356,11 +354,7 @@ export async function getRosterByCurrentTeamFromPlayerInfo(team: string): Promis
 /** Fetch multiple players by id from external table (same source as list). Tries both table names. */
 export async function getPlayerInfoByIds(ids: number[]): Promise<PlayerInfoMapped[]> {
   if (ids.length === 0) return [];
-  const tables = [
-    `"${PLAYER_INFO_TABLE_QUOTED}"`,
-    PLAYER_INFO_TABLE_SNAKE,
-    `"player info"`,
-  ];
+  const tables = PLAYER_INFO_TABLES;
   for (const table of tables) {
     try {
       const res = await pool.query<PlayerInfoRow>(
@@ -419,7 +413,7 @@ export async function getRosterFromExternalTableViaJoin(team: string, season: st
       hometown: players.hometown,
     })
     .from(playerStats)
-    .innerJoin(players, eq(players.id, playerStats.playerId))
+    .innerJoin(players, sql`${players.id} = CAST(${playerStats.playerId} AS INTEGER)`)
     .where(
       and(
         sql`LOWER(${playerStats.team}) = ${teamLower}`,
@@ -451,47 +445,44 @@ export async function getRosterFromExternalTable(team: string, season: string): 
   return out;
 }
 
-/** Get a single row by numeric id; try both table names; include stats from player_stats table. Falls back to getPlayerInfoRows() so we use same source as list. */
+/** Get a single row by numeric id; try player_info first, then legacy table names; include stats from player_stats table. Falls back to getPlayerInfoRows() so we use same source as list. */
 export async function getPlayerInfoById(id: number): Promise<PlayerInfoMapped | null> {
-  let res = await pool.query<PlayerInfoRow>(`SELECT * FROM "${PLAYER_INFO_TABLE_QUOTED}" WHERE id = $1`, [id]);
-  let row = res.rows?.[0];
-  if (!row) {
+  for (const table of PLAYER_INFO_TABLES) {
     try {
-      res = await pool.query<PlayerInfoRow>(`SELECT * FROM ${PLAYER_INFO_TABLE_SNAKE} WHERE id = $1`, [id]);
-      row = res.rows?.[0];
+      const res = await pool.query<PlayerInfoRow>(`SELECT * FROM ${table} WHERE id = $1`, [id]);
+      const row = res.rows?.[0];
+      if (row) {
+        const mapped = mapRowToPlayer(row);
+        let result: PlayerInfoMapped = mapped;
+        const statsFromTable = await getPlayerStatsFromPlayerStatsTable(row.id);
+        if (statsFromTable.length > 0) result = { ...mapped, stats: statsFromTable };
+        try {
+          const existing = await storage.getPlayerByNameAndTeam(mapped.name, mapped.team);
+          if (existing) result = { ...result, profileViews: existing.profileViews };
+        } catch {
+          // app table may be missing or have different schema; keep mapped profileViews
+        }
+        return result;
+      }
+    } catch {
+      continue;
+    }
+  }
+  const allRows = await getPlayerInfoRows();
+  const found = allRows.find((p) => Number(p.id) === id);
+  if (found) {
+    let result: PlayerInfoMapped = found;
+    const statsFromTable = await getPlayerStatsFromPlayerStatsTable(found.id);
+    if (statsFromTable.length > 0) result = { ...found, stats: statsFromTable };
+    try {
+      const existing = await storage.getPlayerByNameAndTeam(found.name, found.team);
+      if (existing) result = { ...result, profileViews: existing.profileViews };
     } catch {
       // ignore
     }
+    return result;
   }
-  if (!row) {
-    const allRows = await getPlayerInfoRows();
-    const found = allRows.find((p) => Number(p.id) === id);
-    if (found) {
-      let result: PlayerInfoMapped = found;
-      const statsFromTable = await getPlayerStatsFromPlayerStatsTable(found.id);
-      if (statsFromTable.length > 0) result = { ...found, stats: statsFromTable };
-      try {
-        const existing = await storage.getPlayerByNameAndTeam(found.name, found.team);
-        if (existing) result = { ...result, profileViews: existing.profileViews };
-      } catch {
-        // ignore
-      }
-      return result;
-    }
-    return null;
-  }
-  const mapped = mapRowToPlayer(row);
-  const playerIdStr = String(row.player_id || "").trim();
-  let result: PlayerInfoMapped = mapped;
-  const statsFromTable = await getPlayerStatsFromPlayerStatsTable(row.id);
-  if (statsFromTable.length > 0) result = { ...mapped, stats: statsFromTable };
-  try {
-    const existing = await storage.getPlayerByNameAndTeam(mapped.name, mapped.team);
-    if (existing) result = { ...result, profileViews: existing.profileViews };
-  } catch {
-    // app table may be missing or have different schema; keep mapped profileViews
-  }
-  return result;
+  return null;
 }
 
 /** Query user's player_stats table (JOIN source); map to API stat shape. */
@@ -550,7 +541,7 @@ export async function getPlayerStatsFromPlayerStatsTable(playerIdOrNumericId: nu
 export async function getPlayerInfoByPlayerId(playerId: string): Promise<PlayerInfoMapped | null> {
   const id = String(playerId || "").trim();
   if (!id) return null;
-  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  const tables = PLAYER_INFO_TABLES;
   for (const table of tables) {
     try {
       const res = await pool.query<PlayerInfoRow>(`SELECT * FROM ${table} WHERE player_id = $1`, [id]);
@@ -578,7 +569,7 @@ export async function getPlayerInfoByPlayerId(playerId: string): Promise<PlayerI
 export async function incrementProfileViewsByPlayerId(playerId: string): Promise<void> {
   const id = String(playerId || "").trim();
   if (!id) return;
-  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  const tables = PLAYER_INFO_TABLES;
   for (const table of tables) {
     try {
       await pool.query(
@@ -605,7 +596,7 @@ export async function incrementProfileViewsByPlayerId(playerId: string): Promise
 /** Set profile_views for a player by numeric id in the external "Player info" table(s). Used when admin updates view count and the profile is served from external table. */
 export async function setExternalProfileViewsById(id: number, profileViews: number): Promise<void> {
   const value = Math.max(0, Math.floor(Number(profileViews)));
-  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  const tables = PLAYER_INFO_TABLES;
   for (const table of tables) {
     try {
       const res = await pool.query(
@@ -621,7 +612,7 @@ export async function setExternalProfileViewsById(id: number, profileViews: numb
 
 /** Increment profile_views by 1 for a player by numeric id in the external table(s). So view counts stay in sync when profile is served from external table. */
 export async function incrementExternalProfileViewsById(id: number): Promise<void> {
-  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  const tables = PLAYER_INFO_TABLES;
   for (const table of tables) {
     try {
       await pool.query(
@@ -639,7 +630,7 @@ export async function incrementExternalProfileViewsById(id: number): Promise<voi
 export async function setExternalHeadshotById(id: number, headshotUrl: string): Promise<void> {
   const url = String(headshotUrl || "").trim();
   if (!url) return;
-  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  const tables = PLAYER_INFO_TABLES;
   for (const table of tables) {
     for (const col of ["headshot_url", "headshoturl"]) {
       try {
@@ -714,7 +705,7 @@ export async function updateExternalPlayerById(
   data: ExternalPlayerUpdateData
 ): Promise<{ ok: boolean; error?: string }> {
   if (Object.keys(data).length === 0) return { ok: false, error: "No data" };
-  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  const tables = PLAYER_INFO_TABLES;
   let lastError: string | undefined;
   for (const table of tables) {
     const useWeig = table.includes(PLAYER_INFO_TABLE_QUOTED) || table === `"player info"`;
@@ -745,7 +736,7 @@ export async function updateExternalPlayerByPlayerId(
 ): Promise<{ ok: boolean; error?: string }> {
   const id = String(playerId || "").trim();
   if (!id || Object.keys(data).length === 0) return { ok: false, error: "No data" };
-  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  const tables = PLAYER_INFO_TABLES;
   let lastError: string | undefined;
   for (const table of tables) {
     const useWeig = table.includes(PLAYER_INFO_TABLE_QUOTED) || table === `"player info"`;
@@ -773,7 +764,7 @@ export async function updateExternalPlayerByPlayerId(
 
 /** Get profile_views for a player by numeric id from the external table(s). Used so GET /api/players/:id returns the updated count after admin sets it (external table may be the one we wrote). */
 export async function getExternalProfileViewsById(id: number): Promise<number | null> {
-  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE, `"player info"`];
+  const tables = PLAYER_INFO_TABLES;
   for (const table of tables) {
     try {
       const res = await pool.query<Record<string, unknown>>(`SELECT * FROM ${table} WHERE id = $1 LIMIT 1`, [id]);
@@ -795,16 +786,21 @@ export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; u
 
   let rows: PlayerInfoRow[] = [];
   try {
-    const res = await pool.query<PlayerInfoRow>(`SELECT * FROM "${PLAYER_INFO_TABLE_QUOTED}"`);
-    rows = res.rows || [];
-  } catch {
-    try {
-      const res = await pool.query<PlayerInfoRow>(`SELECT * FROM ${PLAYER_INFO_TABLE_SNAKE}`);
-      rows = res.rows || [];
-    } catch (e) {
-      result.errors.push(`Failed to read Player info table: ${(e as Error).message}`);
-      return result;
+    for (const table of PLAYER_INFO_TABLES) {
+      try {
+        const res = await pool.query<PlayerInfoRow>(`SELECT * FROM ${table}`);
+        rows = res.rows || [];
+        break;
+      } catch {
+        continue;
+      }
     }
+    if (rows.length === 0 && !result.errors.length) {
+      result.errors.push("Failed to read Player info table: no table found");
+    }
+  } catch (e) {
+    result.errors.push(`Failed to read Player info table: ${(e as Error).message}`);
+    return result;
   }
 
   for (const row of rows) {
@@ -877,7 +873,7 @@ export async function insertIntoPlayerInfo(row: {
   jerseyNumber?: number;
   number?: number;
 }): Promise<void> {
-  const tables = [`"${PLAYER_INFO_TABLE_QUOTED}"`, PLAYER_INFO_TABLE_SNAKE];
+  const tables = PLAYER_INFO_TABLES;
   const name = (row.name || "").trim();
   const team = (row.team || "").trim();
   const position = normalizePosition(row.position || "");
