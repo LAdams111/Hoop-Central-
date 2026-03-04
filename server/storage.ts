@@ -248,15 +248,6 @@ export class DatabaseStorage implements IStorage {
 
   async backfillNbaProfileViews(): Promise<number> {
     try {
-      const [sample] = await db
-        .select({ playerId: playerStats.playerId })
-        .from(playerStats)
-        .where(sql`LOWER(${playerStats.league}) = 'nba'`)
-        .limit(1);
-      if (!sample) return 0;
-      const val = sample.playerId;
-      const isNumeric = typeof val === "number" ? true : /^\d+$/.test(String(val ?? ""));
-      if (!isNumeric) return 0;
       const rows = await db
         .selectDistinct({ id: players.id })
         .from(players)

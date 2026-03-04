@@ -4,7 +4,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { scrapeNBAPlayers } from "./scraper";
 import { updateCurrentSeasonStandings } from "./standings";
-import { syncPlayerInfoFromPostgres, ensurePlayerProfilesFromPlayerStats } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres } from "./syncPlayerInfo";
 import { pool } from "./db";
 import { storage } from "./storage";
 
@@ -366,10 +366,6 @@ function startPlayerInfoSyncSchedule() {
   const INTERVAL_MS = 5 * 60 * 1000;
   setInterval(async () => {
     try {
-      const profileResult = await ensurePlayerProfilesFromPlayerStats();
-      if (profileResult.created > 0) {
-        log(`Player profiles from stats: ${profileResult.created} created`, "sync");
-      }
       const result = await syncPlayerInfoFromPostgres();
       if (result.created > 0 || result.updated > 0) {
         log(`Player info sync: ${result.created} created, ${result.updated} updated`, "sync");

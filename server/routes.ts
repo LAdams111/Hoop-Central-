@@ -8,7 +8,7 @@ import { api } from "@shared/routes";
 import { players } from "@shared/schema";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { syncPlayerInfoFromPostgres, ensurePlayerProfilesFromPlayerStats, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getRosterByCurrentTeamFromPlayerInfo, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
+import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getRosterByCurrentTeamFromPlayerInfo, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -109,23 +109,6 @@ export async function registerRoutes(
       res.json({ ok: true, ...result });
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e), created: 0, updated: 0, errors: [] });
-    }
-  });
-
-  app.post("/api/sync/profiles-from-stats", async (_req, res) => {
-    try {
-      const result = await ensurePlayerProfilesFromPlayerStats();
-      res.json({ ok: true, created: result.created, errors: result.errors });
-    } catch (e) {
-      res.status(500).json({ ok: false, error: String(e), created: 0, errors: [] });
-    }
-  });
-  app.get("/api/sync/profiles-from-stats", async (_req, res) => {
-    try {
-      const result = await ensurePlayerProfilesFromPlayerStats();
-      res.json({ ok: true, created: result.created, errors: result.errors });
-    } catch (e) {
-      res.status(500).json({ ok: false, error: String(e), created: 0, errors: [] });
     }
   });
 
