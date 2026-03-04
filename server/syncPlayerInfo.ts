@@ -468,10 +468,8 @@ export async function getPlayerInfoById(id: number): Promise<PlayerInfoMapped | 
     const found = allRows.find((p) => Number(p.id) === id);
     if (found) {
       let result: PlayerInfoMapped = found;
-      if (found.player_id) {
-        const statsFromTable = await getPlayerStatsFromPlayerStatsTable(found.player_id);
-        if (statsFromTable.length > 0) result = { ...found, stats: statsFromTable };
-      }
+      const statsFromTable = await getPlayerStatsFromPlayerStatsTable(found.id);
+      if (statsFromTable.length > 0) result = { ...found, stats: statsFromTable };
       try {
         const existing = await storage.getPlayerByNameAndTeam(found.name, found.team);
         if (existing) result = { ...result, profileViews: existing.profileViews };
@@ -485,10 +483,8 @@ export async function getPlayerInfoById(id: number): Promise<PlayerInfoMapped | 
   const mapped = mapRowToPlayer(row);
   const playerIdStr = String(row.player_id || "").trim();
   let result: PlayerInfoMapped = mapped;
-  if (playerIdStr) {
-    const statsFromTable = await getPlayerStatsFromPlayerStatsTable(playerIdStr);
-    if (statsFromTable.length > 0) result = { ...mapped, stats: statsFromTable };
-  }
+  const statsFromTable = await getPlayerStatsFromPlayerStatsTable(row.id);
+  if (statsFromTable.length > 0) result = { ...mapped, stats: statsFromTable };
   try {
     const existing = await storage.getPlayerByNameAndTeam(mapped.name, mapped.team);
     if (existing) result = { ...result, profileViews: existing.profileViews };
@@ -533,11 +529,16 @@ function mapPlayerStatsRow(r: PlayerStatsTableRow, index: number): PlayerInfoSta
   };
 }
 
-export async function getPlayerStatsFromPlayerStatsTable(playerId: string): Promise<PlayerInfoStatRow[]> {
+/** Query player_stats by numeric player_info.id (player_stats.player_id is integer FK to player_info.id). */
+export async function getPlayerStatsFromPlayerStatsTable(playerIdOrNumericId: number | string): Promise<PlayerInfoStatRow[]> {
+  const id = typeof playerIdOrNumericId === "number"
+    ? playerIdOrNumericId
+    : parseInt(String(playerIdOrNumericId).trim(), 10);
+  if (Number.isNaN(id)) return [];
   try {
     const res = await pool.query<PlayerStatsTableRow>(
       "SELECT * FROM player_stats WHERE player_id = $1 ORDER BY season DESC",
-      [playerId]
+      [id]
     );
     return (res.rows || []).map((r, i) => mapPlayerStatsRow(r, i));
   } catch {
@@ -556,7 +557,7 @@ export async function getPlayerInfoByPlayerId(playerId: string): Promise<PlayerI
       const row = res.rows?.[0];
       if (row) {
         const mapped = mapRowToPlayer(row);
-        const statsFromTable = await getPlayerStatsFromPlayerStatsTable(id);
+        const statsFromTable = await getPlayerStatsFromPlayerStatsTable(row.id);
         let result: PlayerInfoMapped = { ...mapped, stats: statsFromTable.length > 0 ? statsFromTable : mapped.stats };
         try {
           const existing = await storage.getPlayerByNameAndTeam(mapped.name, mapped.team);

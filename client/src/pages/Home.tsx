@@ -254,7 +254,9 @@ export default function Home() {
                         className="w-full flex items-center gap-3 px-4 py-3 hover-elevate text-left transition-colors group"
                         data-testid={`suggestion-player-${item.data.id}`}
                         onClick={() => {
-                          setLocation(`/players/${(item.data as { player_id?: string }).player_id ?? item.data.id}`);
+                          const id = item.data.id;
+                          const playerId = (item.data as { player_id?: string }).player_id;
+                          setLocation(`/players/${id != null && id !== "" ? id : playerId ?? ""}`);
                           setShowSuggestions(false);
                         }}
                       >
