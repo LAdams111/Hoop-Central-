@@ -338,6 +338,81 @@ export async function getPlayerInfoRows(): Promise<PlayerInfoMapped[]> {
   return [];
 }
 
+/** Ensure every player_id in player_stats has a row in player_info so profiles exist. Creates minimal rows (name/team from stats) when missing. */
+export async function ensurePlayerProfilesFromPlayerStats(): Promise<{ created: number; errors: string[] }> {
+  const result = { created: 0, errors: [] as string[] };
+  let tableUsed: string | null = null;
+  for (const table of PLAYER_INFO_TABLES) {
+    try {
+      await pool.query(`SELECT 1 FROM ${table} LIMIT 1`);
+      tableUsed = table;
+      break;
+    } catch {
+      continue;
+    }
+  }
+  if (!tableUsed) return result;
+
+  try {
+    const distinctRes = await pool.query<{ player_id: string | number }>(`SELECT DISTINCT player_id FROM player_stats`);
+    const pids = (distinctRes.rows || []).map((r) => r.player_id);
+    for (const pid of pids) {
+      try {
+        const idNum = typeof pid === "number" ? pid : parseInt(String(pid).trim(), 10);
+        const idStr = String(pid).trim();
+        const isNumericId = !Number.isNaN(idNum) && idNum > 0;
+        const existsRes = await pool.query(
+          isNumericId
+            ? `SELECT 1 FROM ${tableUsed} WHERE id = $1 OR player_id::text = $2 LIMIT 1`
+            : `SELECT 1 FROM ${tableUsed} WHERE player_id::text = $1 LIMIT 1`,
+          isNumericId ? [idNum, idStr] : [idStr]
+        );
+        if ((existsRes.rows?.length ?? 0) > 0) continue;
+
+        const sampleRes = await pool.query<{ team?: string; league?: string }>(
+          `SELECT team, league FROM player_stats WHERE player_id = $1 LIMIT 1`,
+          [pid]
+        );
+        const team = (sampleRes.rows?.[0]?.team ?? "Unknown").trim() || "Unknown";
+        const name = idStr ? `Player ${idStr}` : "Unknown Player";
+        const position = "—";
+        const height = "—";
+        const weight = "—";
+        const jersey = 0;
+        if (!Number.isNaN(idNum) && idNum > 0) {
+          try {
+            await pool.query(
+              `INSERT INTO ${tableUsed} (id, player_id, name, team, position, height, weig, jersey_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+              [idNum, idStr, name, team, position, height, weight, jersey]
+            );
+          } catch (insErr: unknown) {
+            const msg = insErr instanceof Error ? insErr.message : String(insErr);
+            if (!msg.includes("duplicate") && !msg.includes("unique")) throw insErr;
+          }
+        } else {
+          await pool.query(
+            `INSERT INTO ${tableUsed} (player_id, name, team, position, height, weig, jersey_number) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [idStr, name, team, position, height, weight, jersey]
+          );
+        }
+        result.created++;
+      } catch (e) {
+        result.errors.push(`player_id ${pid}: ${(e as Error).message}`);
+      }
+    }
+    if (result.created > 0 && tableUsed === PLAYER_INFO_TABLE_SNAKE) {
+      try {
+        await pool.query(`SELECT setval(pg_get_serial_sequence('player_info', 'id'), (SELECT COALESCE(MAX(id), 1) FROM player_info))`);
+      } catch {
+        // ignore sequence update
+      }
+    }
+  } catch (e) {
+    result.errors.push(`ensurePlayerProfilesFromPlayerStats: ${(e as Error).message}`);
+  }
+  return result;
+}
+
 /** Fallback roster when player_stats is empty: return players whose current team matches (from Player info / player_info). */
 export async function getRosterByCurrentTeamFromPlayerInfo(team: string): Promise<PlayerInfoMapped[]> {
   const candidates = new Set(getTeamMatchCandidates(team).map((c) => c.toLowerCase()));
@@ -796,6 +871,13 @@ export async function getExternalProfileViewsById(id: number): Promise<number | 
 
 export async function syncPlayerInfoFromPostgres(): Promise<{ created: number; updated: number; errors: string[] }> {
   const result = { created: 0, updated: 0, errors: [] as string[] };
+
+  try {
+    const profileResult = await ensurePlayerProfilesFromPlayerStats();
+    profileResult.errors.forEach((e) => result.errors.push(e));
+  } catch (e) {
+    result.errors.push(`ensurePlayerProfilesFromPlayerStats: ${(e as Error).message}`);
+  }
 
   let rows: PlayerInfoRow[] = [];
   try {
