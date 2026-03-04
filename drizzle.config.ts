@@ -23,8 +23,8 @@ if (!url) {
 }
 
 export default defineConfig({
-  out: "./migrations",
-  schema: "./shared/schema.ts",
+  out: "./server/migrations",
+  schema: ["./shared/schema.ts", "./shared/canonicalSchema.ts"],
   dialect: "postgresql",
   dbCredentials: {
     url,

@@ -78,6 +78,90 @@ async function ensureTeamRecordsTable(): Promise<void> {
   }
 }
 
+/** Ensure canonical schema (players, player_external_ids, leagues, teams, seasons, player_seasons, player_season_stats) exists. */
+async function ensureCanonicalSchema(): Promise<void> {
+  const statements = [
+    `CREATE TABLE IF NOT EXISTS players (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL,
+      birth_date TEXT,
+      height TEXT NOT NULL DEFAULT '—',
+      weight TEXT NOT NULL DEFAULT '—',
+      position TEXT NOT NULL DEFAULT 'G',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS players_slug_key ON players (slug)`,
+    `CREATE TABLE IF NOT EXISTS player_external_ids (
+      id SERIAL PRIMARY KEY,
+      player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+      source TEXT NOT NULL,
+      external_id TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(source, external_id)
+    )`,
+    `CREATE INDEX IF NOT EXISTS player_external_ids_player_id ON player_external_ids(player_id)`,
+    `CREATE INDEX IF NOT EXISTS player_external_ids_lookup ON player_external_ids(source, external_id)`,
+    `CREATE TABLE IF NOT EXISTS leagues (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      country TEXT DEFAULT 'USA',
+      level TEXT
+    )`,
+    `INSERT INTO leagues (id, name, country, level) VALUES (1, 'NCAA', 'USA', 'college'), (2, 'NBA', 'USA', 'pro'), (3, 'G League', 'USA', 'pro') ON CONFLICT (id) DO NOTHING`,
+    `CREATE TABLE IF NOT EXISTS teams (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL,
+      league_id INTEGER NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+      school TEXT,
+      city TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS teams_league_slug ON teams(league_id, slug)`,
+    `CREATE TABLE IF NOT EXISTS seasons (
+      id SERIAL PRIMARY KEY,
+      year_start INTEGER NOT NULL,
+      year_end INTEGER NOT NULL,
+      label TEXT NOT NULL
+    )`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS seasons_label ON seasons(label)`,
+    `CREATE TABLE IF NOT EXISTS player_seasons (
+      id SERIAL PRIMARY KEY,
+      player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+      team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+      league_id INTEGER NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+      season_id INTEGER NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
+      jersey INTEGER DEFAULT 0,
+      games INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(player_id, team_id, season_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS player_season_stats (
+      id SERIAL PRIMARY KEY,
+      player_season_id INTEGER NOT NULL REFERENCES player_seasons(id) ON DELETE CASCADE,
+      pts_per_g NUMERIC NOT NULL DEFAULT 0,
+      trb_per_g NUMERIC NOT NULL DEFAULT 0,
+      ast_per_g NUMERIC NOT NULL DEFAULT 0,
+      stl_per_g NUMERIC NOT NULL DEFAULT 0,
+      blk_per_g NUMERIC NOT NULL DEFAULT 0,
+      fg_pct NUMERIC NOT NULL DEFAULT 0,
+      fg3_pct NUMERIC,
+      ft_pct NUMERIC,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(player_season_id)
+    )`,
+  ];
+  for (const sql of statements) {
+    try {
+      await pool.query(sql);
+    } catch (err: unknown) {
+      console.warn("Could not run canonical schema statement:", (err as Error)?.message ?? err);
+    }
+  }
+}
+
 /** Repair player_info: set player_id = id where player_id IS NULL so joins with player_stats work (p.id = s.player_id). */
 async function repairPlayerInfoPlayerIdNulls(): Promise<void> {
   try {
@@ -217,6 +301,11 @@ app.use((req, res, next) => {
     } catch {
       // non-fatal
     }
+    try {
+      await ensureCanonicalSchema();
+    } catch {
+      // non-fatal
+    }
   }
   await registerRoutes(httpServer, app);
 
@@ -339,10 +428,10 @@ app.use((req, res, next) => {
         });
         // NCAA scraper: light run (fewer schools, recent seasons only) to reduce 429 rate limits
         setTimeout(() => {
-          import("./ncaaScraper").then(({ runNcaaScraper, isNcaaScraperRunning }) => {
+          import("./scrapers/ncaaScraper").then(({ runNcaaScraper, isNcaaScraperRunning }) => {
             if (isNcaaScraperRunning()) return;
             log("NCAA scraper started in background (light: 20 schools, last 4 seasons)", "startup");
-            runNcaaScraper({ maxSchools: 20 }).then((r) => {
+            runNcaaScraper({ maxSchools: 20 }).then((r: { schoolsProcessed: number; playersAdded: number; playersMatched: number; statsInserted: number; statsUpdated: number; pages429?: number; errors: string[] }) => {
               log(`NCAA scraper done: ${r.schoolsProcessed} roster pages, ${r.playersAdded} new players, ${r.playersMatched} matched, ${r.statsInserted} stats inserted, ${r.statsUpdated} updated`, "startup");
               if (r.pages429 && r.pages429 > 0) log(`NCAA 429s: ${r.pages429}`, "startup");
               if (r.errors.length > 0) {
@@ -391,7 +480,7 @@ function startWeeklyScraperSchedule() {
       log("Starting scheduled weekly NBA scrape...", "scheduler");
       try {
         const result = await scrapeNBAPlayers();
-        log(`Scheduled scrape complete! Added: ${result.playersAdded}, Updated: ${result.playersUpdated}, Stats: ${result.statsUpdated}, Seasons: ${result.seasonsProcessed.join(', ')}`, "scheduler");
+        log(`Scheduled scrape complete! Added: ${result.playersAdded}, Matched: ${result.playersMatched}, Stats: ${result.statsInserted} inserted, ${result.statsUpdated} updated, Seasons: ${result.seasonsProcessed.join(', ')}`, "scheduler");
       } catch (err: any) {
         log(`Scheduled scrape failed: ${err?.message ?? String(err)}`, "scheduler");
       }
@@ -405,7 +494,7 @@ function startWeeklyScraperSchedule() {
         log(`BR team records scrape skipped: ${err?.message ?? String(err)}`, "scheduler");
       }
       try {
-        const { runNcaaScraper, isNcaaScraperRunning } = await import("./ncaaScraper");
+        const { runNcaaScraper, isNcaaScraperRunning } = await import("./scrapers/ncaaScraper");
         if (!isNcaaScraperRunning()) {
           log("Starting scheduled NCAA scrape (light: 20 schools, last 4 seasons)...", "scheduler");
           const ncaaResult = await runNcaaScraper({ maxSchools: 20 });

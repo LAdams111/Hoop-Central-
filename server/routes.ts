@@ -112,6 +112,16 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/sync/frontend", async (_req, res) => {
+    try {
+      const { syncFrontendTables } = await import("./sync/syncFrontendTables");
+      const result = await syncFrontendTables();
+      res.json({ ok: true, ...result });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e), playersUpserted: 0, statsDeleted: 0, statsInserted: 0, errors: [] });
+    }
+  });
+
   app.get("/api/featured-players", async (_req, res) => {
     try {
       const list = await storage.getFeaturedPlayers();
@@ -1097,7 +1107,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/scraper/status", async (req, res) => {
-    const { isNcaaScraperRunning } = await import("./ncaaScraper");
+    const { isNcaaScraperRunning } = await import("./scrapers/ncaaScraper");
     res.json({ running: scraperRunning, bioRunning: isBioScraperRunning(), ncaaRunning: isNcaaScraperRunning() });
   });
 
@@ -1113,7 +1123,7 @@ export async function registerRoutes(
 
   app.post("/api/scraper/ncaa", async (req, res) => {
     try {
-      const { runNcaaScraper, isNcaaScraperRunning } = await import("./ncaaScraper");
+      const { runNcaaScraper, isNcaaScraperRunning } = await import("./scrapers/ncaaScraper");
       if (isNcaaScraperRunning()) {
         return res.status(409).json({ message: "NCAA scraper is already running. Please wait." });
       }
@@ -1122,6 +1132,7 @@ export async function registerRoutes(
         schoolSlugs: body.schoolSlugs,
         startYear: body.startYear,
         endYear: body.endYear,
+        runSyncAfter: true,
       });
       res.json(result);
     } catch (err: any) {
@@ -1131,7 +1142,7 @@ export async function registerRoutes(
 
   app.get("/api/scraper/ncaa/status", async (req, res) => {
     try {
-      const { isNcaaScraperRunning, getLastNcaaScraperResult } = await import("./ncaaScraper");
+      const { isNcaaScraperRunning, getLastNcaaScraperResult } = await import("./scrapers/ncaaScraper");
       const last = getLastNcaaScraperResult();
       res.json({
         running: isNcaaScraperRunning(),
@@ -1166,7 +1177,7 @@ export async function registerRoutes(
     try {
       const slug = (req.query.slug as string) || "duke";
       const year = parseInt(String(req.query.year || "2024"), 10) || 2024;
-      const { testFetchOnePage } = await import("./ncaaScraper");
+      const { testFetchOnePage } = await import("./scrapers/ncaaScraper");
       const result = await testFetchOnePage(slug, year);
       res.json(result);
     } catch (err: any) {
@@ -1182,7 +1193,7 @@ export async function registerRoutes(
       if (players.length === 0) {
         return res.status(400).json({ message: "Body must include players array" });
       }
-      const { importNcaaPlayerSeasons } = await import("./ncaaScraper");
+      const { importNcaaPlayerSeasons } = await import("./scrapers/ncaaScraper");
       const rows = players.map((p) => ({
         name: p.name,
         school: p.school,
@@ -1212,7 +1223,7 @@ export async function registerRoutes(
       if (!schoolSlug || !html) {
         return res.status(400).json({ message: "Body must include schoolSlug and html" });
       }
-      const { importNcaaRosterHtml } = await import("./ncaaScraper");
+      const { importNcaaRosterHtml } = await import("./scrapers/ncaaScraper");
       const result = await importNcaaRosterHtml(schoolSlug, year, html);
       res.json(result);
     } catch (err: any) {
