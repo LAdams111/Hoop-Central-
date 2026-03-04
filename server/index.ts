@@ -91,7 +91,8 @@ async function repairPlayerInfoPlayerIdNulls(): Promise<void> {
 }
 
 /** Repair player_stats: set player_id = player_info.id for any row where player_id matches player_info.player_id (string).
- * This fixes stats that were stored with string ids (e.g. "bradtma01") so they show on the correct player profile. */
+ * This fixes stats that were stored with string ids (e.g. "bradtma01") so they show on the correct player profile.
+ * Uses ::text casts so the comparison works whether player_stats.player_id is integer or text in the DB. */
 async function repairPlayerStatsPlayerIds(): Promise<void> {
   try {
     const res = await pool.query(`
@@ -100,13 +101,26 @@ async function repairPlayerStatsPlayerIds(): Promise<void> {
       FROM player_info pi
       WHERE trim(pi.player_id::text) <> ''
         AND ps.player_id::text = trim(pi.player_id::text)
-        AND (ps.player_id IS DISTINCT FROM pi.id)
+        AND (ps.player_id::text IS DISTINCT FROM pi.id::text)
     `);
     if (res.rowCount != null && res.rowCount > 0) {
       console.log(`[startup] Repaired ${res.rowCount} player_stats rows: linked to player_info.id`);
     }
   } catch (err: unknown) {
     console.warn("Could not repair player_stats.player_id (player_info.player_id may not exist or type differs):", (err as Error)?.message ?? err);
+  }
+}
+
+/** Ensure player_stats.player_id is INTEGER so joins with player_info.id don't hit integer = text errors. */
+async function ensurePlayerStatsPlayerIdInteger(): Promise<void> {
+  try {
+    await pool.query(`
+      ALTER TABLE player_stats
+      ALTER COLUMN player_id TYPE INTEGER USING (player_id::integer)
+    `);
+    console.log("[startup] player_stats.player_id is INTEGER");
+  } catch (err: unknown) {
+    console.warn("Could not alter player_stats.player_id to INTEGER (may already be integer or have non-numeric values):", (err as Error)?.message ?? err);
   }
 }
 
@@ -256,6 +270,11 @@ app.use((req, res, next) => {
   }
   try {
     await repairPlayerStatsPlayerIds();
+  } catch {
+    // non-fatal
+  }
+  try {
+    await ensurePlayerStatsPlayerIdInteger();
   } catch {
     // non-fatal
   }
