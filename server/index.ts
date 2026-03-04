@@ -90,6 +90,26 @@ async function repairPlayerInfoPlayerIdNulls(): Promise<void> {
   }
 }
 
+/** Repair player_stats: set player_id = player_info.id for any row where player_id matches player_info.player_id (string).
+ * This fixes stats that were stored with string ids (e.g. "bradtma01") so they show on the correct player profile. */
+async function repairPlayerStatsPlayerIds(): Promise<void> {
+  try {
+    const res = await pool.query(`
+      UPDATE player_stats ps
+      SET player_id = pi.id
+      FROM player_info pi
+      WHERE trim(pi.player_id::text) <> ''
+        AND ps.player_id::text = trim(pi.player_id::text)
+        AND (ps.player_id IS DISTINCT FROM pi.id)
+    `);
+    if (res.rowCount != null && res.rowCount > 0) {
+      console.log(`[startup] Repaired ${res.rowCount} player_stats rows: linked to player_info.id`);
+    }
+  } catch (err: unknown) {
+    console.warn("Could not repair player_stats.player_id (player_info.player_id may not exist or type differs):", (err as Error)?.message ?? err);
+  }
+}
+
 /** Ensure player_stats has columns required by NCAA/NBA scrapers. Uses NBA-style names: pts_per_g, trb_per_g, etc. */
 async function ensurePlayerStatsColumns(): Promise<void> {
   const alters = [
@@ -231,6 +251,11 @@ app.use((req, res, next) => {
   }
   try {
     await repairPlayerInfoPlayerIdNulls();
+  } catch {
+    // non-fatal
+  }
+  try {
+    await repairPlayerStatsPlayerIds();
   } catch {
     // non-fatal
   }

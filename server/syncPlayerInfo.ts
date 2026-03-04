@@ -1,6 +1,10 @@
 /**
  * Syncs from the Postgres "Player info" table (id, player_id, name, team, position, height, weig)
  * into the app's `player_info` table so Hoop Central can show player profiles.
+ *
+ * One player ID: player_info.id is the single canonical ID for a player (e.g. Jaden Bradley).
+ * It is used for both player info and player stats: player_stats.player_id = player_info.id.
+ * The profile on the website/app loads by this id and shows all info + stats for that player.
  */
 import { eq, and, sql } from "drizzle-orm";
 import { pool, db } from "./db";

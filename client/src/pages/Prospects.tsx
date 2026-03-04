@@ -63,7 +63,7 @@ export default function Prospects() {
             {prospects.map((player, index) => {
               const age = getAge(player.birthDate);
               return (
-                <Link key={player.id} href={`/players/${(player as { player_id?: string }).player_id ?? player.id}`} className="block group">
+                <Link key={player.id} href={`/players/${player.id ?? (player as { player_id?: string }).player_id}`} className="block group">
                   <div className="flex items-center gap-3 md:gap-4 px-3 md:px-5 py-3 md:py-4 rounded-xl bg-card border border-border hover:border-primary/40 transition-all cursor-pointer group-hover:bg-card/80"
                     data-testid={`prospect-row-${player.id}`}
                   >
