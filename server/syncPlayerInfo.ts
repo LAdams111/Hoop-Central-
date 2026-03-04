@@ -442,7 +442,7 @@ export async function getRosterFromExternalTable(team: string, season: string): 
   const rows = await getPlayerInfoRows();
   const out: PlayerInfoMapped[] = [];
   for (const p of rows) {
-    const stats = p.stats ?? (await getPlayerStatsFromPlayerStatsTable(p.player_id));
+    const stats = p.stats ?? (await getPlayerStatsFromPlayerStatsTable(p.id));
     const hasMatch = stats.some(
       (s) => candidates.has((s.team || "").toLowerCase()) && seasonVariants.includes((s.season || "").trim())
     );
