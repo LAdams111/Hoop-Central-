@@ -391,42 +391,45 @@ function getSeasonVariants(season: string): string[] {
   return variants;
 }
 
-/** Roster using app tables only: players + playerStats (no teamRecords, no external tables). Season column may be integer or text in DB — always compare as text. */
+/** Roster using app tables only: players + playerStats (no teamRecords, no external tables). Season column may be integer or text in DB — always compare as text. Returns [] if join fails (e.g. player_stats.player_id is text). */
 export async function getRosterFromExternalTableViaJoin(team: string, season: string) {
   const teamLower = team.toLowerCase();
   const seasonVariants = getSeasonVariants(season);
   if (seasonVariants.length === 0) return [];
+  try {
+    const rows = await db
+      .select({
+        id: players.id,
+        name: players.name,
+        position: players.position,
+        team: playerStats.team,
+        height: players.height,
+        weight: players.weight,
+        jerseyNumber: players.jerseyNumber,
+        headshotUrl: players.headshotUrl,
+        bio: players.bio,
+        profileViews: players.profileViews,
+        birthDate: players.birthDate,
+        hometown: players.hometown,
+      })
+      .from(playerStats)
+      .innerJoin(players, sql`${players.id} = CAST(${playerStats.playerId} AS INTEGER)`)
+      .where(
+        and(
+          sql`LOWER(${playerStats.team}) = ${teamLower}`,
+          sql`CAST(${playerStats.season} AS text) IN (${sql.join(seasonVariants.map((v) => sql`${v}`), sql`, `)})`
+        )
+      );
 
-  const rows = await db
-    .select({
-      id: players.id,
-      name: players.name,
-      position: players.position,
-      team: playerStats.team,
-      height: players.height,
-      weight: players.weight,
-      jerseyNumber: players.jerseyNumber,
-      headshotUrl: players.headshotUrl,
-      bio: players.bio,
-      profileViews: players.profileViews,
-      birthDate: players.birthDate,
-      hometown: players.hometown,
-    })
-    .from(playerStats)
-    .innerJoin(players, sql`${players.id} = CAST(${playerStats.playerId} AS INTEGER)`)
-    .where(
-      and(
-        sql`LOWER(${playerStats.team}) = ${teamLower}`,
-        sql`CAST(${playerStats.season} AS text) IN (${sql.join(seasonVariants.map((v) => sql`${v}`), sql`, `)})`
-      )
-    );
-
-  const seen = new Set<number>();
-  return rows.filter((r) => {
-    if (seen.has(r.id)) return false;
-    seen.add(r.id);
-    return true;
-  });
+    const seen = new Set<number>();
+    return rows.filter((r) => {
+      if (seen.has(r.id)) return false;
+      seen.add(r.id);
+      return true;
+    });
+  } catch {
+    return [];
+  }
 }
 
 /** Roster for team + season: only players whose stats include this team and season (same source as profile). */
@@ -520,16 +523,25 @@ function mapPlayerStatsRow(r: PlayerStatsTableRow, index: number): PlayerInfoSta
   };
 }
 
-/** Query player_stats by numeric player_info.id (player_stats.player_id is integer FK to player_info.id). */
+/** Query player_stats by player_info.id (numeric) or player_id (text like "bradtma01"). Supports both integer and text player_id column. */
 export async function getPlayerStatsFromPlayerStatsTable(playerIdOrNumericId: number | string): Promise<PlayerInfoStatRow[]> {
-  const id = typeof playerIdOrNumericId === "number"
-    ? playerIdOrNumericId
-    : parseInt(String(playerIdOrNumericId).trim(), 10);
-  if (Number.isNaN(id)) return [];
+  const input = playerIdOrNumericId;
+  const asNumber = typeof input === "number" ? input : parseInt(String(input).trim(), 10);
+  const isNumeric = !Number.isNaN(asNumber) && String(asNumber) === String(input).trim();
+
   try {
+    if (isNumeric) {
+      const res = await pool.query<PlayerStatsTableRow>(
+        "SELECT * FROM player_stats WHERE player_id = $1 ORDER BY season DESC",
+        [asNumber]
+      );
+      if ((res.rows?.length ?? 0) > 0) return (res.rows || []).map((r, i) => mapPlayerStatsRow(r, i));
+    }
+    const asString = typeof input === "string" ? input.trim() : String(input);
+    if (asString === "") return [];
     const res = await pool.query<PlayerStatsTableRow>(
       "SELECT * FROM player_stats WHERE player_id = $1 ORDER BY season DESC",
-      [id]
+      [asString]
     );
     return (res.rows || []).map((r, i) => mapPlayerStatsRow(r, i));
   } catch {
@@ -548,7 +560,8 @@ export async function getPlayerInfoByPlayerId(playerId: string): Promise<PlayerI
       const row = res.rows?.[0];
       if (row) {
         const mapped = mapRowToPlayer(row);
-        const statsFromTable = await getPlayerStatsFromPlayerStatsTable(row.id);
+        let statsFromTable = await getPlayerStatsFromPlayerStatsTable(row.id);
+        if (statsFromTable.length === 0 && row.player_id) statsFromTable = await getPlayerStatsFromPlayerStatsTable(row.player_id);
         let result: PlayerInfoMapped = { ...mapped, stats: statsFromTable.length > 0 ? statsFromTable : mapped.stats };
         try {
           const existing = await storage.getPlayerByNameAndTeam(mapped.name, mapped.team);

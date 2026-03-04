@@ -153,20 +153,23 @@ export class DatabaseStorage implements IStorage {
       if (!seasonCandidates.includes(startYear)) seasonCandidates.push(startYear);
     }
     console.log("[roster getRoster] season filter candidates:", JSON.stringify(seasonCandidates));
-    // Explicit CAST so comparison works when DB stores season as integer (avoids "integer = text" error)
     const seasonCondition = sql`CAST(${playerStats.season} AS text) IN (${sql.join(seasonCandidates.map((c) => sql`${c}`), sql`, `)})`;
-    const results = await db
-      .select({ player: players })
-      .from(players)
-      .innerJoin(playerStats, sql`${players.id} = CAST(${playerStats.playerId} AS INTEGER)`)
-      .where(and(teamConditionStats, seasonCondition));
-    console.log("[roster getRoster] query returned rows:", results.length);
-    const seen = new Set<number>();
-    return results.map((r) => r.player).filter((p) => {
-      if (seen.has(p.id)) return false;
-      seen.add(p.id);
-      return true;
-    });
+    try {
+      const results = await db
+        .select({ player: players })
+        .from(players)
+        .innerJoin(playerStats, sql`${players.id} = CAST(${playerStats.playerId} AS INTEGER)`)
+        .where(and(teamConditionStats, seasonCondition));
+      console.log("[roster getRoster] query returned rows:", results.length);
+      const seen = new Set<number>();
+      return results.map((r) => r.player).filter((p) => {
+        if (seen.has(p.id)) return false;
+        seen.add(p.id);
+        return true;
+      });
+    } catch {
+      return [];
+    }
   }
 
   async createPlayerStats(insertStats: InsertPlayerStats): Promise<PlayerStats> {
@@ -244,22 +247,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async backfillNbaProfileViews(): Promise<number> {
-    const rows = await db
-      .selectDistinct({ id: players.id })
-      .from(players)
-      .innerJoin(playerStats, sql`${players.id} = CAST(${playerStats.playerId} AS INTEGER)`)
-      .where(
-        and(
-          sql`LOWER(${playerStats.league}) = 'nba'`,
-          sql`${players.profileViews} < 10000`
-        )
-      );
-    let updated = 0;
-    for (const { id } of rows) {
-      await this.addNbaProfileViewsBoost(id);
-      updated++;
+    try {
+      const rows = await db
+        .selectDistinct({ id: players.id })
+        .from(players)
+        .innerJoin(playerStats, sql`${players.id} = CAST(${playerStats.playerId} AS INTEGER)`)
+        .where(
+          and(
+            sql`LOWER(${playerStats.league}) = 'nba'`,
+            sql`${players.profileViews} < 10000`
+          )
+        );
+      let updated = 0;
+      for (const { id } of rows) {
+        await this.addNbaProfileViewsBoost(id);
+        updated++;
+      }
+      return updated;
+    } catch {
+      return 0;
     }
-    return updated;
   }
 
   async getTeamRecord(team: string, season: string): Promise<TeamRecord | undefined> {
