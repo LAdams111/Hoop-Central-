@@ -9,6 +9,7 @@ import { players } from "@shared/schema";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getRosterByCurrentTeamFromPlayerInfo, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, getPlayerInfoIdByPlayerId, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
+import { getCanonicalPlayersList, getCanonicalPlayerCount, getCanonicalPlayerById, getCanonicalPlayerBySrPlayerId, getCanonicalBirthYearCounts, getCanonicalPlayersByBirthYear, getCanonicalProspects } from "./canonicalPlayerApi";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -640,9 +641,11 @@ export async function registerRoutes(
   // Total player count
   app.get("/api/players/count", async (_req, res) => {
     try {
-      let count = await getPlayerInfoCount();
-      if (count === 0) count = await storage.getPlayerCount();
-      res.json({ count });
+      const count = await getCanonicalPlayerCount();
+      if (count > 0) return res.json({ count });
+      let fallback = await getPlayerInfoCount();
+      if (fallback === 0) fallback = await storage.getPlayerCount();
+      res.json({ count: fallback });
     } catch {
       res.json({ count: 0 });
     }
@@ -657,6 +660,21 @@ export async function registerRoutes(
     const sortByViews = sortBy !== "name"; // default: by views (highest first)
 
     let players: { id: number; name: string; position: string; team: string; height: string; weight: string; jerseyNumber: number; headshotUrl: string; profileViews: number }[];
+    try {
+      const canonical = await getCanonicalPlayersList({
+        search,
+        position: position && position !== "ALL" ? position : undefined,
+        sortBy: sortByViews ? "views" : "name",
+      });
+      if (canonical.length > 0) {
+        players = canonical.slice(0, DIRECTORY_LIST_LIMIT);
+        res.json(players);
+        return;
+      }
+    } catch {
+      // fall through
+    }
+
     try {
       const fromPlayerInfo = await getPlayerInfoRows();
       if (fromPlayerInfo.length > 0) {
@@ -707,8 +725,30 @@ export async function registerRoutes(
     }
   });
 
-  // Prospects (under 20, top 50 by views) — try external "Player info" first so it works with full dataset
+  // Prospects (under 20, top 50 by views) — try canonical first
   app.get("/api/players/prospects", async (_req, res) => {
+    try {
+      const canonical = await getCanonicalProspects(20, 50);
+      if (canonical.length > 0) {
+        const list = canonical.map((p) => ({
+          id: p.id,
+          name: p.name,
+          position: p.position,
+          team: p.team,
+          height: p.height,
+          weight: p.weight,
+          jerseyNumber: p.jerseyNumber,
+          headshotUrl: p.headshotUrl,
+          bio: p.bio,
+          profileViews: p.profileViews,
+          hometown: p.hometown,
+          birthDate: p.birthDate,
+        }));
+        return res.json(list);
+      }
+    } catch {
+      // fall through
+    }
     try {
       const fromExternal = await getProspectsFromExternalTable(20, 50);
       if (fromExternal.length > 0) {
@@ -743,14 +783,20 @@ export async function registerRoutes(
   // Birth year counts (for year grid) — must be before /api/players/:id or "birth-year-counts" is treated as id
   app.get("/api/players/birth-year-counts", async (_req, res) => {
     try {
+      const counts = await getCanonicalBirthYearCounts();
+      if (Object.keys(counts).length > 0) return res.json(counts);
+    } catch {
+      // fall through
+    }
+    try {
       const counts = await getBirthYearCountsFromExternalTable();
       if (Object.keys(counts).length > 0) return res.json(counts);
     } catch {
       // fall through
     }
-    const players = await storage.getPlayers();
+    const playersList = await storage.getPlayers();
     const counts: Record<string, number> = {};
-    for (const p of players) {
+    for (const p of playersList) {
       const bd = p.birthDate ?? (p as { birth_date?: string }).birth_date ?? null;
       if (bd == null || bd === "") continue;
       const d = new Date(String(bd).trim());
@@ -767,6 +813,28 @@ export async function registerRoutes(
     const year = parseInt(req.params.year);
     if (isNaN(year)) {
       return res.status(400).json({ message: "Invalid year" });
+    }
+    try {
+      const canonical = await getCanonicalPlayersByBirthYear(year, BIRTH_YEAR_LIMIT);
+      if (canonical.length > 0) {
+        const list = canonical.map((p) => ({
+          id: p.id,
+          name: p.name,
+          position: p.position,
+          team: p.team,
+          height: p.height,
+          weight: p.weight,
+          jerseyNumber: p.jerseyNumber,
+          headshotUrl: p.headshotUrl,
+          bio: p.bio,
+          profileViews: p.profileViews,
+          hometown: p.hometown,
+          birthDate: p.birthDate,
+        }));
+        return res.json(list);
+      }
+    } catch {
+      // fall through
     }
     try {
       const fromExternal = await getPlayersByBirthYearFromExternalTable(year, BIRTH_YEAR_LIMIT);
@@ -795,12 +863,27 @@ export async function registerRoutes(
     res.json(results);
   });
 
-  // Player Detail (with stats) — :id can be numeric (player_info table) or player_id string ("Player info")
+  // Player Detail (with stats) — :id can be numeric (players.id) or sr_player_id string (e.g. "jamesle01")
   app.get(api.players.get.path, async (req, res) => {
     try {
       const idParam = req.params.id;
       const idNum = Number(idParam);
 
+      if (!Number.isNaN(idNum)) {
+        const canonical = await getCanonicalPlayerById(idNum);
+        if (canonical) {
+          const out = { ...canonical, awards: [] };
+          return res.json(out);
+        }
+      }
+
+      const canonicalBySr = await getCanonicalPlayerBySrPlayerId(idParam);
+      if (canonicalBySr) {
+        const out = { ...canonicalBySr, awards: [] };
+        return res.json(out);
+      }
+
+      // Fallback: legacy player_info / storage
       if (!Number.isNaN(idNum)) {
         let player: Awaited<ReturnType<typeof storage.getPlayer>>;
         try {
@@ -834,7 +917,6 @@ export async function registerRoutes(
             const out = normalizePlayerForApi(player as Record<string, unknown>);
             return res.json({ ...out, stats, awards });
           } catch {
-            // app table stats/awards failed; return player without them
             const out = normalizePlayerForApi(player as Record<string, unknown>);
             return res.json({ ...out, stats: [], awards: [] });
           }
