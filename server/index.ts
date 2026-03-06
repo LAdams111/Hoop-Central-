@@ -426,26 +426,11 @@ app.use((req, res, next) => {
             log(`BR team records scraper skipped: ${err?.message ?? String(err)}`, "startup");
           });
         });
-        // NCAA scraper: light run (fewer schools, recent seasons only) to reduce 429 rate limits
-        setTimeout(() => {
-          import("./scrapers/ncaaScraper").then(({ runNcaaScraper, isNcaaScraperRunning }) => {
-            if (isNcaaScraperRunning()) return;
-            log("NCAA scraper started in background (light: 20 schools, last 4 seasons)", "startup");
-            runNcaaScraper({ maxSchools: 20 }).then((r: { schoolsProcessed: number; playersAdded: number; playersMatched: number; statsInserted: number; statsUpdated: number; pages429?: number; errors: string[] }) => {
-              log(`NCAA scraper done: ${r.schoolsProcessed} roster pages, ${r.playersAdded} new players, ${r.playersMatched} matched, ${r.statsInserted} stats inserted, ${r.statsUpdated} updated`, "startup");
-              if (r.pages429 && r.pages429 > 0) log(`NCAA 429s: ${r.pages429}`, "startup");
-              if (r.errors.length > 0) {
-                log(`NCAA scraper errors (first 3): ${r.errors.slice(0, 3).join("; ")}`, "startup");
-              }
-            }).catch((err: any) => {
-              log(`NCAA scraper failed: ${err?.message ?? String(err)}`, "startup");
-            });
-          });
-        }, 2 * 60 * 1000);
+        // Scraper in this repo is disabled — do not run NCAA/NBA scrapers on startup or schedule.
       } catch (err: any) {
         log(`Zero historical records skipped: ${err?.message ?? String(err)}`, "startup");
       }
-      startWeeklyScraperSchedule();
+      // startWeeklyScraperSchedule(); — disabled
       startPlayerInfoSyncSchedule();
       startDailyStandingsSchedule();
     },

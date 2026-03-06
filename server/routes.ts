@@ -1171,9 +1171,11 @@ export async function registerRoutes(
     res.json(teams);
   });
 
-  // NBA Scraper endpoint
+  // NBA Scraper endpoint — scraper in this repo is disabled; return 403 so UI doesn't run it
+  const SCRAPER_DISABLED = true;
   let scraperRunning = false;
   app.post("/api/scraper/nba", async (req, res) => {
+    if (SCRAPER_DISABLED) return res.status(403).json({ error: "Scraper disabled" });
     if (scraperRunning) {
       return res.status(409).json({ message: "Scraper is already running. Please wait." });
     }
@@ -1204,6 +1206,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/scraper/ncaa", async (req, res) => {
+    if (SCRAPER_DISABLED) return res.status(403).json({ error: "Scraper disabled" });
     try {
       const { runNcaaScraper, isNcaaScraperRunning } = await import("./scrapers/ncaaScraper");
       if (isNcaaScraperRunning()) {
@@ -1314,6 +1317,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/scraper/bios", async (req, res) => {
+    if (SCRAPER_DISABLED) return res.status(403).json({ error: "Scraper disabled" });
     if (isBioScraperRunning()) {
       return res.status(409).json({ message: "Bio scraper is already running. Please wait." });
     }
