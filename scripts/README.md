@@ -40,3 +40,16 @@ If any step fails, the script exits immediately (`set -euo pipefail`).
 ### Getting Railway URLs
 
 In Railway: Project → your Postgres service → **Variables** or **Connect** tab. Copy the `DATABASE_URL` (or the full connection string) for each database and use as `SOURCE_DATABASE_URL` and `TARGET_DATABASE_URL`.
+
+---
+
+## dropOldTables.sh — Remove old tables so only 2.0 tables remain
+
+Drops **only** the legacy tables: `player_info`, `player_stats`, `awards`, `team_records`, `site_settings`. Leaves all 2.0 canonical tables (leagues, teams, seasons, team_seasons, players, player_external_ids, player_seasons, player_season_stats, player_scrape_jobs) intact.
+
+**When to use:** You already ran cleanTargetSchema but the app’s `db:push` re-created the old tables (because both schemas were in drizzle config). Now drizzle only pushes the canonical schema, so run this script once to drop the old tables; they won’t be re-created on deploy.
+
+```bash
+chmod +x scripts/dropOldTables.sh
+DATABASE_URL='postgresql://...' ./scripts/dropOldTables.sh
+```

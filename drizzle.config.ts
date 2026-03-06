@@ -24,7 +24,8 @@ if (!url) {
 
 export default defineConfig({
   out: "./server/migrations",
-  schema: ["./shared/schema.ts", "./shared/canonicalSchema.ts"],
+  // Only push canonical (2.0) tables; old tables (player_info, player_stats, etc.) are removed.
+  schema: ["./shared/canonicalSchema.ts"],
   dialect: "postgresql",
   dbCredentials: {
     url,
