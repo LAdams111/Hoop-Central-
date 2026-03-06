@@ -32,18 +32,26 @@ export interface CanonicalPlayerForApi {
   stats: CanonicalStatForApi[];
 }
 
-/** API shape for one stat row (matches legacy player_stats). */
+/** API shape for one stat row (matches legacy player_stats). Frontend expects camelCase. */
 export interface CanonicalStatForApi {
+  id?: number;
   season: string;
   team: string;
   league: string;
   games_played: number;
+  gamesPlayed: number;
   pts_per_g: string;
+  pointsPerGame: string;
   trb_per_g: string;
+  reboundsPerGame: string;
   ast_per_g: string;
+  assistsPerGame: string;
   stl_per_g: string;
+  stealsPerGame: string;
   blk_per_g: string;
+  blocksPerGame: string;
   fg_pct: string;
+  fieldGoalPct: string;
 }
 
 function formatHeight(heightCm: number | null): string {
@@ -150,23 +158,38 @@ async function getLatestTeamAndStats(
     const g = statRow?.games ?? ps.gamesPlayed ?? 0;
     const gamesPlayed = typeof g === "number" ? g : parseInt(String(g), 10) || 0;
     const div = gamesPlayed > 0 ? gamesPlayed : 1;
-    const pts = statRow?.points ?? 0;
-    const reb = statRow?.rebounds ?? 0;
-    const ast = statRow?.assists ?? 0;
-    const stl = statRow?.steals ?? 0;
-    const blk = statRow?.blocks ?? 0;
-    const pct = statRow?.fgPct != null ? Number(statRow.fgPct) : 0;
+    const row = statRow as Record<string, unknown> | undefined;
+    const pts = row?.points ?? 0;
+    const reb = row?.rebounds ?? (row?.reBounds != null ? row.reBounds : 0);
+    const ast = row?.assists ?? 0;
+    const stl = row?.steals ?? 0;
+    const blk = row?.blocks ?? 0;
+    const pct = row?.fgPct != null ? Number(row.fgPct) : 0;
+    const ptsPerG = (typeof pts === "number" ? pts : Number(pts)) / div;
+    const trbPerG = (typeof reb === "number" ? reb : Number(reb)) / div;
+    const astPerG = (typeof ast === "number" ? ast : Number(ast)) / div;
+    const stlPerG = (typeof stl === "number" ? stl : Number(stl)) / div;
+    const blkPerG = (typeof blk === "number" ? blk : Number(blk)) / div;
+    const fgPctDisplay = pct <= 1 ? pct * 100 : pct;
     stats.push({
+      id: ps.psId,
       season: seasonLabel(ps.yearStart, ps.yearEnd),
       team: ps.teamName,
       league: ps.leagueName,
       games_played: gamesPlayed,
-      pts_per_g: ((typeof pts === "number" ? pts : Number(pts)) / div).toFixed(1),
-      trb_per_g: ((typeof reb === "number" ? reb : Number(reb)) / div).toFixed(1),
-      ast_per_g: ((typeof ast === "number" ? ast : Number(ast)) / div).toFixed(1),
-      stl_per_g: ((typeof stl === "number" ? stl : Number(stl)) / div).toFixed(1),
-      blk_per_g: ((typeof blk === "number" ? blk : Number(blk)) / div).toFixed(1),
-      fg_pct: (pct <= 1 ? pct * 100 : pct).toFixed(1),
+      gamesPlayed,
+      pts_per_g: ptsPerG.toFixed(1),
+      pointsPerGame: ptsPerG.toFixed(1),
+      trb_per_g: trbPerG.toFixed(1),
+      reboundsPerGame: trbPerG.toFixed(1),
+      ast_per_g: astPerG.toFixed(1),
+      assistsPerGame: astPerG.toFixed(1),
+      stl_per_g: stlPerG.toFixed(1),
+      stealsPerGame: stlPerG.toFixed(1),
+      blk_per_g: blkPerG.toFixed(1),
+      blocksPerGame: blkPerG.toFixed(1),
+      fg_pct: fgPctDisplay.toFixed(1),
+      fieldGoalPct: fgPctDisplay.toFixed(1),
     });
   }
 
