@@ -6,7 +6,7 @@ import { db } from "../db";
 import { playerSeasons, playerSeasonStats } from "@shared/canonicalSchema";
 import { eq, and } from "drizzle-orm";
 import { findOrCreatePlayer, sportsRefSlugFromPlayerUrl } from "../services/playerService";
-import { getNcaaLeague, getOrCreateTeam, getOrCreateSeasonByEndYear } from "../services/leagueService";
+import { getNcaaLeague, getOrCreateTeam, getOrCreateSeasonByEndYear, getOrCreateTeamSeason } from "../services/leagueService";
 import { fetchPage, stripComments } from "../ncaa/request";
 import { getSchoolSlugs } from "../ncaa/teams";
 import { parseRoster } from "../ncaa/parseRoster";
@@ -154,8 +154,9 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
           continue;
         }
 
-        const season = await getOrCreateSeasonByEndYear(year);
-        const team = await getOrCreateTeam(schoolName ?? slug, slug, ncaaLeague.id, schoolName ?? undefined);
+        const season = await getOrCreateSeasonByEndYear(ncaaLeague.id, year);
+        const team = await getOrCreateTeam(schoolName ?? slug, ncaaLeague.id);
+        const teamSeason = await getOrCreateTeamSeason(team.id, season.id);
 
         for (const player of roster) {
           try {
@@ -197,8 +198,7 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
               .where(
                 and(
                   eq(playerSeasons.playerId, p.id),
-                  eq(playerSeasons.teamId, team.id),
-                  eq(playerSeasons.seasonId, season.id)
+                  eq(playerSeasons.teamSeasonId, teamSeason.id)
                 )
               )
               .limit(1);
@@ -212,6 +212,12 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
             const bpg = toNum(stats?.blk_per_g);
             let fgPct = toNum(stats?.fg_pct);
             if (fgPct > 1) fgPct /= 100;
+            const points = Math.round(ppg * games);
+            const rebounds = Math.round(rpg * games);
+            const assists = Math.round(apg * games);
+            const steals = Math.round(spg * games);
+            const blocks = Math.round(bpg * games);
+            const fgPctVal = fgPct > 1 ? fgPct / 100 : fgPct;
 
             if (existingPs) {
               playerSeasonId = existingPs.id;
@@ -224,24 +230,26 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
                 await db
                   .update(playerSeasonStats)
                   .set({
-                    ptsPerG: ppg.toFixed(1),
-                    trbPerG: rpg.toFixed(1),
-                    astPerG: apg.toFixed(1),
-                    stlPerG: spg.toFixed(1),
-                    blkPerG: bpg.toFixed(1),
-                    fgPct: (fgPct > 1 ? fgPct : fgPct * 100).toFixed(1),
+                    games,
+                    points: points || null,
+                    rebounds: rebounds || null,
+                    assists: assists || null,
+                    steals: steals || null,
+                    blocks: blocks || null,
+                    fgPct: fgPctVal > 0 ? String(fgPctVal) : null,
                   })
                   .where(eq(playerSeasonStats.id, existingStat.id));
                 result.statsUpdated++;
               } else {
                 await db.insert(playerSeasonStats).values({
                   playerSeasonId: existingPs.id,
-                  ptsPerG: ppg.toFixed(1),
-                  trbPerG: rpg.toFixed(1),
-                  astPerG: apg.toFixed(1),
-                  stlPerG: spg.toFixed(1),
-                  blkPerG: bpg.toFixed(1),
-                  fgPct: (fgPct > 1 ? fgPct : fgPct * 100).toFixed(1),
+                  games,
+                  points: points || null,
+                  rebounds: rebounds || null,
+                  assists: assists || null,
+                  steals: steals || null,
+                  blocks: blocks || null,
+                  fgPct: fgPctVal > 0 ? String(fgPctVal) : null,
                 });
                 result.statsInserted++;
               }
@@ -250,22 +258,21 @@ export async function runNcaaScraper(options: NcaaScraperOptions = {}): Promise<
                 .insert(playerSeasons)
                 .values({
                   playerId: p.id,
-                  teamId: team.id,
-                  leagueId: ncaaLeague.id,
-                  seasonId: season.id,
-                  jersey: player.jersey_number || 0,
-                  games,
+                  teamSeasonId: teamSeason.id,
+                  jerseyNumber: player.jersey_number ?? null,
+                  gamesPlayed: games,
                 })
                 .returning();
               playerSeasonId = ps!.id;
               await db.insert(playerSeasonStats).values({
                 playerSeasonId: ps!.id,
-                ptsPerG: ppg.toFixed(1),
-                trbPerG: rpg.toFixed(1),
-                astPerG: apg.toFixed(1),
-                stlPerG: spg.toFixed(1),
-                blkPerG: bpg.toFixed(1),
-                fgPct: (fgPct > 1 ? fgPct : fgPct * 100).toFixed(1),
+                games,
+                points: points || null,
+                rebounds: rebounds || null,
+                assists: assists || null,
+                steals: steals || null,
+                blocks: blocks || null,
+                fgPct: fgPctVal > 0 ? String(fgPctVal) : null,
               });
               result.statsInserted++;
             }
@@ -400,51 +407,79 @@ export async function importNcaaPlayerSeasons(rows: NcaaImportRow[], runSyncAfte
       if (created) result.playersAdded++;
       else result.playersMatched++;
 
-      const team = await getOrCreateTeam(school, school.toLowerCase().replace(/\s+/g, "-"), ncaaLeague.id, school);
+      const team = await getOrCreateTeam(school, ncaaLeague.id);
       const parts = seasonLabel.split("-");
       const yearStart = parseInt(parts[0], 10) || new Date().getFullYear();
       const yearEnd = parts.length >= 2 && parts[1].length <= 2
         ? (parseInt(parts[1], 10) < 50 ? 2000 + parseInt(parts[1], 10) : 1900 + parseInt(parts[1], 10))
         : yearStart + 1;
-      const label = parts.length >= 2 ? seasonLabel : `${yearStart}-${String(yearEnd).slice(-2)}`;
-      const season = await getOrCreateSeasonByEndYear(yearEnd);
+      const season = await getOrCreateSeasonByEndYear(ncaaLeague.id, yearEnd);
+      const teamSeason = await getOrCreateTeamSeason(team.id, season.id);
       const g = Math.max(0, Math.floor(Number(row.g) || 0));
       if (g === 0) continue;
 
       const [existingPs] = await db.select().from(playerSeasons).where(
         and(
           eq(playerSeasons.playerId, player.id),
-          eq(playerSeasons.teamId, team.id),
-          eq(playerSeasons.seasonId, season.id)
+          eq(playerSeasons.teamSeasonId, teamSeason.id)
         )
       ).limit(1);
-      const ppg = (Number(row.ppg) ?? 0).toFixed(1);
-      const rpg = (Number(row.rpg) ?? 0).toFixed(1);
-      const apg = (Number(row.apg) ?? 0).toFixed(1);
-      const spg = (Number(row.spg) ?? 0).toFixed(1);
-      const bpg = (Number(row.bpg) ?? 0).toFixed(1);
+      const ppg = Number(row.ppg) ?? 0;
+      const rpg = Number(row.rpg) ?? 0;
+      const apg = Number(row.apg) ?? 0;
+      const spg = Number(row.spg) ?? 0;
+      const bpg = Number(row.bpg) ?? 0;
       const fgRaw = Number(row.fg_pct) ?? 0;
-      const fgPct = (fgRaw > 1 ? fgRaw : fgRaw * 100).toFixed(1);
+      const fgPct = fgRaw > 1 ? fgRaw / 100 : fgRaw;
+      const points = Math.round(ppg * g);
+      const rebounds = Math.round(rpg * g);
+      const assists = Math.round(apg * g);
+      const steals = Math.round(spg * g);
+      const blocks = Math.round(bpg * g);
       if (existingPs) {
         const [existingStat] = await db.select().from(playerSeasonStats).where(eq(playerSeasonStats.playerSeasonId, existingPs.id)).limit(1);
         if (existingStat) {
-          await db.update(playerSeasonStats).set({ ptsPerG: ppg, trbPerG: rpg, astPerG: apg, stlPerG: spg, blkPerG: bpg, fgPct }).where(eq(playerSeasonStats.id, existingStat.id));
+          await db.update(playerSeasonStats).set({
+            games: g,
+            points: points || null,
+            rebounds: rebounds || null,
+            assists: assists || null,
+            steals: steals || null,
+            blocks: blocks || null,
+            fgPct: String(fgPct),
+          }).where(eq(playerSeasonStats.id, existingStat.id));
           result.statsUpdated++;
         } else {
-          await db.insert(playerSeasonStats).values({ playerSeasonId: existingPs.id, ptsPerG: ppg, trbPerG: rpg, astPerG: apg, stlPerG: spg, blkPerG: bpg, fgPct });
+          await db.insert(playerSeasonStats).values({
+            playerSeasonId: existingPs.id,
+            games: g,
+            points: points || null,
+            rebounds: rebounds || null,
+            assists: assists || null,
+            steals: steals || null,
+            blocks: blocks || null,
+            fgPct: String(fgPct),
+          });
           result.statsInserted++;
         }
       } else {
         const [ps] = await db.insert(playerSeasons).values({
           playerId: player.id,
-          teamId: team.id,
-          leagueId: ncaaLeague.id,
-          seasonId: season.id,
-          jersey: 0,
-          games: g,
+          teamSeasonId: teamSeason.id,
+          jerseyNumber: null,
+          gamesPlayed: g,
         }).returning();
         if (ps) {
-          await db.insert(playerSeasonStats).values({ playerSeasonId: ps.id, ptsPerG: ppg, trbPerG: rpg, astPerG: apg, stlPerG: spg, blkPerG: bpg, fgPct });
+          await db.insert(playerSeasonStats).values({
+            playerSeasonId: ps.id,
+            games: g,
+            points: points || null,
+            rebounds: rebounds || null,
+            assists: assists || null,
+            steals: steals || null,
+            blocks: blocks || null,
+            fgPct: String(fgPct),
+          });
           result.statsInserted++;
         }
       }
@@ -468,8 +503,9 @@ export async function importNcaaRosterHtml(schoolSlug: string, year: number, htm
   const statsByPlayer = parseStats(cleaned);
   const result: NcaaImportResult = { playersAdded: 0, playersMatched: 0, statsInserted: 0, statsUpdated: 0, errors: [] };
   const ncaaLeague = await getNcaaLeague();
-  const team = await getOrCreateTeam(schoolName, schoolSlug, ncaaLeague.id, schoolName);
-  const season = await getOrCreateSeasonByEndYear(year);
+  const team = await getOrCreateTeam(schoolName, ncaaLeague.id);
+  const season = await getOrCreateSeasonByEndYear(ncaaLeague.id, year);
+  const teamSeason = await getOrCreateTeamSeason(team.id, season.id);
 
   for (const player of roster) {
     try {
@@ -486,42 +522,70 @@ export async function importNcaaRosterHtml(schoolSlug: string, year: number, htm
       });
       if (created) result.playersAdded++;
       else result.playersMatched++;
-      const g = toNum(stats?.games) || 1;
-      const ppg = toNum(stats?.pts_per_g).toFixed(1);
-      const rpg = toNum(stats?.trb_per_g).toFixed(1);
-      const apg = toNum(stats?.ast_per_g).toFixed(1);
-      const spg = toNum(stats?.stl_per_g).toFixed(1);
-      const bpg = toNum(stats?.blk_per_g).toFixed(1);
-      let fgPct = toNum(stats?.fg_pct);
-      if (fgPct > 1) fgPct /= 100;
-      const fgPctStr = (fgPct > 1 ? fgPct : fgPct * 100).toFixed(1);
+      const gamesPlayed = toNum(stats?.games) || 1;
+      const ppgNum = toNum(stats?.pts_per_g);
+      const rpgNum = toNum(stats?.trb_per_g);
+      const apgNum = toNum(stats?.ast_per_g);
+      const spgNum = toNum(stats?.stl_per_g);
+      const bpgNum = toNum(stats?.blk_per_g);
+      let fgPctNum = toNum(stats?.fg_pct);
+      if (fgPctNum > 1) fgPctNum /= 100;
+      const fgPctVal = fgPctNum > 1 ? fgPctNum / 100 : fgPctNum;
+      const points = Math.round(ppgNum * gamesPlayed);
+      const rebounds = Math.round(rpgNum * gamesPlayed);
+      const assists = Math.round(apgNum * gamesPlayed);
+      const steals = Math.round(spgNum * gamesPlayed);
+      const blocks = Math.round(bpgNum * gamesPlayed);
       const [existingPs] = await db.select().from(playerSeasons).where(
         and(
           eq(playerSeasons.playerId, p.id),
-          eq(playerSeasons.teamId, team.id),
-          eq(playerSeasons.seasonId, season.id)
+          eq(playerSeasons.teamSeasonId, teamSeason.id)
         )
       ).limit(1);
       if (existingPs) {
         const [existingStat] = await db.select().from(playerSeasonStats).where(eq(playerSeasonStats.playerSeasonId, existingPs.id)).limit(1);
         if (existingStat) {
-          await db.update(playerSeasonStats).set({ ptsPerG: ppg, trbPerG: rpg, astPerG: apg, stlPerG: spg, blkPerG: bpg, fgPct: fgPctStr }).where(eq(playerSeasonStats.id, existingStat.id));
+          await db.update(playerSeasonStats).set({
+            games: gamesPlayed,
+            points: points || null,
+            rebounds: rebounds || null,
+            assists: assists || null,
+            steals: steals || null,
+            blocks: blocks || null,
+            fgPct: fgPctVal > 0 ? String(fgPctVal) : null,
+          }).where(eq(playerSeasonStats.id, existingStat.id));
           result.statsUpdated++;
         } else {
-          await db.insert(playerSeasonStats).values({ playerSeasonId: existingPs.id, ptsPerG: ppg, trbPerG: rpg, astPerG: apg, stlPerG: spg, blkPerG: bpg, fgPct: fgPctStr });
+          await db.insert(playerSeasonStats).values({
+            playerSeasonId: existingPs.id,
+            games: gamesPlayed,
+            points: points || null,
+            rebounds: rebounds || null,
+            assists: assists || null,
+            steals: steals || null,
+            blocks: blocks || null,
+            fgPct: fgPctVal > 0 ? String(fgPctVal) : null,
+          });
           result.statsInserted++;
         }
       } else {
         const [ps] = await db.insert(playerSeasons).values({
           playerId: p.id,
-          teamId: team.id,
-          leagueId: ncaaLeague.id,
-          seasonId: season.id,
-          jersey: player.jersey_number || 0,
-          games: g,
+          teamSeasonId: teamSeason.id,
+          jerseyNumber: player.jersey_number ?? null,
+          gamesPlayed,
         }).returning();
         if (ps) {
-          await db.insert(playerSeasonStats).values({ playerSeasonId: ps.id, ptsPerG: ppg, trbPerG: rpg, astPerG: apg, stlPerG: spg, blkPerG: bpg, fgPct: fgPctStr });
+          await db.insert(playerSeasonStats).values({
+            playerSeasonId: ps.id,
+            games: gamesPlayed,
+            points: points || null,
+            rebounds: rebounds || null,
+            assists: assists || null,
+            steals: steals || null,
+            blocks: blocks || null,
+            fgPct: fgPctVal > 0 ? String(fgPctVal) : null,
+          });
           result.statsInserted++;
         }
       }

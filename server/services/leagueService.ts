@@ -1,26 +1,27 @@
 /**
- * League/season/team lookups for canonical schema. Get-or-create so scrapers can reference by name/label.
+ * League/season/team lookups for canonical schema. Get-or-create so scrapers can reference by name/abbreviation.
  */
 import { db } from "../db";
 import {
   leagues,
   teams,
   seasons,
+  teamSeasons,
   type League,
   type Team,
   type Season,
+  type TeamSeason,
 } from "@shared/canonicalSchema";
 import { eq, and } from "drizzle-orm";
 
-const NCAA_LEAGUE_ID = 1;
-const NBA_LEAGUE_ID = 2;
-const G_LEAGUE_ID = 3;
+const NBA_LEAGUE_NAME = "NBA";
+const NCAA_LEAGUE_NAME = "NCAA";
 
-export async function getOrCreateLeague(name: string, country = "USA", level?: string): Promise<League> {
+export async function getOrCreateLeague(name: string, country: string | null = "USA"): Promise<League> {
   const normalized = name.trim();
   const [existing] = await db.select().from(leagues).where(eq(leagues.name, normalized)).limit(1);
   if (existing) return existing;
-  const [created] = await db.insert(leagues).values({ name: normalized, country, level }).returning();
+  const [created] = await db.insert(leagues).values({ name: normalized, country }).returning();
   return created!;
 }
 
@@ -29,48 +30,95 @@ export async function getLeagueById(id: number): Promise<League | undefined> {
   return row;
 }
 
-export async function getNcaaLeague(): Promise<League> {
-  let [row] = await db.select().from(leagues).where(eq(leagues.id, NCAA_LEAGUE_ID)).limit(1);
-  if (!row) {
-    [row] = await db.insert(leagues).values({ id: NCAA_LEAGUE_ID, name: "NCAA", country: "USA", level: "college" }).returning();
-  }
-  return row!;
-}
-
 export async function getNbaLeague(): Promise<League> {
-  let [row] = await db.select().from(leagues).where(eq(leagues.id, NBA_LEAGUE_ID)).limit(1);
-  if (!row) {
-    [row] = await db.insert(leagues).values({ id: NBA_LEAGUE_ID, name: "NBA", country: "USA", level: "pro" }).returning();
-  }
-  return row!;
+  return getOrCreateLeague(NBA_LEAGUE_NAME);
 }
 
-export async function getOrCreateTeam(name: string, slug: string, leagueId: number, school?: string, city?: string): Promise<Team> {
+export async function getNcaaLeague(): Promise<League> {
+  return getOrCreateLeague(NCAA_LEAGUE_NAME);
+}
+
+/** Find team by name + league, or by abbreviation + league. Create if missing. */
+export async function getOrCreateTeam(
+  name: string,
+  leagueId: number,
+  options?: { abbreviation?: string; city?: string }
+): Promise<Team> {
   const nameNorm = name.trim();
-  const slugNorm = slug.trim().toLowerCase().replace(/\s+/g, "-");
-  const [existing] = await db
+  const abbr = options?.abbreviation?.trim().toUpperCase();
+  const [existingByName] = await db
     .select()
     .from(teams)
-    .where(and(eq(teams.leagueId, leagueId), eq(teams.slug, slugNorm)))
+    .where(and(eq(teams.leagueId, leagueId), eq(teams.name, nameNorm)))
     .limit(1);
-  if (existing) return existing;
+  if (existingByName) return existingByName;
+  if (abbr) {
+    const [existingByAbbr] = await db
+      .select()
+      .from(teams)
+      .where(and(eq(teams.leagueId, leagueId), eq(teams.abbreviation, abbr)))
+      .limit(1);
+    if (existingByAbbr) return existingByAbbr;
+  }
   const [created] = await db
     .insert(teams)
-    .values({ name: nameNorm, slug: slugNorm, leagueId, school: school ?? null, city: city ?? null })
+    .values({
+      name: nameNorm,
+      leagueId,
+      abbreviation: abbr ?? null,
+      city: options?.city ?? null,
+    })
     .returning();
   return created!;
 }
 
-export async function getOrCreateSeason(yearStart: number, yearEnd: number, label: string): Promise<Season> {
-  const [existing] = await db.select().from(seasons).where(eq(seasons.label, label)).limit(1);
+/** Get or create season by league + year range. */
+export async function getOrCreateSeason(leagueId: number, yearStart: number, yearEnd: number): Promise<Season> {
+  const [existing] = await db
+    .select()
+    .from(seasons)
+    .where(
+      and(
+        eq(seasons.leagueId, leagueId),
+        eq(seasons.yearStart, yearStart),
+        eq(seasons.yearEnd, yearEnd)
+      )
+    )
+    .limit(1);
   if (existing) return existing;
-  const [created] = await db.insert(seasons).values({ yearStart, yearEnd, label }).returning();
+  const [created] = await db
+    .insert(seasons)
+    .values({ leagueId, yearStart, yearEnd })
+    .returning();
   return created!;
 }
 
-/** e.g. 2024 -> "2024-25" and get/create season row */
-export async function getOrCreateSeasonByEndYear(endYear: number): Promise<Season> {
+/** e.g. 2025 -> season 2024–2025; get or create for NBA. */
+export async function getOrCreateSeasonByEndYear(leagueId: number, endYear: number): Promise<Season> {
   const startYear = endYear - 1;
-  const label = `${startYear}-${String(endYear).slice(-2)}`;
-  return getOrCreateSeason(startYear, endYear, label);
+  return getOrCreateSeason(leagueId, startYear, endYear);
+}
+
+/** Get or create team_season row for a team + season. */
+export async function getOrCreateTeamSeason(
+  teamId: number,
+  seasonId: number,
+  options?: { wins?: number; losses?: number }
+): Promise<TeamSeason> {
+  const [existing] = await db
+    .select()
+    .from(teamSeasons)
+    .where(and(eq(teamSeasons.teamId, teamId), eq(teamSeasons.seasonId, seasonId)))
+    .limit(1);
+  if (existing) return existing;
+  const [created] = await db
+    .insert(teamSeasons)
+    .values({
+      teamId,
+      seasonId,
+      wins: options?.wins ?? null,
+      losses: options?.losses ?? null,
+    })
+    .returning();
+  return created!;
 }

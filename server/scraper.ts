@@ -1,7 +1,8 @@
 import { storage } from "./storage";
 import { db } from "./db";
-import { players } from "@shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { players, playerExternalIds } from "@shared/canonicalSchema";
+import { eq, and } from "drizzle-orm";
+import { parseHeightToCm, parseWeightToKg } from "./services/playerService";
 import { getCurrentNBASeason as getNbaSeason, seasonToDisplay as nbaSeasonToDisplay } from "./scrapers/nbaScraper";
 
 export const getCurrentNBASeason = getNbaSeason;
@@ -17,20 +18,23 @@ interface BioUpdateResult {
 let bioScraperRunning = false;
 export function isBioScraperRunning() { return bioScraperRunning; }
 
+/** Update height_cm / weight_kg for canonical players (NBA) that have missing or default bio data. */
 export async function updatePlayerBios(): Promise<BioUpdateResult> {
   if (bioScraperRunning) throw new Error("Bio scraper already running");
   bioScraperRunning = true;
   const result: BioUpdateResult = { updated: 0, skipped: 0, errors: [], total: 0 };
 
   try {
-    const defaultPlayers = await db.select().from(players).where(
-      and(
-        sql`${players.height} = '6''0"'`,
-        sql`${players.weight} = '200 lbs'`
-      )
+    const nbaPlayersWithExtId = await db
+      .select({ player: players, externalId: playerExternalIds.externalId })
+      .from(players)
+      .innerJoin(playerExternalIds, eq(playerExternalIds.playerId, players.id))
+      .where(eq(playerExternalIds.source, "nba"));
+    const toUpdate = nbaPlayersWithExtId.filter(
+      (r) => r.player.heightCm == null || r.player.weightKg == null
     );
-    result.total = defaultPlayers.length;
-    console.log(`[Bio Scraper] Found ${defaultPlayers.length} players with default height/weight`);
+    result.total = toUpdate.length;
+    console.log(`[Bio Scraper] Found ${toUpdate.length} NBA players with missing height/weight`);
 
     let page = 1;
     let totalPages = 1;
@@ -51,9 +55,9 @@ export async function updatePlayerBios(): Promise<BioUpdateResult> {
     }
     console.log(`[Bio Scraper] Built API map with ${apiPlayerMap.size} players`);
 
-    for (const player of defaultPlayers) {
+    for (const { player, externalId } of toUpdate) {
       try {
-        const apiEntry = apiPlayerMap.get(player.name.toLowerCase());
+        const apiEntry = apiPlayerMap.get(player.fullName.toLowerCase());
         if (!apiEntry) {
           result.skipped++;
           continue;
@@ -77,51 +81,53 @@ export async function updatePlayerBios(): Promise<BioUpdateResult> {
 
         const html = await response.text();
 
-        let height: string | null = null;
-        let weight: string | null = null;
+        let heightStr: string | null = null;
+        let weightStr: string | null = null;
 
-        const heightJsonMatch = html.match(/"height"\s*:\s*\{\s*"@type"\s*:\s*"QuantitativeValue"\s*,\s*"value"\s*:\s*"([^"]+)"/);
+        const heightJsonMatch = html.match(/\"height\"\s*:\s*\{\s*\"@type\"\s*:\s*\"QuantitativeValue\"\s*,\s*\"value\"\s*:\s*\"([^\"]+)\"/);
         if (heightJsonMatch) {
           const raw = heightJsonMatch[1].trim();
           const parts = raw.match(/^(\d+)-(\d+)$/);
           if (parts) {
-            height = `${parts[1]}'${parts[2]}"`;
+            heightStr = `${parts[1]}'${parts[2]}"`;
           } else {
-            height = raw;
+            heightStr = raw;
           }
         }
 
-        const weightJsonMatch = html.match(/"weight"\s*:\s*\{\s*"@type"\s*:\s*"QuantitativeValue"\s*,\s*"value"\s*:\s*"([^"]+)"/);
+        const weightJsonMatch = html.match(/\"weight\"\s*:\s*\{\s*\"@type\"\s*:\s*\"QuantitativeValue\"\s*,\s*\"value\"\s*:\s*\"([^\"]+)\"/);
         if (weightJsonMatch) {
           const raw = weightJsonMatch[1].trim();
-          weight = raw.includes("lbs") ? raw : `${raw} lbs`;
+          weightStr = raw.includes("lbs") ? raw : `${raw} lbs`;
         }
 
-        if (!height && !weight) {
+        if (!heightStr && !weightStr) {
           const itempropH = html.match(/itemprop="height"[^>]*>([^<]+)</);
-          if (itempropH) height = itempropH[1].trim();
+          if (itempropH) heightStr = itempropH[1].trim();
           const itempropW = html.match(/itemprop="weight"[^>]*>([^<]+)</);
           if (itempropW) {
             const wt = itempropW[1].trim().replace(/lb$/, '').trim();
-            weight = `${wt} lbs`;
+            weightStr = `${wt} lbs`;
           }
         }
 
-        if (height || weight) {
-          const updateData: Record<string, string> = {};
-          if (height) updateData.height = height;
-          if (weight) updateData.weight = weight;
+        const heightCm = parseHeightToCm(heightStr);
+        const weightKg = parseWeightToKg(weightStr);
+        if (heightCm != null || weightKg != null) {
+          const updateData: { heightCm?: number; weightKg?: number } = {};
+          if (heightCm != null) updateData.heightCm = heightCm;
+          if (weightKg != null) updateData.weightKg = weightKg;
           await db.update(players).set(updateData).where(eq(players.id, player.id));
           result.updated++;
-          console.log(`[Bio Scraper] Updated ${player.name}: ${height || 'no height'}, ${weight || 'no weight'}`);
+          console.log(`[Bio Scraper] Updated ${player.fullName}: ${heightCm ?? "—"} cm, ${weightKg ?? "—"} kg`);
         } else {
           result.skipped++;
         }
 
         await new Promise(r => setTimeout(r, 3500));
       } catch (err: any) {
-        result.errors.push(`${player.name}: ${err.message}`);
-        console.error(`[Bio Scraper] Error for ${player.name}:`, err.message);
+        result.errors.push(`${player.fullName}: ${err.message}`);
+        console.error(`[Bio Scraper] Error for ${player.fullName}:`, err.message);
         await new Promise(r => setTimeout(r, 2000));
       }
     }
@@ -137,8 +143,8 @@ export async function updatePlayerBios(): Promise<BioUpdateResult> {
   return result;
 }
 
-/** Scrape NBA players into canonical tables then sync to frontend. */
+/** Scrape NBA players into canonical tables (players, player_seasons, player_season_stats). */
 export async function scrapeNBAPlayers(): Promise<import("./scrapers/nbaScraper").NbaScraperResult> {
   const { scrapeNBAPlayers: runNba } = await import("./scrapers/nbaScraper");
-  return runNba({ runSyncAfter: true });
+  return runNba({ runSyncAfter: false });
 }
