@@ -6,7 +6,7 @@
  * It is used for both player info and player stats: player_stats.player_id = player_info.id.
  * The profile on the website/app loads by this id and shows all info + stats for that player.
  */
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, or } from "drizzle-orm";
 import { pool, db } from "./db";
 import { players, playerStats } from "@shared/schema";
 import { storage, getTeamMatchCandidates } from "./storage";
@@ -397,9 +397,11 @@ function getSeasonVariants(season: string): string[] {
 
 /** Roster using app tables only: players + playerStats. Join p.id = s.player_id. */
 export async function getRosterFromExternalTableViaJoin(team: string, season: string) {
-  const teamLower = team.toLowerCase();
+  const teamCandidates = getTeamMatchCandidates(team).map((c) => c.toLowerCase());
+  if (teamCandidates.length === 0) return [];
   const seasonVariants = getSeasonVariants(season);
   if (seasonVariants.length === 0) return [];
+  const teamCondition = or(...teamCandidates.map((c) => sql`LOWER(${playerStats.team}) = ${c}`));
   try {
     const rows = await db
       .select({
@@ -420,7 +422,7 @@ export async function getRosterFromExternalTableViaJoin(team: string, season: st
       .innerJoin(players, eq(players.id, playerStats.playerId))
       .where(
         and(
-          sql`LOWER(${playerStats.team}) = ${teamLower}`,
+          teamCondition!,
           sql`CAST(${playerStats.season} AS text) IN (${sql.join(seasonVariants.map((v) => sql`${v}`), sql`, `)})`
         )
       );

@@ -6,7 +6,7 @@ import { storage, getTeamMatchCandidates } from "./storage";
 import { db, pool } from "./db";
 import { api } from "@shared/routes";
 import { players } from "@shared/schema";
-import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning } from "./scraper";
+import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning, getCurrentNBASeason, seasonToDisplay } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getRosterByCurrentTeamFromPlayerInfo, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, getPlayerInfoIdByPlayerId, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
 import { getCanonicalPlayersList, getCanonicalPlayerCount, getCanonicalPlayerById, getCanonicalPlayerBySrPlayerId, getCanonicalBirthYearCounts, getCanonicalPlayersByBirthYear, getCanonicalProspects, setCanonicalPlayerProfileViews } from "./canonicalPlayerApi";
@@ -990,6 +990,43 @@ export async function registerRoutes(
       roster = await storage.getRoster(team, season);
     } catch {
       // app tables may be missing or have schema issues
+    }
+
+    // For the current season, if no stats-based roster yet, show players whose current team matches (from player_info).
+    // This ensures players with profiles (e.g. Curry) appear on their team's roster even before 2025-26 stats exist.
+    if (roster.length === 0 && team) {
+      const currentStart = getCurrentNBASeason();
+      const currentDisplay = seasonToDisplay(currentStart);
+      const seasonNorm = (season ?? "").trim();
+      const seasonStartMatch = seasonNorm.match(/^(\d{4})/);
+      const isCurrentSeason =
+        seasonNorm === String(currentStart) ||
+        seasonNorm === currentDisplay ||
+        (seasonStartMatch && seasonStartMatch[1] === String(currentStart));
+      if (isCurrentSeason) {
+        try {
+          const byCurrentTeam = await getRosterByCurrentTeamFromPlayerInfo(team);
+          if (byCurrentTeam.length > 0) {
+            roster = byCurrentTeam.map((p) => ({
+              id: p.id,
+              player_id: p.player_id || undefined,
+              name: p.name,
+              position: p.position,
+              team: p.team,
+              height: p.height,
+              weight: p.weight,
+              jerseyNumber: p.jerseyNumber ?? 0,
+              headshotUrl: p.headshotUrl ?? "",
+              bio: p.bio ?? null,
+              profileViews: p.profileViews ?? 50,
+              hometown: p.hometown ?? null,
+              birthDate: p.birthDate ?? null,
+            }));
+          }
+        } catch {
+          // keep roster []
+        }
+      }
     }
 
     if (roster.length === 0) {
