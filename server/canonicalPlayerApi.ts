@@ -109,7 +109,7 @@ export async function getCanonicalPlayersList(options: {
       jerseyNumber: jerseyNumber ?? 0,
       headshotUrl: "",
       bio: null,
-      profileViews: 50,
+      profileViews: Number(p.profileViews) || 50,
       hometown: p.birthPlace ?? null,
       birthDate: p.birthDate != null ? String(p.birthDate) : null,
       stats,
@@ -117,6 +117,8 @@ export async function getCanonicalPlayersList(options: {
   }
   if (options.sortBy === "name") {
     result.sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
+  } else {
+    result.sort((a, b) => (b.profileViews ?? 0) - (a.profileViews ?? 0));
   }
   return result;
 }
@@ -218,7 +220,7 @@ export async function getCanonicalPlayerById(id: number): Promise<CanonicalPlaye
     jerseyNumber: jerseyNumber ?? 0,
     headshotUrl: "",
     bio: null,
-    profileViews: 50,
+    profileViews: Number(p.profileViews) || 50,
     hometown: birthPlaceVal != null ? String(birthPlaceVal) : null,
     birthDate: birthDateVal != null ? String(birthDateVal) : null,
     stats,
@@ -262,7 +264,7 @@ export async function getCanonicalPlayersByBirthYear(year: number, limit: number
       jerseyNumber: jerseyNumber ?? 0,
       headshotUrl: "",
       bio: null,
-      profileViews: 50,
+      profileViews: Number(p.profileViews) || 50,
       hometown: p.birthPlace ?? null,
       birthDate: p.birthDate != null ? String(p.birthDate) : null,
       stats,
@@ -307,11 +309,17 @@ export async function getCanonicalProspects(maxAge: number, limit: number): Prom
       jerseyNumber: jerseyNumber ?? 0,
       headshotUrl: "",
       bio: null,
-      profileViews: 50,
+      profileViews: Number(p.profileViews) || 50,
       hometown: p.birthPlace ?? null,
       birthDate: p.birthDate != null ? String(p.birthDate) : null,
       stats,
     });
   }
   return result;
+}
+
+/** Set profile_views for a player in the canonical players table (for admin PATCH /api/players/:id/profile-views). */
+export async function setCanonicalPlayerProfileViews(playerId: number, profileViews: number): Promise<void> {
+  const value = Math.max(0, Math.floor(Number(profileViews)));
+  await db.update(players).set({ profileViews: value }).where(eq(players.id, playerId));
 }

@@ -52,6 +52,7 @@ export const players = pgTable("players", {
   createdAt: timestamp("created_at").defaultNow(),
   birthPlace: text("birth_place"),
   srPlayerId: text("sr_player_id"),
+  profileViews: integer("profile_views").default(50).notNull(),
 });
 
 /** External IDs for scrapers; prevents duplicate players across sources. */

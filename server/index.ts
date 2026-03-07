@@ -43,6 +43,42 @@ async function ensurePlayerInfoProfileViewsColumn(): Promise<void> {
   }
 }
 
+/** Add profile_views to canonical players table if missing (for NBA view count 13500–16500). */
+async function ensureCanonicalPlayersProfileViewsColumn(): Promise<void> {
+  try {
+    await pool.query(`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS profile_views INTEGER NOT NULL DEFAULT 50
+    `);
+  } catch (err: unknown) {
+    console.warn("Could not ensure players.profile_views column:", (err as Error)?.message ?? err);
+  }
+}
+
+/** Set profile_views to 13500–16500 for players who have played in the NBA and currently have views < 13500. */
+async function backfillCanonicalNbaProfileViews(): Promise<number> {
+  try {
+    const res = await pool.query(`
+      WITH nba_player_ids AS (
+        SELECT DISTINCT ps.player_id AS id
+        FROM player_seasons ps
+        INNER JOIN team_seasons ts ON ts.id = ps.team_season_id
+        INNER JOIN seasons s ON s.id = ts.season_id
+        INNER JOIN leagues l ON l.id = s.league_id
+        WHERE LOWER(TRIM(l.name)) = 'nba'
+      )
+      UPDATE players
+      SET profile_views = 13500 + FLOOR(RANDOM() * 3001)::int
+      FROM nba_player_ids
+      WHERE players.id = nba_player_ids.id
+        AND (players.profile_views IS NULL OR players.profile_views < 13500)
+    `);
+    return res.rowCount ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 /** Add headshot_url and other optional columns to player_info if missing (e.g. Railway DB created without them). Avoids 42703 on updatePlayer. */
 async function ensurePlayerInfoHeadshotUrlColumn(): Promise<void> {
   const columns = [
@@ -349,6 +385,15 @@ app.use((req, res, next) => {
   }
   try {
     await ensurePlayerInfoHeadshotUrlColumn();
+  } catch {
+    // non-fatal
+  }
+  try {
+    await ensureCanonicalPlayersProfileViewsColumn();
+    const backfillCount = await backfillCanonicalNbaProfileViews();
+    if (backfillCount > 0) {
+      log(`Canonical NBA profile views backfill: ${backfillCount} player(s) set to 13500–16500`, "startup");
+    }
   } catch {
     // non-fatal
   }
