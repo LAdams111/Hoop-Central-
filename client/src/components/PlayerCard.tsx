@@ -2,8 +2,24 @@ import { Link } from "wouter";
 import { type Player } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Ruler, Weight } from "lucide-react";
+import { Ruler, Weight } from "lucide-react";
 import { DEFAULT_HEADSHOT, TEAM_ABBREV_TO_FULL } from "@/lib/constants";
+
+/** Show position as abbreviation (PG, SG, SF, PF, C). Pass-through if already short. */
+function positionAbbrev(position: string | null | undefined): string {
+  const p = String(position ?? "").trim();
+  if (!p) return "—";
+  if (p.length <= 3) return p; // already PG, SG, G, F, C, etc.
+  const lower = p.toLowerCase();
+  if (lower.includes("point guard") || lower.startsWith("point g")) return "PG";
+  if (lower.includes("shooting guard") || lower.startsWith("shooting g")) return "SG";
+  if (lower.includes("small forward") || lower.startsWith("small f")) return "SF";
+  if (lower.includes("power forward") || lower.startsWith("power f")) return "PF";
+  if (lower.includes("center") || lower === "c") return "C";
+  if (lower.includes("guard")) return "G";
+  if (lower.includes("forward")) return "F";
+  return p;
+}
 
 interface PlayerCardProps {
   player: Player & { id?: number | string; bbrefId?: string; player_id?: string };
@@ -37,7 +53,7 @@ export function PlayerCard({ player, href }: PlayerCardProps) {
           {/* Position Badge */}
           <div className="absolute bottom-2 left-2 md:bottom-4 md:left-4 z-20">
             <Badge variant="secondary" className="bg-primary text-white hover:bg-primary/90 font-bold tracking-wider rounded-sm text-[10px] md:text-xs px-1.5 md:px-2.5 py-0 md:py-0.5">
-              {player.position}
+              {positionAbbrev(player.position)}
             </Badge>
           </div>
         </div>
@@ -64,7 +80,7 @@ export function PlayerCard({ player, href }: PlayerCardProps) {
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <Weight className="w-3 h-3 text-primary" />
-              <span>{player.weight && player.weight !== "—" ? `${player.weight} lbs` : (player.weight ?? "—")}</span>
+              <span>{player.weight && player.weight !== "—" ? (player.weight.toLowerCase().endsWith(" lbs") ? player.weight : `${player.weight} lbs`) : (player.weight ?? "—")}</span>
             </div>
           </div>
         </CardContent>
