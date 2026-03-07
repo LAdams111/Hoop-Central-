@@ -4,6 +4,7 @@
  */
 
 import { db } from "./db";
+import { getTeamMatchCandidates } from "./storage";
 import {
   players,
   playerSeasons,
@@ -13,7 +14,7 @@ import {
   seasons,
   leagues,
 } from "@shared/canonicalSchema";
-import { eq, and, desc, sql, ilike } from "drizzle-orm";
+import { eq, and, desc, sql, ilike, or } from "drizzle-orm";
 
 /** API shape for one player (matches legacy player_info + stats). */
 export interface CanonicalPlayerForApi {
@@ -75,6 +76,95 @@ function formatWeight(weightKg: number | string | null | undefined): string {
 function seasonLabel(yearStart: number, yearEnd: number): string {
   const endShort = String(yearEnd).slice(-2);
   return `${yearStart}-${endShort}`;
+}
+
+/** Parse season string (e.g. "2025-26", "2025") into yearStart and yearEnd for canonical seasons table. */
+function parseSeasonToYears(season: string): { yearStart: number; yearEnd: number }[] {
+  const s = (season ?? "").trim();
+  const out: { yearStart: number; yearEnd: number }[] = [];
+  const rangeMatch = s.match(/^(\d{4})-(\d{2})$/);
+  if (rangeMatch) {
+    const start = parseInt(rangeMatch[1], 10);
+    const endShort = parseInt(rangeMatch[2], 10);
+    const end = endShort >= 0 && endShort <= 99 ? (start + 1) : endShort;
+    out.push({ yearStart: start, yearEnd: end });
+  }
+  if (/^\d{4}$/.test(s)) {
+    const start = parseInt(s, 10);
+    out.push({ yearStart: start, yearEnd: start + 1 });
+  }
+  return out.length ? out : [];
+}
+
+/** Roster for team + season from canonical tables (player_seasons + team_seasons + teams + seasons).
+ * Uses same logic as profile: if a player's profile shows they played for this team in this season, they appear here. */
+export async function getCanonicalRoster(
+  team: string,
+  season: string
+): Promise<CanonicalPlayerForApi[]> {
+  const candidates = getTeamMatchCandidates(team).map((c) => c.toLowerCase());
+  if (candidates.length === 0) return [];
+  const yearPairs = parseSeasonToYears(season);
+  if (yearPairs.length === 0) return [];
+
+  const teamCondition = or(
+    ...candidates.map((c) => sql`LOWER(${teams.name}) = ${c}`),
+    ...candidates.map((c) => sql`LOWER(COALESCE(${teams.abbreviation}, '')) = ${c}`)
+  );
+  if (!teamCondition) return [];
+
+  const result: CanonicalPlayerForApi[] = [];
+  const seen = new Set<number>();
+
+  for (const { yearStart, yearEnd } of yearPairs) {
+    const rows = await db
+      .select({
+        playerId: players.id,
+        fullName: players.fullName,
+        position: players.position,
+        heightCm: players.heightCm,
+        weightKg: players.weightKg,
+        birthDate: players.birthDate,
+        birthPlace: players.birthPlace,
+        profileViews: players.profileViews,
+        teamName: teams.name,
+        jerseyNumber: playerSeasons.jerseyNumber,
+      })
+      .from(playerSeasons)
+      .innerJoin(players, eq(players.id, playerSeasons.playerId))
+      .innerJoin(teamSeasons, eq(teamSeasons.id, playerSeasons.teamSeasonId))
+      .innerJoin(teams, eq(teams.id, teamSeasons.teamId))
+      .innerJoin(seasons, eq(seasons.id, teamSeasons.seasonId))
+      .where(
+        and(
+          teamCondition,
+          eq(seasons.yearStart, yearStart),
+          eq(seasons.yearEnd, yearEnd)
+        )
+      );
+
+    for (const r of rows) {
+      if (seen.has(r.playerId)) continue;
+      seen.add(r.playerId);
+      result.push({
+        id: r.playerId,
+        name: r.fullName,
+        position: r.position ?? "—",
+        team: r.teamName,
+        height: formatHeight(r.heightCm),
+        weight: formatWeight(r.weightKg),
+        jerseyNumber: r.jerseyNumber ?? 0,
+        headshotUrl: "",
+        bio: null,
+        profileViews: Number(r.profileViews) || 50,
+        hometown: r.birthPlace != null ? String(r.birthPlace) : null,
+        birthDate: r.birthDate != null ? String(r.birthDate) : null,
+        stats: [],
+      });
+    }
+  }
+
+  return result;
 }
 
 /** Get list of players from canonical tables for GET /api/players. */

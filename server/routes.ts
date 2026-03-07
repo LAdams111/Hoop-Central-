@@ -9,7 +9,7 @@ import { players } from "@shared/schema";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning, getCurrentNBASeason, seasonToDisplay } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getRosterByCurrentTeamFromPlayerInfo, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, getPlayerInfoIdByPlayerId, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
-import { getCanonicalPlayersList, getCanonicalPlayerCount, getCanonicalPlayerById, getCanonicalPlayerBySrPlayerId, getCanonicalBirthYearCounts, getCanonicalPlayersByBirthYear, getCanonicalProspects, setCanonicalPlayerProfileViews } from "./canonicalPlayerApi";
+import { getCanonicalPlayersList, getCanonicalPlayerCount, getCanonicalPlayerById, getCanonicalPlayerBySrPlayerId, getCanonicalBirthYearCounts, getCanonicalPlayersByBirthYear, getCanonicalProspects, setCanonicalPlayerProfileViews, getCanonicalRoster } from "./canonicalPlayerApi";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -990,6 +990,32 @@ export async function registerRoutes(
       roster = await storage.getRoster(team, season);
     } catch {
       // app tables may be missing or have schema issues
+    }
+
+    // If roster empty, try canonical tables (player_seasons): same source as profile for many players (e.g. Curry).
+    // So "if the profile says they played for this team this season, show them on the team roster."
+    if (roster.length === 0 && team && season) {
+      try {
+        const canonical = await getCanonicalRoster(team, season);
+        if (canonical.length > 0) {
+          roster = canonical.map((p) => ({
+            id: p.id,
+            name: p.name,
+            position: p.position,
+            team: p.team,
+            height: p.height,
+            weight: p.weight,
+            jerseyNumber: p.jerseyNumber ?? 0,
+            headshotUrl: p.headshotUrl ?? "",
+            bio: p.bio ?? null,
+            profileViews: p.profileViews ?? 50,
+            hometown: p.hometown ?? null,
+            birthDate: p.birthDate ?? null,
+          }));
+        }
+      } catch {
+        // keep roster []
+      }
     }
 
     // For the current season, if no stats-based roster yet, show players whose current team matches (from player_info).
