@@ -40,10 +40,11 @@ function formatSeasonDisplay(season: string): string {
   return s;
 }
 
-/** True if this stat row is a combined/total row (e.g. team "2", "3", "TOT") — do not display in Season History. */
+/** True if this stat row is a combined/total row (e.g. team "2TM", "3TM", "2", "3", "TOT") — do not display in Season History. */
 function isCombinedStatRow(stat: { team?: string | number | null }): boolean {
   const t = String(stat?.team ?? "").trim();
   if (!t) return false;
+  if (/^\d+TM$/i.test(t)) return true; // "2TM", "3TM" = combined multi-team row
   if (/^\d+$/.test(t)) return true; // "2", "3" = number of teams
   if (/^TOT$/i.test(t)) return true;
   return false;
