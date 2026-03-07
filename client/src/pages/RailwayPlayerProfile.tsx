@@ -9,24 +9,14 @@ import { DEFAULT_HEADSHOT, TEAM_ABBREV_TO_FULL, isCurrentNbaSeason, getCurrentNb
 
 const RAILWAY_FAV_KEY = "player_favorites_railway";
 
-/** Show season as YYYY-YY. If stored season is one year behind (start year < current), add one for display. */
+/** Show season as YYYY-YY. Pass through existing range (e.g. "2024-25"); only expand bare year (e.g. "2025" → "2025-26"). */
 function formatSeasonDisplay(season: string | null | undefined): string {
   const s = String(season ?? "").trim();
   if (!s) return "—";
-  const currentStart = getCurrentNbaSeasonStartYear();
-  const parseStartYear = (): number | null => {
-    const rangeMatch = s.match(/^(\d{4})-/);
-    if (rangeMatch) return parseInt(rangeMatch[1], 10);
-    if (/^\d{4}$/.test(s)) return parseInt(s, 10);
-    return null;
-  };
-  const startYear = parseStartYear();
-  if (startYear != null && startYear < currentStart) {
-    return `${startYear + 1}-${String(startYear + 2).slice(-2)}`;
-  }
-  if (startYear != null && /^\d{4}$/.test(s)) {
-    return `${startYear}-${String(startYear + 1).slice(-2)}`;
-  }
+  const rangeMatch = s.match(/^(\d{4})-(\d{2})$/);
+  if (rangeMatch) return s; // already YYYY-YY, show as-is
+  const bareYear = /^\d{4}$/.test(s) ? parseInt(s, 10) : null;
+  if (bareYear != null) return `${bareYear}-${String(bareYear + 1).slice(-2)}`;
   return s;
 }
 
