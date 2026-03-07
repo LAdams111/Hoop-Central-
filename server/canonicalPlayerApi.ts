@@ -54,17 +54,21 @@ export interface CanonicalStatForApi {
   fieldGoalPct: string;
 }
 
-function formatHeight(heightCm: number | null): string {
-  if (heightCm == null) return "—";
-  const totalInches = Math.round(heightCm / 2.54);
+function formatHeight(heightCm: number | string | null | undefined): string {
+  if (heightCm == null || heightCm === "") return "—";
+  const n = typeof heightCm === "string" ? parseFloat(heightCm) : heightCm;
+  if (Number.isNaN(n)) return "—";
+  const totalInches = Math.round(n / 2.54);
   const ft = Math.floor(totalInches / 12);
   const inch = totalInches % 12;
   return `${ft}'${inch}"`;
 }
 
-function formatWeight(weightKg: number | null): string {
-  if (weightKg == null) return "—";
-  const lbs = Math.round(weightKg / 0.453592);
+function formatWeight(weightKg: number | string | null | undefined): string {
+  if (weightKg == null || weightKg === "") return "—";
+  const n = typeof weightKg === "string" ? parseFloat(weightKg) : weightKg;
+  if (Number.isNaN(n)) return "—";
+  const lbs = Math.round(n / 0.453592);
   return `${lbs} lbs`;
 }
 
@@ -200,20 +204,23 @@ async function getLatestTeamAndStats(
 export async function getCanonicalPlayerById(id: number): Promise<CanonicalPlayerForApi | null> {
   const [p] = await db.select().from(players).where(eq(players.id, id)).limit(1);
   if (!p) return null;
+  const raw = p as Record<string, unknown>;
+  const birthDateVal = p.birthDate ?? raw.birth_date;
+  const birthPlaceVal = p.birthPlace ?? raw.birth_place;
   const { team, jerseyNumber, stats } = await getLatestTeamAndStats(p.id);
   return {
     id: p.id,
     name: p.fullName,
     position: p.position ?? "—",
     team,
-    height: formatHeight(p.heightCm),
-    weight: formatWeight(p.weightKg),
+    height: formatHeight(p.heightCm ?? raw.height_cm),
+    weight: formatWeight(p.weightKg ?? raw.weight_kg),
     jerseyNumber: jerseyNumber ?? 0,
     headshotUrl: "",
     bio: null,
     profileViews: 50,
-    hometown: p.birthPlace ?? null,
-    birthDate: p.birthDate != null ? String(p.birthDate) : null,
+    hometown: birthPlaceVal != null ? String(birthPlaceVal) : null,
+    birthDate: birthDateVal != null ? String(birthDateVal) : null,
     stats,
   };
 }

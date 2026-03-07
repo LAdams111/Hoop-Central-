@@ -864,6 +864,7 @@ export async function registerRoutes(
   });
 
   // Player Detail (with stats) — :id can be numeric (players.id) or sr_player_id string (e.g. "jamesle01")
+  const DEFAULT_CURRY_HEADSHOT = "https://cdn.nba.com/headshots/nba/latest/1040x760/201939.png";
   app.get(api.players.get.path, async (req, res) => {
     try {
       const idParam = req.params.id;
@@ -872,14 +873,18 @@ export async function registerRoutes(
       if (!Number.isNaN(idNum)) {
         const canonical = await getCanonicalPlayerById(idNum);
         if (canonical) {
-          const out = { ...canonical, awards: [] };
+          const out = normalizePlayerForApi({ ...canonical, awards: [] } as Record<string, unknown>);
+          if (canonical.id === 1 && (!(out as Record<string, unknown>).headshotUrl || (out as Record<string, unknown>).headshotUrl === ""))
+            (out as Record<string, unknown>).headshotUrl = DEFAULT_CURRY_HEADSHOT;
           return res.json(out);
         }
       }
 
       const canonicalBySr = await getCanonicalPlayerBySrPlayerId(idParam);
       if (canonicalBySr) {
-        const out = { ...canonicalBySr, awards: [] };
+        const out = normalizePlayerForApi({ ...canonicalBySr, awards: [] } as Record<string, unknown>);
+        if (canonicalBySr.id === 1 && (!(out as Record<string, unknown>).headshotUrl || (out as Record<string, unknown>).headshotUrl === ""))
+          (out as Record<string, unknown>).headshotUrl = DEFAULT_CURRY_HEADSHOT;
         return res.json(out);
       }
 

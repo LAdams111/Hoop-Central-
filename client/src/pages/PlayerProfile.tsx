@@ -448,7 +448,7 @@ export default function PlayerProfile() {
                     <span className="text-primary font-bold">HT</span> {player.height ?? "—"}
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
-                    <span className="text-primary font-bold">WT</span> {player.weight && player.weight !== "—" ? `${player.weight} lbs` : (player.weight ?? "—")}
+                    <span className="text-primary font-bold">WT</span> {player.weight && player.weight !== "—" ? (player.weight.toLowerCase().endsWith(" lbs") ? player.weight : `${player.weight} lbs`) : (player.weight ?? "—")}
                   </div>
                   {player.birthDate && (
                     <>
