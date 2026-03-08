@@ -12,6 +12,14 @@ const LEAGUES = [
     regions: ["US", "CA"]
   },
   {
+    name: "WNBA",
+    slug: "WNBA",
+    tier: "Professional",
+    description: "The Women's National Basketball Association - the premier professional women's basketball league in the world.",
+    logoUrl: "https://upload.wikimedia.org/wikipedia/commons/2/2f/WNBA_Logo_2019.svg",
+    regions: ["US"]
+  },
+  {
     name: "NBA G League",
     slug: "G-League",
     tier: "Professional",

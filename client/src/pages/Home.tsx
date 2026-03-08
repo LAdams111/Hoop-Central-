@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
-import { DEFAULT_HEADSHOT, NBA_TEAMS, G_LEAGUE_TEAMS, LEAGUE_DEFAULT_SEASONS } from "@/lib/constants";
+import { DEFAULT_HEADSHOT, NBA_TEAMS, WNBA_TEAMS, G_LEAGUE_TEAMS, LEAGUE_DEFAULT_SEASONS } from "@/lib/constants";
 import { getPlayerFavorites } from "@/lib/favorites";
 import { queryClient } from "@/lib/queryClient";
 import type { Player } from "@shared/schema";
@@ -144,7 +144,7 @@ export default function Home() {
   };
 
   const LEAGUE_TIER: Record<string, number> = {
-    "NBA": 1, "G-League": 2, "NCAA": 3, "OTE": 4, "HS": 5, "AAU": 5,
+    "NBA": 1, "WNBA": 2, "G-League": 3, "NCAA": 4, "OTE": 5, "HS": 6, "AAU": 6,
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -158,6 +158,7 @@ export default function Home() {
   const allTeams = (() => {
     const teamMap = new Map<string, { name: string; league: string; season: string }>();
     NBA_TEAMS.forEach(name => teamMap.set(name, { name, league: "NBA", season: "2025-26" }));
+    WNBA_TEAMS.forEach(name => teamMap.set(name, { name, league: "WNBA", season: "2025-26" }));
     G_LEAGUE_TEAMS.forEach(name => teamMap.set(name, { name, league: "G-League", season: "2025-26" }));
     dbTeams?.forEach(t => {
       if (!teamMap.has(t.team)) {

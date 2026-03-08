@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Users, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import { Player, TeamRecord } from "@shared/schema";
-import { DEFAULT_HEADSHOT } from "@/lib/constants";
+import { DEFAULT_HEADSHOT, WNBA_LOGOS } from "@/lib/constants";
 import {
   Select,
   SelectContent,
@@ -86,6 +86,9 @@ function getTeamLogoUrl(teamName: string): string | null {
   const teamId = NBA_TEAM_IDS[teamName];
   if (teamId) {
     return `https://cdn.nba.com/logos/nba/${teamId}/primary/L/logo.svg`;
+  }
+  if (WNBA_LOGOS[teamName]) {
+    return WNBA_LOGOS[teamName];
   }
   if (G_LEAGUE_LOGOS[teamName]) {
     return G_LEAGUE_LOGOS[teamName];

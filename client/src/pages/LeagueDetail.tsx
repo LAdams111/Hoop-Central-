@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, ArrowRight, Search } from "lucide-react";
 import { Link } from "wouter";
-import { NBA_TEAMS, G_LEAGUE_TEAMS, EUROLEAGUE_TEAMS, EUROLEAGUE_LOGOS } from "@/lib/constants";
+import { NBA_TEAMS, WNBA_TEAMS, WNBA_LOGOS, G_LEAGUE_TEAMS, EUROLEAGUE_TEAMS, EUROLEAGUE_LOGOS } from "@/lib/constants";
 
 const NBA_TEAM_IDS: Record<string, string> = {
   "Atlanta Hawks": "1610612737", "Boston Celtics": "1610612738", "Brooklyn Nets": "1610612751",
@@ -24,6 +24,7 @@ const NBA_TEAM_IDS: Record<string, string> = {
 function getTeamLogo(teamName: string): string | null {
   const nbaId = NBA_TEAM_IDS[teamName];
   if (nbaId) return `https://cdn.nba.com/logos/nba/${nbaId}/primary/L/logo.svg`;
+  if (WNBA_LOGOS[teamName]) return WNBA_LOGOS[teamName];
   if (EUROLEAGUE_LOGOS[teamName]) return EUROLEAGUE_LOGOS[teamName];
   return null;
 }
@@ -34,6 +35,13 @@ const LEAGUE_INFO: Record<string, { display: string; tier: string; description: 
     tier: "Professional",
     description: "The National Basketball Association - the premier professional basketball league in the world.",
     logoUrl: "https://upload.wikimedia.org/wikipedia/en/0/03/National_Basketball_Association_logo.svg",
+    defaultSeason: "2025-26",
+  },
+  "WNBA": {
+    display: "WNBA",
+    tier: "Professional",
+    description: "The Women's National Basketball Association - the premier professional women's basketball league in the world.",
+    logoUrl: "https://upload.wikimedia.org/wikipedia/commons/2/2f/WNBA_Logo_2019.svg",
     defaultSeason: "2025-26",
   },
   "G-League": {
@@ -161,6 +169,8 @@ export default function LeagueDetail() {
   let staticTeams: { name: string; season: string }[] = [];
   if (leagueSlug === "NBA") {
     staticTeams = NBA_TEAMS.map(t => ({ name: t, season: info.defaultSeason }));
+  } else if (leagueSlug === "WNBA") {
+    staticTeams = WNBA_TEAMS.map(t => ({ name: t, season: info.defaultSeason }));
   } else if (leagueSlug === "G-League") {
     staticTeams = G_LEAGUE_TEAMS.map(t => ({ name: t, season: info.defaultSeason }));
   } else if (leagueSlug === "EuroLeague") {

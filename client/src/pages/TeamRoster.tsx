@@ -6,7 +6,7 @@ import { ArrowLeft, Users, Flag, Trophy } from "lucide-react";
 import { Link } from "wouter";
 import { Player } from "@shared/schema";
 import { useState, useEffect } from "react";
-import { EUROLEAGUE_LOGOS } from "@/lib/constants";
+import { EUROLEAGUE_LOGOS, WNBA_LOGOS } from "@/lib/constants";
 
 const NBA_TEAM_IDS: Record<string, string> = {
   "Atlanta Hawks": "1610612737",
@@ -77,6 +77,9 @@ function getTeamLogoUrl(teamName: string): string | null {
   const teamId = NBA_TEAM_IDS[teamName];
   if (teamId) {
     return `https://cdn.nba.com/logos/nba/${teamId}/primary/L/logo.svg`;
+  }
+  if (WNBA_LOGOS[teamName]) {
+    return WNBA_LOGOS[teamName];
   }
   if (G_LEAGUE_LOGOS[teamName]) {
     return G_LEAGUE_LOGOS[teamName];

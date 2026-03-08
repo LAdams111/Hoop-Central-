@@ -43,6 +43,39 @@ export const NBA_TEAMS = [
   "Utah Jazz", "Washington Wizards",
 ];
 
+export const WNBA_TEAMS = [
+  "Atlanta Dream",
+  "Chicago Sky",
+  "Connecticut Sun",
+  "Dallas Wings",
+  "Golden State Valkyries",
+  "Indiana Fever",
+  "Las Vegas Aces",
+  "Los Angeles Sparks",
+  "Minnesota Lynx",
+  "New York Liberty",
+  "Phoenix Mercury",
+  "Seattle Storm",
+  "Washington Mystics",
+];
+
+/** WNBA team name → logo URL (for roster and league detail pages). */
+export const WNBA_LOGOS: Record<string, string> = {
+  "Atlanta Dream": "https://upload.wikimedia.org/wikipedia/en/2/2a/Atlanta_Dream_logo.svg",
+  "Chicago Sky": "https://upload.wikimedia.org/wikipedia/en/c/c8/Chicago_Sky_logo.svg",
+  "Connecticut Sun": "https://upload.wikimedia.org/wikipedia/en/5/5a/Connecticut_Sun_logo.svg",
+  "Dallas Wings": "https://upload.wikimedia.org/wikipedia/en/4/4d/Dallas_Wings_logo.svg",
+  "Golden State Valkyries": "https://upload.wikimedia.org/wikipedia/commons/2/2f/WNBA_Logo_2019.svg",
+  "Indiana Fever": "https://upload.wikimedia.org/wikipedia/en/8/8b/Indiana_Fever_logo.svg",
+  "Las Vegas Aces": "https://upload.wikimedia.org/wikipedia/en/a/a0/Las_Vegas_Aces_logo.svg",
+  "Los Angeles Sparks": "https://upload.wikimedia.org/wikipedia/en/5/5c/Los_Angeles_Sparks_logo.svg",
+  "Minnesota Lynx": "https://upload.wikimedia.org/wikipedia/en/3/35/Minnesota_Lynx_logo.svg",
+  "New York Liberty": "https://upload.wikimedia.org/wikipedia/en/2/2a/New_York_Liberty_logo.svg",
+  "Phoenix Mercury": "https://upload.wikimedia.org/wikipedia/en/0/0e/Phoenix_Mercury_logo.svg",
+  "Seattle Storm": "https://upload.wikimedia.org/wikipedia/en/2/27/Seattle_Storm_logo.svg",
+  "Washington Mystics": "https://upload.wikimedia.org/wikipedia/en/4/4f/Washington_Mystics_logo.svg",
+};
+
 export const G_LEAGUE_TEAMS = [
   "Austin Spurs", "Birmingham Squadron", "Capital City Go-Go", "Cleveland Charge",
   "College Park Skyhawks", "Delaware Blue Coats", "Fort Wayne Mad Ants", "Grand Rapids Gold",
@@ -101,6 +134,7 @@ export const EUROLEAGUE_LOGOS: Record<string, string> = {
 
 export const LEAGUE_DEFAULT_SEASONS: Record<string, string> = {
   "NBA": "2025-26",
+  "WNBA": "2025-26",
   "G-League": "2025-26",
   "EuroLeague": "2025-26",
 };
