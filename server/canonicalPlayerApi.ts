@@ -444,3 +444,32 @@ export async function incrementCanonicalPlayerProfileViews(playerId: number): Pr
     [playerId]
   );
 }
+
+/** Team count from canonical teams table only. Used by GET /api/teams/count (no player_stats). */
+export async function getCanonicalTeamCount(): Promise<number> {
+  const { rows } = await pool.query<{ count: string }>("SELECT COUNT(*)::text AS count FROM teams");
+  return parseInt(rows[0]?.count ?? "0", 10);
+}
+
+/** All teams with league name from canonical schema. Used by GET /api/teams/all (no player_stats). */
+export async function getCanonicalTeamsAll(): Promise<{ id: number; name: string; city: string | null; abbreviation: string | null; league: string | null }[]> {
+  const { rows } = await pool.query<{ id: number; name: string; city: string | null; abbreviation: string | null; league: string | null }>(
+    `SELECT t.id, t.name, t.city, t.abbreviation, l.name AS league
+     FROM teams t
+     LEFT JOIN leagues l ON l.id = t.league_id
+     ORDER BY t.name`
+  );
+  return rows ?? [];
+}
+
+/** Teams for a given league from canonical schema. Used by GET /api/leagues/:league/teams (no player_stats). */
+export async function getCanonicalTeamsByLeague(leagueName: string): Promise<{ team: string; season: string | null }[]> {
+  const { rows } = await pool.query<{ name: string }>(
+    `SELECT t.name FROM teams t
+     INNER JOIN leagues l ON l.id = t.league_id
+     WHERE LOWER(TRIM(l.name)) = LOWER(TRIM($1))
+     ORDER BY t.name`,
+    [leagueName]
+  );
+  return (rows ?? []).map((r) => ({ team: r.name, season: null }));
+}

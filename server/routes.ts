@@ -9,7 +9,7 @@ import { players } from "@shared/schema";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning, getCurrentNBASeason, seasonToDisplay } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getRosterByCurrentTeamFromPlayerInfo, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, getPlayerInfoIdByPlayerId, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
-import { getCanonicalPlayersList, getCanonicalPlayerCount, getCanonicalPlayerById, getCanonicalPlayerBySrPlayerId, getCanonicalBirthYearCounts, getCanonicalPlayersByBirthYear, getCanonicalProspects, setCanonicalPlayerProfileViews, getCanonicalRoster, incrementCanonicalPlayerProfileViews } from "./canonicalPlayerApi";
+import { getCanonicalPlayersList, getCanonicalPlayerCount, getCanonicalPlayerById, getCanonicalPlayerBySrPlayerId, getCanonicalBirthYearCounts, getCanonicalPlayersByBirthYear, getCanonicalProspects, setCanonicalPlayerProfileViews, getCanonicalRoster, incrementCanonicalPlayerProfileViews, getCanonicalTeamCount, getCanonicalTeamsAll, getCanonicalTeamsByLeague } from "./canonicalPlayerApi";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -85,13 +85,13 @@ export async function registerRoutes(
     res.json({ authenticated: true });
   });
 
-  // Debug: verify app is reading from the same DB (table "player_info")
+  // Debug: verify app is reading from the same DB (canonical players table)
   app.get("/api/debug/players-count", async (_req, res) => {
     try {
-      const count = await storage.getPlayerCount();
-      res.json({ table: "player_info", count, ok: true });
+      const count = await getCanonicalPlayerCount();
+      res.json({ table: "players", count, ok: true });
     } catch (e) {
-      res.status(500).json({ table: "player_info", count: null, ok: false, error: String(e) });
+      res.status(500).json({ table: "players", count: null, ok: false, error: String(e) });
     }
   });
 
@@ -1062,30 +1062,31 @@ export async function registerRoutes(
 
     if (roster.length === 0) {
       try {
-        const candidates = getTeamMatchCandidates(team).map((c) => c.toLowerCase());
-        if (candidates.length > 0) {
-          const rows = await db
-            .select()
-            .from(players)
-            .where(sql`LOWER(TRIM(${players.team})) IN (${sql.join(candidates.map((c) => sql`${c}`), sql`, `)})`);
-          roster = rows.map((p) => ({
-            id: p.id,
-            name: p.name,
-            position: p.position,
-            team: p.team,
-            height: p.height,
-            weight: p.weight,
-            jerseyNumber: p.jerseyNumber ?? 0,
-            headshotUrl: p.headshotUrl ?? "",
-            bio: p.bio ?? null,
-            profileViews: p.profileViews ?? 50,
-            hometown: p.hometown ?? null,
-            birthDate: p.birthDate ?? null,
-          }));
-          console.log("[roster] fallback direct player_info query — matched:", roster.length);
+        const candidates = getTeamMatchCandidates(team).map((c) => c.trim());
+        for (const candidate of candidates) {
+          if (!candidate || !season) continue;
+          const canonical = await getCanonicalRoster(candidate, season);
+          if (canonical.length > 0) {
+            roster = canonical.map((p) => ({
+              id: p.id,
+              name: p.name,
+              position: p.position,
+              team: p.team,
+              height: p.height,
+              weight: p.weight,
+              jerseyNumber: p.jerseyNumber ?? 0,
+              headshotUrl: p.headshotUrl ?? "",
+              bio: p.bio ?? null,
+              profileViews: p.profileViews ?? 50,
+              hometown: p.hometown ?? null,
+              birthDate: p.birthDate ?? null,
+            }));
+            console.log("[roster] canonical fallback by team name — matched:", roster.length);
+            break;
+          }
         }
       } catch (e) {
-        console.log("[roster] direct player_info fallback error:", e instanceof Error ? e.message : String(e));
+        console.log("[roster] canonical fallback error:", e instanceof Error ? e.message : String(e));
       }
     }
 
@@ -1164,21 +1165,33 @@ export async function registerRoutes(
   });
 
   app.get("/api/teams/count", async (req, res) => {
-    const count = await storage.getTotalTeamCount();
-    res.json({ count });
+    try {
+      const count = await getCanonicalTeamCount();
+      res.json({ count });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message ?? "Teams count failed" });
+    }
   });
 
-  // All teams with league info
+  // All teams with league info — from canonical teams table only (no player_info/player_stats)
   app.get("/api/teams/all", async (req, res) => {
-    const dbTeams = await storage.getAllTeamsWithLeague();
-    res.json(dbTeams);
+    try {
+      const dbTeams = await getCanonicalTeamsAll();
+      res.json(dbTeams);
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message ?? "Teams list failed" });
+    }
   });
 
-  // Teams by League
+  // Teams by League — from canonical schema (no player_stats)
   app.get("/api/leagues/:league/teams", async (req, res) => {
-    const { league } = req.params;
-    const teams = await storage.getTeamsByLeague(league);
-    res.json(teams);
+    try {
+      const { league } = req.params;
+      const list = await getCanonicalTeamsByLeague(league ?? "");
+      res.json(list);
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message ?? "Leagues teams failed" });
+    }
   });
 
   // NBA Scraper endpoint — scraper in this repo is disabled; return 403 so UI doesn't run it
@@ -1290,18 +1303,24 @@ export async function registerRoutes(
     }
   });
 
-  /** Returns how many NCAA stat rows and how many distinct players have NCAA stats (to verify scraper is ingesting). */
+  /** Returns how many NCAA stat rows and how many distinct players have NCAA stats. Uses canonical schema (players → player_seasons → player_season_stats via team_seasons/seasons/leagues). */
   app.get("/api/ncaa/count", async (req, res) => {
     try {
-      const statRows = await pool.query<{ count: string }>(
-        `SELECT COUNT(*) AS count FROM player_stats WHERE LOWER(league) = 'ncaa'`
+      const { rows } = await pool.query<{ stat_count: string; player_count: string }>(
+        `SELECT
+           COUNT(pss.id)::text AS stat_count,
+           COUNT(DISTINCT ps.player_id)::text AS player_count
+         FROM player_season_stats pss
+         JOIN player_seasons ps ON pss.player_season_id = ps.id
+         JOIN team_seasons ts ON ps.team_season_id = ts.id
+         JOIN seasons s ON ts.season_id = s.id
+         JOIN leagues l ON s.league_id = l.id
+         WHERE LOWER(TRIM(l.name)) = 'ncaa'`
       );
-      const playerRows = await pool.query<{ count: string }>(
-        `SELECT COUNT(DISTINCT player_id) AS count FROM player_stats WHERE LOWER(league) = 'ncaa'`
-      );
+      const row = rows[0];
       res.json({
-        ncaaStatRows: parseInt(statRows.rows[0]?.count ?? "0", 10),
-        playersWithNcaaStats: parseInt(playerRows.rows[0]?.count ?? "0", 10),
+        ncaaStatRows: parseInt(row?.stat_count ?? "0", 10),
+        playersWithNcaaStats: parseInt(row?.player_count ?? "0", 10),
       });
     } catch (err: any) {
       res.status(500).json({ message: err?.message ?? "NCAA count failed" });
