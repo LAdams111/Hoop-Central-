@@ -220,9 +220,10 @@ export async function getCanonicalPlayerCount(): Promise<number> {
 }
 
 /** Get latest team name and jersey for a player; load all stats for API.
- * Uses exact join structure: players → player_seasons → player_season_stats (LEFT JOIN).
+ * Uses correct join path: players → player_seasons → team_seasons → seasons (season from s.year_start/s.year_end).
+ * player_seasons has no season column; season comes from team_seasons → seasons.
  * No league filter — returns NBA, WNBA, and all other leagues.
- * Most recent season = first row (ORDER BY player_seasons.id DESC). Season History = all rows. */
+ * Results ordered by season descending. */
 async function getLatestTeamAndStats(
   playerId: number
 ): Promise<{ team: string; jerseyNumber: number | null; stats: CanonicalStatForApi[] }> {
@@ -258,14 +259,14 @@ async function getLatestTeamAndStats(
       pss.blocks AS stat_blocks,
       pss.fg_pct AS stat_fg_pct
     FROM players p
-    LEFT JOIN player_seasons ps ON ps.player_id = p.id
-    LEFT JOIN player_season_stats pss ON pss.player_season_id = ps.id
-    LEFT JOIN team_seasons ts ON ts.id = ps.team_season_id
+    JOIN player_seasons ps ON ps.player_id = p.id
+    JOIN team_seasons ts ON ts.id = ps.team_season_id
+    JOIN seasons s ON s.id = ts.season_id
+    JOIN player_season_stats pss ON pss.player_season_id = ps.id
     LEFT JOIN teams t ON t.id = ts.team_id
-    LEFT JOIN seasons s ON s.id = ts.season_id
     LEFT JOIN leagues l ON l.id = s.league_id
     WHERE p.id = $1
-    ORDER BY ps.id DESC`,
+    ORDER BY s.year_start DESC, s.year_end DESC`,
     [playerId]
   );
 
@@ -290,9 +291,10 @@ async function getLatestTeamAndStats(
     const stlPerG = (typeof stl === "number" ? stl : Number(stl)) / div;
     const blkPerG = (typeof blk === "number" ? blk : Number(blk)) / div;
     const fgPctDisplay = pct <= 1 ? pct * 100 : pct;
+    const seasonStr = (r.year_start != null && r.year_end != null) ? seasonLabel(r.year_start, r.year_end) : "—";
     stats.push({
       id: r.ps_id,
-      season: seasonLabel(r.year_start, r.year_end),
+      season: seasonStr,
       team: r.team_name,
       league: r.league_name,
       games_played: gamesPlayed,
