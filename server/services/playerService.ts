@@ -92,6 +92,7 @@ export async function findOrCreatePlayer(params: {
       if (params.nationality != null) updates.nationality = params.nationality;
       if (params.birthPlace != null) updates.birthPlace = params.birthPlace;
       if (params.source === "nba" && params.externalId) updates.srPlayerId = params.externalId;
+      if (params.source === "wnba" && params.externalId) updates.srPlayerId = params.externalId;
       if (Object.keys(updates).length > 0) {
         const [updated] = await db
           .update(players)
@@ -109,6 +110,7 @@ export async function findOrCreatePlayer(params: {
   const heightCm = parseHeightToCm(params.height);
   const weightKg = parseWeightToKg(params.weight);
   const isNba = params.source === "nba";
+  const isWnba = params.source === "wnba";
   const [player] = await db
     .insert(players)
     .values({
@@ -121,7 +123,7 @@ export async function findOrCreatePlayer(params: {
       position: params.position ?? null,
       nationality: params.nationality ?? null,
       birthPlace: params.birthPlace ?? null,
-      srPlayerId: isNba && externalId ? externalId : null,
+      srPlayerId: (isNba || isWnba) && externalId ? externalId : null,
       ...(isNba ? { profileViews: getRandomNbaProfileViews() } : {}),
     })
     .returning();

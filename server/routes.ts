@@ -1284,7 +1284,48 @@ export async function registerRoutes(
 
   app.get("/api/scraper/status", async (req, res) => {
     const { isNcaaScraperRunning } = await import("./scrapers/ncaaScraper");
-    res.json({ running: scraperRunning, bioRunning: isBioScraperRunning(), ncaaRunning: isNcaaScraperRunning() });
+    const { isWnbaScraperRunning } = await import("./scrapers/wnbaScraper");
+    res.json({ running: scraperRunning, bioRunning: isBioScraperRunning(), ncaaRunning: isNcaaScraperRunning(), wnbaRunning: isWnbaScraperRunning() });
+  });
+
+  app.post("/api/scraper/wnba", async (req, res) => {
+    try {
+      const { scrapeWNBAPlayers, isWnbaScraperRunning } = await import("./scrapers/wnbaScraper");
+      if (isWnbaScraperRunning()) {
+        return res.status(409).json({ message: "WNBA scraper is already running. Please wait." });
+      }
+      const body = (req.body || {}) as { startYear?: number; endYear?: number; delayMs?: number };
+      const result = await scrapeWNBAPlayers({
+        startYear: body.startYear,
+        endYear: body.endYear,
+        delayMs: body.delayMs,
+      });
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message ?? "WNBA scraper failed" });
+    }
+  });
+
+  app.post("/api/scraper/wnba/clear-and-rescrape", async (req, res) => {
+    try {
+      const { clearWnbaData, scrapeWNBAPlayers, isWnbaScraperRunning } = await import("./scrapers/wnbaScraper");
+      if (isWnbaScraperRunning()) {
+        return res.status(409).json({ message: "WNBA scraper is already running. Please wait." });
+      }
+      const clearResult = await clearWnbaData();
+      if (clearResult.error) {
+        return res.status(500).json({ message: "WNBA clear failed", clearResult });
+      }
+      const body = (req.body || {}) as { startYear?: number; endYear?: number; delayMs?: number };
+      const scrapeResult = await scrapeWNBAPlayers({
+        startYear: body.startYear,
+        endYear: body.endYear,
+        delayMs: body.delayMs,
+      });
+      res.json({ clearResult, scrapeResult });
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message ?? "WNBA clear-and-rescrape failed" });
+    }
   });
 
   app.post("/api/scraper/team-records", async (req, res) => {

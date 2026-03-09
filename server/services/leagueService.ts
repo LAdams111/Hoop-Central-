@@ -16,6 +16,7 @@ import { eq, and } from "drizzle-orm";
 
 const NBA_LEAGUE_NAME = "NBA";
 const NCAA_LEAGUE_NAME = "NCAA";
+const WNBA_LEAGUE_NAME = "WNBA";
 
 export async function getOrCreateLeague(name: string, country: string | null = "USA"): Promise<League> {
   const normalized = name.trim();
@@ -36,6 +37,10 @@ export async function getNbaLeague(): Promise<League> {
 
 export async function getNcaaLeague(): Promise<League> {
   return getOrCreateLeague(NCAA_LEAGUE_NAME);
+}
+
+export async function getWnbaLeague(): Promise<League> {
+  return getOrCreateLeague(WNBA_LEAGUE_NAME);
 }
 
 /** Find team by name + league, or by abbreviation + league. Create if missing. */
