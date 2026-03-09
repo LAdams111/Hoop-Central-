@@ -9,7 +9,7 @@ import { players } from "@shared/schema";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning, getCurrentNBASeason, seasonToDisplay } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getRosterByCurrentTeamFromPlayerInfo, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, getPlayerInfoIdByPlayerId, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
-import { getCanonicalPlayersList, getCanonicalPlayerCount, getCanonicalPlayerById, getCanonicalPlayerBySrPlayerId, getCanonicalBirthYearCounts, getCanonicalPlayersByBirthYear, getCanonicalProspects, setCanonicalPlayerProfileViews, getCanonicalRoster } from "./canonicalPlayerApi";
+import { getCanonicalPlayersList, getCanonicalPlayerCount, getCanonicalPlayerById, getCanonicalPlayerBySrPlayerId, getCanonicalBirthYearCounts, getCanonicalPlayersByBirthYear, getCanonicalProspects, setCanonicalPlayerProfileViews, getCanonicalRoster, incrementCanonicalPlayerProfileViews } from "./canonicalPlayerApi";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -868,7 +868,7 @@ export async function registerRoutes(
     res.json(results);
   });
 
-  // Player Detail (with stats) — :id can be numeric (players.id) or sr_player_id string (e.g. "jamesle01")
+  // Player Detail (with stats) — :id can be numeric (players.id) or sr_player_id string. Uses only canonical tables: players → player_seasons → player_season_stats. No player_info or player_stats.
   const DEFAULT_CURRY_HEADSHOT = "https://cdn.nba.com/headshots/nba/latest/1040x760/201939.png";
   app.get(api.players.get.path, async (req, res) => {
     try {
@@ -878,17 +878,7 @@ export async function registerRoutes(
       if (!Number.isNaN(idNum)) {
         const canonical = await getCanonicalPlayerById(idNum);
         if (canonical) {
-          // If canonical has no stats (e.g. WNBA-only players not in canonical player_seasons), try legacy player_stats
-          let stats = canonical.stats;
-          if (!stats?.length) {
-            try {
-              const fromPlayerInfo = await getPlayerInfoById(idNum);
-              if (fromPlayerInfo?.stats?.length) stats = fromPlayerInfo.stats;
-            } catch {
-              // keep stats empty
-            }
-          }
-          const out = normalizePlayerForApi({ ...canonical, stats: stats ?? [], awards: [] } as Record<string, unknown>);
+          const out = normalizePlayerForApi({ ...canonical, stats: canonical.stats ?? [], awards: [] } as Record<string, unknown>);
           if (canonical.id === 1 && (!(out as Record<string, unknown>).headshotUrl || (out as Record<string, unknown>).headshotUrl === ""))
             (out as Record<string, unknown>).headshotUrl = DEFAULT_CURRY_HEADSHOT;
           return res.json(out);
@@ -897,80 +887,12 @@ export async function registerRoutes(
 
       const canonicalBySr = await getCanonicalPlayerBySrPlayerId(idParam);
       if (canonicalBySr) {
-        let stats = canonicalBySr.stats;
-        if (!stats?.length) {
-          try {
-            const fromPlayerInfo = await getPlayerInfoByPlayerId(idParam);
-            if (fromPlayerInfo?.stats?.length) stats = fromPlayerInfo.stats;
-          } catch {
-            // keep stats empty
-          }
-        }
-        const out = normalizePlayerForApi({ ...canonicalBySr, stats: stats ?? [], awards: [] } as Record<string, unknown>);
+        const out = normalizePlayerForApi({ ...canonicalBySr, stats: canonicalBySr.stats ?? [], awards: [] } as Record<string, unknown>);
         if (canonicalBySr.id === 1 && (!(out as Record<string, unknown>).headshotUrl || (out as Record<string, unknown>).headshotUrl === ""))
           (out as Record<string, unknown>).headshotUrl = DEFAULT_CURRY_HEADSHOT;
         return res.json(out);
       }
 
-      // Fallback: legacy player_info / storage
-      if (!Number.isNaN(idNum)) {
-        let player: Awaited<ReturnType<typeof storage.getPlayer>>;
-        try {
-          player = await storage.getPlayer(idNum);
-        } catch {
-          player = undefined;
-        }
-        if (!player) {
-          try {
-            const fromPlayerInfo = await getPlayerInfoById(idNum);
-            if (fromPlayerInfo) {
-              const out = { ...normalizePlayerForApi(fromPlayerInfo as Record<string, unknown>), stats: fromPlayerInfo.stats ?? [], awards: [] };
-              const externalViews = await getExternalProfileViewsById(idNum);
-              if (externalViews !== null) (out as Record<string, unknown>).profileViews = externalViews;
-              try {
-                const appPlayer = await storage.getPlayer(idNum);
-                if (appPlayer?.headshotUrl && appPlayer.headshotUrl.startsWith("/objects/"))
-                  (out as Record<string, unknown>).headshotUrl = appPlayer.headshotUrl;
-              } catch { /* ignore */ }
-              return res.json(out);
-            }
-          } catch {
-            // ignore
-          }
-        } else {
-          try {
-            const [stats, awards] = await Promise.all([
-              storage.getPlayerStats(idNum),
-              storage.getPlayerAwards(idNum)
-            ]);
-            const out = normalizePlayerForApi(player as Record<string, unknown>);
-            return res.json({ ...out, stats, awards });
-          } catch {
-            const out = normalizePlayerForApi(player as Record<string, unknown>);
-            return res.json({ ...out, stats: [], awards: [] });
-          }
-        }
-      }
-
-      try {
-        const fromPlayerInfo = await getPlayerInfoByPlayerId(idParam);
-        if (fromPlayerInfo) {
-          const out = { ...normalizePlayerForApi(fromPlayerInfo as Record<string, unknown>), stats: fromPlayerInfo.stats ?? [], awards: [] };
-          const idForViews = Number((fromPlayerInfo as Record<string, unknown>).id);
-          if (!Number.isNaN(idForViews)) {
-            const externalViews = await getExternalProfileViewsById(idForViews);
-            if (externalViews !== null) (out as Record<string, unknown>).profileViews = externalViews;
-            try {
-              const appPlayer = await storage.getPlayer(idForViews);
-              if (appPlayer?.headshotUrl && appPlayer.headshotUrl.startsWith("/objects/"))
-                (out as Record<string, unknown>).headshotUrl = appPlayer.headshotUrl;
-            } catch { /* ignore */ }
-          }
-          return res.json(out);
-        }
-      } catch {
-        // ignore
-      }
       return res.status(404).json({ message: "Player not found" });
     } catch (err) {
       console.error("GET /api/players/:id error:", err);
@@ -978,19 +900,15 @@ export async function registerRoutes(
     }
   });
 
-  // Increment Player Views
+  // Increment Player Views — use only canonical tables (players); do not reference player_info or player_stats
   app.post("/api/players/:id/view", async (req, res) => {
     const idParam = req.params.id ?? "";
     const idNum = Number(idParam);
     if (!Number.isNaN(idNum)) {
-      await storage.incrementPlayerViews(idNum);
-      try {
-        await incrementExternalProfileViewsById(idNum);
-      } catch {
-        // external table may not exist or have column
-      }
+      await incrementCanonicalPlayerProfileViews(idNum);
     } else {
-      await incrementProfileViewsByPlayerId(idParam);
+      const canonical = await getCanonicalPlayerBySrPlayerId(idParam);
+      if (canonical) await incrementCanonicalPlayerProfileViews(canonical.id);
     }
     res.json({ success: true });
   });

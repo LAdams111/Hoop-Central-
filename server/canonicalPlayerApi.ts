@@ -436,3 +436,11 @@ export async function setCanonicalPlayerProfileViews(playerId: number, profileVi
   const value = Math.max(0, Math.floor(Number(profileViews)));
   await db.update(players).set({ profileViews: value }).where(eq(players.id, playerId));
 }
+
+/** Increment profile_views by 1 in the canonical players table. Used by POST /api/players/:id/view (no player_info). */
+export async function incrementCanonicalPlayerProfileViews(playerId: number): Promise<void> {
+  await pool.query(
+    "UPDATE players SET profile_views = COALESCE(profile_views, 0) + 1 WHERE id = $1",
+    [playerId]
+  );
+}
