@@ -219,11 +219,13 @@ export async function getCanonicalPlayerCount(): Promise<number> {
   return r?.count ?? 0;
 }
 
-/** Get latest team name and jersey for a player; load all stats for API. */
+/** Get latest team name and jersey for a player; load all stats for API.
+ * Single query: players → player_seasons → player_season_stats (LEFT JOIN so seasons without stats still show).
+ * No league filter — returns NBA, WNBA, and all other leagues. */
 async function getLatestTeamAndStats(
   playerId: number
 ): Promise<{ team: string; jerseyNumber: number | null; stats: CanonicalStatForApi[] }> {
-  const psRows = await db
+  const rows = await db
     .select({
       psId: playerSeasons.id,
       jerseyNumber: playerSeasons.jerseyNumber,
@@ -232,35 +234,37 @@ async function getLatestTeamAndStats(
       leagueName: leagues.name,
       yearStart: seasons.yearStart,
       yearEnd: seasons.yearEnd,
+      statGames: playerSeasonStats.games,
+      statPoints: playerSeasonStats.points,
+      statRebounds: playerSeasonStats.rebounds,
+      statAssists: playerSeasonStats.assists,
+      statSteals: playerSeasonStats.steals,
+      statBlocks: playerSeasonStats.blocks,
+      statFgPct: playerSeasonStats.fgPct,
     })
     .from(playerSeasons)
     .innerJoin(teamSeasons, eq(teamSeasons.id, playerSeasons.teamSeasonId))
     .innerJoin(teams, eq(teams.id, teamSeasons.teamId))
     .innerJoin(seasons, eq(seasons.id, teamSeasons.seasonId))
     .innerJoin(leagues, eq(leagues.id, seasons.leagueId))
+    .leftJoin(playerSeasonStats, eq(playerSeasonStats.playerSeasonId, playerSeasons.id))
     .where(eq(playerSeasons.playerId, playerId))
     .orderBy(desc(playerSeasons.id));
 
-  const latestTeam = psRows[0]?.teamName ?? "—";
-  const latestJersey = psRows[0]?.jerseyNumber ?? null;
+  const latestTeam = rows[0]?.teamName ?? "—";
+  const latestJersey = rows[0]?.jerseyNumber ?? null;
   const stats: CanonicalStatForApi[] = [];
 
-  for (const ps of psRows) {
-    const [statRow] = await db
-      .select()
-      .from(playerSeasonStats)
-      .where(eq(playerSeasonStats.playerSeasonId, ps.psId))
-      .limit(1);
-    const g = statRow?.games ?? ps.gamesPlayed ?? 0;
+  for (const r of rows) {
+    const g = r.statGames ?? r.gamesPlayed ?? 0;
     const gamesPlayed = typeof g === "number" ? g : parseInt(String(g), 10) || 0;
     const div = gamesPlayed > 0 ? gamesPlayed : 1;
-    const row = statRow as Record<string, unknown> | undefined;
-    const pts = row?.points ?? 0;
-    const reb = row?.rebounds ?? (row?.reBounds != null ? row.reBounds : 0);
-    const ast = row?.assists ?? 0;
-    const stl = row?.steals ?? 0;
-    const blk = row?.blocks ?? 0;
-    const pct = row?.fgPct != null ? Number(row.fgPct) : 0;
+    const pts = r.statPoints ?? 0;
+    const reb = r.statRebounds ?? 0;
+    const ast = r.statAssists ?? 0;
+    const stl = r.statSteals ?? 0;
+    const blk = r.statBlocks ?? 0;
+    const pct = r.statFgPct != null ? Number(r.statFgPct) : 0;
     const ptsPerG = (typeof pts === "number" ? pts : Number(pts)) / div;
     const trbPerG = (typeof reb === "number" ? reb : Number(reb)) / div;
     const astPerG = (typeof ast === "number" ? ast : Number(ast)) / div;
@@ -268,10 +272,10 @@ async function getLatestTeamAndStats(
     const blkPerG = (typeof blk === "number" ? blk : Number(blk)) / div;
     const fgPctDisplay = pct <= 1 ? pct * 100 : pct;
     stats.push({
-      id: ps.psId,
-      season: seasonLabel(ps.yearStart, ps.yearEnd),
-      team: ps.teamName,
-      league: ps.leagueName,
+      id: r.psId,
+      season: seasonLabel(r.yearStart, r.yearEnd),
+      team: r.teamName,
+      league: r.leagueName,
       games_played: gamesPlayed,
       gamesPlayed,
       pts_per_g: ptsPerG.toFixed(1),
