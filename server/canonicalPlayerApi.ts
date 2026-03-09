@@ -3,7 +3,7 @@
  * and return the same shape the frontend expects (legacy player_info / player_stats API).
  */
 
-import { db } from "./db";
+import { db, pool } from "./db";
 import { getTeamMatchCandidates } from "./storage";
 import {
   players,
@@ -220,51 +220,70 @@ export async function getCanonicalPlayerCount(): Promise<number> {
 }
 
 /** Get latest team name and jersey for a player; load all stats for API.
- * Single query: players → player_seasons → player_season_stats (LEFT JOIN so seasons without stats still show).
- * No league filter — returns NBA, WNBA, and all other leagues. */
+ * Uses exact join structure: players → player_seasons → player_season_stats (LEFT JOIN).
+ * No league filter — returns NBA, WNBA, and all other leagues.
+ * Most recent season = first row (ORDER BY player_seasons.id DESC). Season History = all rows. */
 async function getLatestTeamAndStats(
   playerId: number
 ): Promise<{ team: string; jerseyNumber: number | null; stats: CanonicalStatForApi[] }> {
-  const rows = await db
-    .select({
-      psId: playerSeasons.id,
-      jerseyNumber: playerSeasons.jerseyNumber,
-      gamesPlayed: playerSeasons.gamesPlayed,
-      teamName: teams.name,
-      leagueName: leagues.name,
-      yearStart: seasons.yearStart,
-      yearEnd: seasons.yearEnd,
-      statGames: playerSeasonStats.games,
-      statPoints: playerSeasonStats.points,
-      statRebounds: playerSeasonStats.rebounds,
-      statAssists: playerSeasonStats.assists,
-      statSteals: playerSeasonStats.steals,
-      statBlocks: playerSeasonStats.blocks,
-      statFgPct: playerSeasonStats.fgPct,
-    })
-    .from(playerSeasons)
-    .innerJoin(teamSeasons, eq(teamSeasons.id, playerSeasons.teamSeasonId))
-    .innerJoin(teams, eq(teams.id, teamSeasons.teamId))
-    .innerJoin(seasons, eq(seasons.id, teamSeasons.seasonId))
-    .innerJoin(leagues, eq(leagues.id, seasons.leagueId))
-    .leftJoin(playerSeasonStats, eq(playerSeasonStats.playerSeasonId, playerSeasons.id))
-    .where(eq(playerSeasons.playerId, playerId))
-    .orderBy(desc(playerSeasons.id));
+  const { rows } = await pool.query<{
+    ps_id: number;
+    jersey_number: number | null;
+    games_played: number | null;
+    team_name: string;
+    league_name: string;
+    year_start: number;
+    year_end: number;
+    stat_games: number | null;
+    stat_points: number | null;
+    stat_rebounds: number | null;
+    stat_assists: number | null;
+    stat_steals: number | null;
+    stat_blocks: number | null;
+    stat_fg_pct: string | null;
+  }>(
+    `SELECT
+      ps.id AS ps_id,
+      ps.jersey_number,
+      ps.games_played,
+      t.name AS team_name,
+      l.name AS league_name,
+      s.year_start,
+      s.year_end,
+      pss.games AS stat_games,
+      pss.points AS stat_points,
+      pss.rebounds AS stat_rebounds,
+      pss.assists AS stat_assists,
+      pss.steals AS stat_steals,
+      pss.blocks AS stat_blocks,
+      pss.fg_pct AS stat_fg_pct
+    FROM players p
+    LEFT JOIN player_seasons ps ON ps.player_id = p.id
+    LEFT JOIN player_season_stats pss ON pss.player_season_id = ps.id
+    LEFT JOIN team_seasons ts ON ts.id = ps.team_season_id
+    LEFT JOIN teams t ON t.id = ts.team_id
+    LEFT JOIN seasons s ON s.id = ts.season_id
+    LEFT JOIN leagues l ON l.id = s.league_id
+    WHERE p.id = $1
+    ORDER BY ps.id DESC`,
+    [playerId]
+  );
 
-  const latestTeam = rows[0]?.teamName ?? "—";
-  const latestJersey = rows[0]?.jerseyNumber ?? null;
+  const latestTeam = rows[0]?.team_name ?? "—";
+  const latestJersey = rows[0]?.jersey_number ?? null;
   const stats: CanonicalStatForApi[] = [];
 
   for (const r of rows) {
-    const g = r.statGames ?? r.gamesPlayed ?? 0;
+    if (r.ps_id == null) continue;
+    const g = r.stat_games ?? r.games_played ?? 0;
     const gamesPlayed = typeof g === "number" ? g : parseInt(String(g), 10) || 0;
     const div = gamesPlayed > 0 ? gamesPlayed : 1;
-    const pts = r.statPoints ?? 0;
-    const reb = r.statRebounds ?? 0;
-    const ast = r.statAssists ?? 0;
-    const stl = r.statSteals ?? 0;
-    const blk = r.statBlocks ?? 0;
-    const pct = r.statFgPct != null ? Number(r.statFgPct) : 0;
+    const pts = r.stat_points ?? 0;
+    const reb = r.stat_rebounds ?? 0;
+    const ast = r.stat_assists ?? 0;
+    const stl = r.stat_steals ?? 0;
+    const blk = r.stat_blocks ?? 0;
+    const pct = r.stat_fg_pct != null ? Number(r.stat_fg_pct) : 0;
     const ptsPerG = (typeof pts === "number" ? pts : Number(pts)) / div;
     const trbPerG = (typeof reb === "number" ? reb : Number(reb)) / div;
     const astPerG = (typeof ast === "number" ? ast : Number(ast)) / div;
@@ -272,10 +291,10 @@ async function getLatestTeamAndStats(
     const blkPerG = (typeof blk === "number" ? blk : Number(blk)) / div;
     const fgPctDisplay = pct <= 1 ? pct * 100 : pct;
     stats.push({
-      id: r.psId,
-      season: seasonLabel(r.yearStart, r.yearEnd),
-      team: r.teamName,
-      league: r.leagueName,
+      id: r.ps_id,
+      season: seasonLabel(r.year_start, r.year_end),
+      team: r.team_name,
+      league: r.league_name,
       games_played: gamesPlayed,
       gamesPlayed,
       pts_per_g: ptsPerG.toFixed(1),
