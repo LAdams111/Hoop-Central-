@@ -5,6 +5,7 @@
 
 import { db, pool } from "./db";
 import { getTeamMatchCandidates } from "./storage";
+import { findPlayerByExternalId } from "./services/playerService";
 import {
   players,
   playerSeasons,
@@ -223,8 +224,22 @@ export async function getCanonicalPlayerCount(): Promise<number> {
  * Uses correct join path: players → player_seasons → team_seasons → seasons (season from s.year_start/s.year_end).
  * player_seasons has no season column; season comes from team_seasons → seasons.
  * No league filter — returns NBA, WNBA, and all other leagues.
- * Results ordered by season descending. */
+ * Results ordered by season descending.
+ * Fallback: if DB has legacy schema (player_seasons.team_id, player_seasons.season_id instead of team_season_id), use that path so stats still show. */
 async function getLatestTeamAndStats(
+  playerId: number
+): Promise<{ team: string; jerseyNumber: number | null; stats: CanonicalStatForApi[] }> {
+  try {
+    const result = await getLatestTeamAndStatsViaTeamSeasons(playerId);
+    if (result.stats.length > 0) return result;
+  } catch {
+    // primary query failed (e.g. column team_season_id or table team_seasons missing)
+  }
+  return getLatestTeamAndStatsViaTeamAndSeasonId(playerId);
+}
+
+/** Primary path: player_seasons.team_season_id → team_seasons → seasons (schema from Drizzle / schema.sql). */
+async function getLatestTeamAndStatsViaTeamSeasons(
   playerId: number
 ): Promise<{ team: string; jerseyNumber: number | null; stats: CanonicalStatForApi[] }> {
   const { rows } = await pool.query<{
@@ -269,11 +284,82 @@ async function getLatestTeamAndStats(
     ORDER BY s.year_start DESC, s.year_end DESC`,
     [playerId]
   );
+  return buildTeamAndStatsFromRows(rows);
+}
 
+/** Fallback path: player_seasons.team_id + player_seasons.season_id (legacy migration / index bootstrap schema). No team_seasons table. */
+async function getLatestTeamAndStatsViaTeamAndSeasonId(
+  playerId: number
+): Promise<{ team: string; jerseyNumber: number | null; stats: CanonicalStatForApi[] }> {
+  try {
+    const { rows } = await pool.query<{
+      ps_id: number;
+      jersey_number: number | null;
+      games_played: number | null;
+      team_name: string;
+      league_name: string;
+      year_start: number;
+      year_end: number;
+      stat_games: number | null;
+      stat_points: number | null;
+      stat_rebounds: number | null;
+      stat_assists: number | null;
+      stat_steals: number | null;
+      stat_blocks: number | null;
+      stat_fg_pct: string | null;
+    }>(
+      `SELECT
+        ps.id AS ps_id,
+        ps.jersey AS jersey_number,
+        ps.games AS games_played,
+        t.name AS team_name,
+        l.name AS league_name,
+        s.year_start,
+        s.year_end,
+        pss.games AS stat_games,
+        pss.points AS stat_points,
+        pss.rebounds AS stat_rebounds,
+        pss.assists AS stat_assists,
+        pss.steals AS stat_steals,
+        pss.blocks AS stat_blocks,
+        pss.fg_pct AS stat_fg_pct
+      FROM players p
+      JOIN player_seasons ps ON ps.player_id = p.id
+      JOIN teams t ON t.id = ps.team_id
+      JOIN seasons s ON s.id = ps.season_id
+      JOIN player_season_stats pss ON pss.player_season_id = ps.id
+      LEFT JOIN leagues l ON l.id = s.league_id
+      WHERE p.id = $1
+      ORDER BY s.year_start DESC, s.year_end DESC`,
+      [playerId]
+    );
+    return buildTeamAndStatsFromRows(rows);
+  } catch {
+    return { team: "—", jerseyNumber: null, stats: [] };
+  }
+}
+
+function buildTeamAndStatsFromRows(
+  rows: {
+    ps_id: number;
+    jersey_number: number | null;
+    games_played: number | null;
+    team_name: string;
+    league_name: string;
+    year_start: number;
+    year_end: number;
+    stat_games: number | null;
+    stat_points: number | null;
+    stat_rebounds: number | null;
+    stat_assists: number | null;
+    stat_steals: number | null;
+    stat_blocks: number | null;
+    stat_fg_pct: string | null;
+  }[]
+): { team: string; jerseyNumber: number | null; stats: CanonicalStatForApi[] } {
   const latestTeam = rows[0]?.team_name ?? "—";
   const latestJersey = rows[0]?.jersey_number ?? null;
   const stats: CanonicalStatForApi[] = [];
-
   for (const r of rows) {
     if (r.ps_id == null) continue;
     const g = r.stat_games ?? r.games_played ?? 0;
@@ -295,8 +381,8 @@ async function getLatestTeamAndStats(
     stats.push({
       id: r.ps_id,
       season: seasonStr,
-      team: r.team_name,
-      league: r.league_name,
+      team: r.team_name ?? "—",
+      league: r.league_name ?? "—",
       games_played: gamesPlayed,
       gamesPlayed,
       pts_per_g: ptsPerG.toFixed(1),
@@ -313,7 +399,6 @@ async function getLatestTeamAndStats(
       fieldGoalPct: fgPctDisplay.toFixed(1),
     });
   }
-
   return { team: latestTeam, jerseyNumber: latestJersey, stats };
 }
 
@@ -351,6 +436,13 @@ export async function getCanonicalPlayerBySrPlayerId(srPlayerId: string): Promis
     .limit(1);
   if (!p?.player) return null;
   return getCanonicalPlayerById(p.player.id);
+}
+
+/** Get one player by external_id (e.g. WNBA slug "clarkca02w") when URL id is string and sr_player_id didn't match. */
+export async function getCanonicalPlayerByExternalId(source: string, externalId: string): Promise<CanonicalPlayerForApi | null> {
+  const player = await findPlayerByExternalId(source, externalId);
+  if (!player) return null;
+  return getCanonicalPlayerById(player.id);
 }
 
 /** Get players by birth year (for birth-year page). Returns API-shaped list. */

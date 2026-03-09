@@ -9,7 +9,7 @@ import { players } from "@shared/schema";
 import { scrapeNBAPlayers, updatePlayerBios, isBioScraperRunning, getCurrentNBASeason, seasonToDisplay } from "./scraper";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { syncPlayerInfoFromPostgres, getPlayerInfoRows, getPlayerInfoById, getPlayerInfoByIds, getPlayerInfoByPlayerId, getRosterFromExternalTableViaJoin, getRosterFromExternalTable, getRosterByCurrentTeamFromPlayerInfo, getPlayersByBirthYearFromExternalTable, getBirthYearCountsFromExternalTable, getProspectsFromExternalTable, insertPlayerStatsRow, insertIntoPlayerInfo, getPlayerInfoCount, getPlayerInfoIdByPlayerId, incrementProfileViewsByPlayerId, setExternalProfileViewsById, setExternalHeadshotById, getExternalProfileViewsById, incrementExternalProfileViewsById, updateExternalPlayerById, updateExternalPlayerByPlayerId } from "./syncPlayerInfo";
-import { getCanonicalPlayersList, getCanonicalPlayerCount, getCanonicalPlayerById, getCanonicalPlayerBySrPlayerId, getCanonicalBirthYearCounts, getCanonicalPlayersByBirthYear, getCanonicalProspects, setCanonicalPlayerProfileViews, getCanonicalRoster, incrementCanonicalPlayerProfileViews, getCanonicalTeamCount, getCanonicalTeamsAll, getCanonicalTeamsByLeague } from "./canonicalPlayerApi";
+import { getCanonicalPlayersList, getCanonicalPlayerCount, getCanonicalPlayerById, getCanonicalPlayerBySrPlayerId, getCanonicalPlayerByExternalId, getCanonicalBirthYearCounts, getCanonicalPlayersByBirthYear, getCanonicalProspects, setCanonicalPlayerProfileViews, getCanonicalRoster, incrementCanonicalPlayerProfileViews, getCanonicalTeamCount, getCanonicalTeamsAll, getCanonicalTeamsByLeague } from "./canonicalPlayerApi";
 
 /** Ensure player object has birthDate and hometown in camelCase for the frontend (Postgres/pg often returns snake_case). */
 function normalizePlayerForApi<T extends Record<string, unknown>>(p: T): T {
@@ -893,6 +893,14 @@ export async function registerRoutes(
         return res.json(out);
       }
 
+      const byExternal = await getCanonicalPlayerByExternalId("wnba", idParam) ?? await getCanonicalPlayerByExternalId("nba", idParam);
+      if (byExternal) {
+        const out = normalizePlayerForApi({ ...byExternal, stats: byExternal.stats ?? [], awards: [] } as Record<string, unknown>);
+        if (byExternal.id === 1 && (!(out as Record<string, unknown>).headshotUrl || (out as Record<string, unknown>).headshotUrl === ""))
+          (out as Record<string, unknown>).headshotUrl = DEFAULT_CURRY_HEADSHOT;
+        return res.json(out);
+      }
+
       return res.status(404).json({ message: "Player not found" });
     } catch (err) {
       console.error("GET /api/players/:id error:", err);
@@ -907,7 +915,9 @@ export async function registerRoutes(
     if (!Number.isNaN(idNum)) {
       await incrementCanonicalPlayerProfileViews(idNum);
     } else {
-      const canonical = await getCanonicalPlayerBySrPlayerId(idParam);
+      const canonical = await getCanonicalPlayerBySrPlayerId(idParam)
+        ?? await getCanonicalPlayerByExternalId("wnba", idParam)
+        ?? await getCanonicalPlayerByExternalId("nba", idParam);
       if (canonical) await incrementCanonicalPlayerProfileViews(canonical.id);
     }
     res.json({ success: true });
