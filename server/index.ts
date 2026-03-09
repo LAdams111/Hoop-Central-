@@ -210,6 +210,18 @@ async function repairPlayerInfoPlayerIdNulls(): Promise<void> {
   }
 }
 
+/** Return true if legacy table player_stats exists (canonical-only DBs like Railway may not have it). */
+async function playerStatsTableExists(): Promise<boolean> {
+  try {
+    const { rows } = await pool.query<{ n: number }>(
+      "SELECT 1 AS n FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'player_stats' LIMIT 1"
+    );
+    return (rows?.length ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
 /** Repair player_stats: set player_id = player_info.id for any row where player_id matches player_info.player_id (string).
  * This fixes stats that were stored with string ids (e.g. "bradtma01") so they show on the correct player profile.
  * Uses ::text casts so the comparison works whether player_stats.player_id is integer or text in the DB. */
@@ -403,22 +415,13 @@ app.use((req, res, next) => {
     // non-fatal
   }
   try {
-    await repairPlayerStatsPlayerIds();
-  } catch {
-    // non-fatal
-  }
-  try {
-    await ensurePlayerStatsPlayerIdInteger();
-  } catch {
-    // non-fatal
-  }
-  try {
-    await ensurePlayerStatsColumns();
-  } catch {
-    // non-fatal
-  }
-  try {
-    await ensurePlayerStatsSeasonText();
+    const hasPlayerStats = await playerStatsTableExists();
+    if (hasPlayerStats) {
+      await repairPlayerStatsPlayerIds();
+      await ensurePlayerStatsPlayerIdInteger();
+      await ensurePlayerStatsColumns();
+      await ensurePlayerStatsSeasonText();
+    }
   } catch {
     // non-fatal
   }
