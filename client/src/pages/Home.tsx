@@ -32,7 +32,7 @@ export default function Home() {
   const { data: featuredPlayers, isLoading: isLoadingFeatured } = useQuery<Player[]>({ queryKey: ["/api/featured-players"] });
   const { data: teamCountData } = useQuery<{ count: number }>({ queryKey: ["/api/teams/count"] });
   const { data: playersCountData } = useQuery<{ count: number }>({ queryKey: ["/api/players/count"] });
-  const { data: dbTeams } = useQuery<{ team: string; league: string; season: string }[]>({ queryKey: ["/api/teams/all"] });
+  const { data: dbTeams } = useQuery<{ team?: string; name?: string; league: string; season?: string | null }[]>({ queryKey: ["/api/teams/all"] });
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -161,8 +161,9 @@ export default function Home() {
     WNBA_TEAMS.forEach(name => teamMap.set(name, { name, league: "WNBA", season: "2025-26" }));
     G_LEAGUE_TEAMS.forEach(name => teamMap.set(name, { name, league: "G-League", season: "2025-26" }));
     dbTeams?.forEach(t => {
-      if (!teamMap.has(t.team)) {
-        teamMap.set(t.team, { name: t.team, league: t.league, season: t.season });
+      const teamName = (t.name ?? t.team ?? "").trim();
+      if (teamName && !teamMap.has(teamName)) {
+        teamMap.set(teamName, { name: teamName, league: t.league ?? "—", season: t.season ?? "2025-26" });
       }
     });
     return Array.from(teamMap.values());
@@ -170,6 +171,7 @@ export default function Home() {
 
   const matchesSearch = (name: string) => {
     if (search.length === 0) return false;
+    if (name == null || typeof name !== "string") return false;
     const searchWords = search.toLowerCase().trim().split(/\s+/);
     const nameWords = name.toLowerCase().split(' ');
     return searchWords.every(sw => nameWords.some(nw => nw.startsWith(sw)));
