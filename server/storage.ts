@@ -2,6 +2,16 @@ import { players, playerStats, awards, teamRecords, siteSettings, type Player, t
 import { db, pool } from "./db";
 import { eq, ilike, or, sql, and, inArray } from "drizzle-orm";
 
+/** Random profile views range for NBA players (inclusive). */
+export const NBA_PROFILE_VIEWS_MIN = 13500;
+export const NBA_PROFILE_VIEWS_MAX = 16500;
+const NBA_PROFILE_VIEWS_RANGE = NBA_PROFILE_VIEWS_MAX - NBA_PROFILE_VIEWS_MIN + 1;
+
+/** Random value in [NBA_PROFILE_VIEWS_MIN, NBA_PROFILE_VIEWS_MAX] for NBA players so they don't all start with the same views. */
+export function getRandomNbaProfileViews(): number {
+  return NBA_PROFILE_VIEWS_MIN + Math.floor(Math.random() * NBA_PROFILE_VIEWS_RANGE);
+}
+
 /** Abbreviation → full name so roster can match either. */
 const TEAM_ABBREV_TO_FULL: Record<string, string> = {
   ATL: "Atlanta Hawks", BOS: "Boston Celtics", BKN: "Brooklyn Nets", BRK: "Brooklyn Nets",
@@ -69,9 +79,9 @@ export interface IStorage {
 
   /** True if player has at least one row in player_stats with league = 'NBA'. */
   getPlayerHasNbaStats(playerId: number): Promise<boolean>;
-  /** Add a one-time random boost (10,000–16,000) to profile_views for players who have played in the NBA. */
+  /** Add a one-time random boost (13,500–16,500) to profile_views for players who have played in the NBA. */
   addNbaProfileViewsBoost(playerId: number): Promise<void>;
-  /** One-time backfill: add NBA views boost to all players with NBA stats and profile_views < 10000. Returns count updated. */
+  /** One-time backfill: set NBA views to random 13,500–16,500 for players with NBA stats and profile_views < 13,500. Returns count updated. */
   backfillNbaProfileViews(): Promise<number>;
 
   // League Teams
@@ -247,9 +257,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addNbaProfileViewsBoost(playerId: number): Promise<void> {
-    const boost = Math.floor(Math.random() * 6001) + 10000;
+    const views = getRandomNbaProfileViews();
     await db.update(players)
-      .set({ profileViews: sql`${players.profileViews} + ${boost}` })
+      .set({ profileViews: views })
       .where(eq(players.id, playerId));
   }
 
@@ -262,7 +272,7 @@ export class DatabaseStorage implements IStorage {
         .where(
           and(
             sql`LOWER(${playerStats.league}) = 'nba'`,
-            sql`${players.profileViews} < 10000`
+            sql`${players.profileViews} < ${NBA_PROFILE_VIEWS_MIN}`
           )
         );
       let updated = 0;

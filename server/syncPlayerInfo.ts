@@ -462,12 +462,12 @@ export async function getPlayerInfoById(id: number): Promise<PlayerInfoMapped | 
       const row = res.rows?.[0];
       if (row) {
         const mapped = mapRowToPlayer(row);
-        let result: PlayerInfoMapped = mapped;
-        const statsFromTable = await getPlayerStatsFromPlayerStatsTable(row.id);
-        if (statsFromTable.length > 0) result = { ...mapped, stats: statsFromTable };
+        let statsFromTable = await getPlayerStatsFromPlayerStatsTable(row.id);
+        if (statsFromTable.length === 0 && row.player_id) statsFromTable = await getPlayerStatsFromPlayerStatsTable(row.player_id);
+        const result: PlayerInfoMapped = { ...mapped, stats: statsFromTable.length > 0 ? statsFromTable : mapped.stats };
         try {
           const existing = await storage.getPlayerByNameAndTeam(mapped.name, mapped.team);
-          if (existing) result = { ...result, profileViews: existing.profileViews };
+          if (existing) result.profileViews = existing.profileViews;
         } catch {
           // app table may be missing or have different schema; keep mapped profileViews
         }
@@ -480,9 +480,9 @@ export async function getPlayerInfoById(id: number): Promise<PlayerInfoMapped | 
   const allRows = await getPlayerInfoRows();
   const found = allRows.find((p) => Number(p.id) === id);
   if (found) {
-    let result: PlayerInfoMapped = found;
-    const statsFromTable = await getPlayerStatsFromPlayerStatsTable(found.id);
-    if (statsFromTable.length > 0) result = { ...found, stats: statsFromTable };
+    let statsFromTable = await getPlayerStatsFromPlayerStatsTable(found.id);
+    if (statsFromTable.length === 0 && found.player_id) statsFromTable = await getPlayerStatsFromPlayerStatsTable(found.player_id);
+    let result: PlayerInfoMapped = { ...found, stats: statsFromTable.length > 0 ? statsFromTable : found.stats };
     try {
       const existing = await storage.getPlayerByNameAndTeam(found.name, found.team);
       if (existing) result = { ...result, profileViews: existing.profileViews };

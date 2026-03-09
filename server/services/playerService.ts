@@ -3,6 +3,7 @@
  * Writes to players + player_external_ids (full_name, height_cm, weight_kg, etc.).
  */
 import { db } from "../db";
+import { getRandomNbaProfileViews } from "../storage";
 import {
   players,
   playerExternalIds,
@@ -66,6 +67,7 @@ export async function findPlayerByExternalId(source: string, externalId: string)
 /**
  * Find or create player. If externalId is provided, looks up by external_id first.
  * Uses full_name, first_name, last_name, height_cm, weight_kg, position; sr_player_id set from externalId when source is bbref/nba.
+ * NBA players get a random profile_views in 13500–16500 so they don't all show the same view count.
  */
 export async function findOrCreatePlayer(params: {
   name: string;
@@ -106,6 +108,7 @@ export async function findOrCreatePlayer(params: {
   const { firstName, lastName } = splitName(fullName);
   const heightCm = parseHeightToCm(params.height);
   const weightKg = parseWeightToKg(params.weight);
+  const isNba = params.source === "nba";
   const [player] = await db
     .insert(players)
     .values({
@@ -118,7 +121,8 @@ export async function findOrCreatePlayer(params: {
       position: params.position ?? null,
       nationality: params.nationality ?? null,
       birthPlace: params.birthPlace ?? null,
-      srPlayerId: source === "nba" && externalId ? externalId : null,
+      srPlayerId: isNba && externalId ? externalId : null,
+      ...(isNba ? { profileViews: getRandomNbaProfileViews() } : {}),
     })
     .returning();
   if (!player) throw new Error("Failed to create player");

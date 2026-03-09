@@ -2,7 +2,7 @@ import type { Express } from "express";
 import type { Server } from "http";
 import crypto from "crypto";
 import { sql } from "drizzle-orm";
-import { storage, getTeamMatchCandidates } from "./storage";
+import { storage, getTeamMatchCandidates, getRandomNbaProfileViews } from "./storage";
 import { db, pool } from "./db";
 import { api } from "@shared/routes";
 import { players } from "@shared/schema";
@@ -288,7 +288,7 @@ export async function registerRoutes(
             bio,
             hometown,
             birthDate,
-            ...(hasNbaStats ? { profileViews: Math.floor(Math.random() * 6001) + 10000 } : {}),
+            ...(hasNbaStats ? { profileViews: getRandomNbaProfileViews() } : {}),
           });
           created++;
           for (const s of statsList) {
@@ -878,7 +878,17 @@ export async function registerRoutes(
       if (!Number.isNaN(idNum)) {
         const canonical = await getCanonicalPlayerById(idNum);
         if (canonical) {
-          const out = normalizePlayerForApi({ ...canonical, awards: [] } as Record<string, unknown>);
+          // If canonical has no stats (e.g. WNBA-only players not in canonical player_seasons), try legacy player_stats
+          let stats = canonical.stats;
+          if (!stats?.length) {
+            try {
+              const fromPlayerInfo = await getPlayerInfoById(idNum);
+              if (fromPlayerInfo?.stats?.length) stats = fromPlayerInfo.stats;
+            } catch {
+              // keep stats empty
+            }
+          }
+          const out = normalizePlayerForApi({ ...canonical, stats: stats ?? [], awards: [] } as Record<string, unknown>);
           if (canonical.id === 1 && (!(out as Record<string, unknown>).headshotUrl || (out as Record<string, unknown>).headshotUrl === ""))
             (out as Record<string, unknown>).headshotUrl = DEFAULT_CURRY_HEADSHOT;
           return res.json(out);
@@ -887,7 +897,16 @@ export async function registerRoutes(
 
       const canonicalBySr = await getCanonicalPlayerBySrPlayerId(idParam);
       if (canonicalBySr) {
-        const out = normalizePlayerForApi({ ...canonicalBySr, awards: [] } as Record<string, unknown>);
+        let stats = canonicalBySr.stats;
+        if (!stats?.length) {
+          try {
+            const fromPlayerInfo = await getPlayerInfoByPlayerId(idParam);
+            if (fromPlayerInfo?.stats?.length) stats = fromPlayerInfo.stats;
+          } catch {
+            // keep stats empty
+          }
+        }
+        const out = normalizePlayerForApi({ ...canonicalBySr, stats: stats ?? [], awards: [] } as Record<string, unknown>);
         if (canonicalBySr.id === 1 && (!(out as Record<string, unknown>).headshotUrl || (out as Record<string, unknown>).headshotUrl === ""))
           (out as Record<string, unknown>).headshotUrl = DEFAULT_CURRY_HEADSHOT;
         return res.json(out);
