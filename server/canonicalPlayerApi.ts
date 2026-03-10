@@ -238,7 +238,8 @@ async function getLatestTeamAndStats(
   return getLatestTeamAndStatsViaTeamAndSeasonId(playerId);
 }
 
-/** Primary path: player_seasons.team_season_id → team_seasons → seasons (schema from Drizzle / schema.sql). */
+/** Primary path: player_seasons.team_season_id → team_seasons → seasons (schema from Drizzle / schema.sql).
+ * Uses LEFT JOIN for team_seasons, seasons, teams, leagues so WNBA (and any league) stats are never dropped — filter by player_id only. */
 async function getLatestTeamAndStatsViaTeamSeasons(
   playerId: number
 ): Promise<{ team: string; jerseyNumber: number | null; stats: CanonicalStatForApi[] }> {
@@ -246,10 +247,10 @@ async function getLatestTeamAndStatsViaTeamSeasons(
     ps_id: number;
     jersey_number: number | null;
     games_played: number | null;
-    team_name: string;
-    league_name: string;
-    year_start: number;
-    year_end: number;
+    team_name: string | null;
+    league_name: string | null;
+    year_start: number | null;
+    year_end: number | null;
     stat_games: number | null;
     stat_points: number | null;
     stat_rebounds: number | null;
@@ -275,13 +276,13 @@ async function getLatestTeamAndStatsViaTeamSeasons(
       pss.fg_pct AS stat_fg_pct
     FROM players p
     JOIN player_seasons ps ON ps.player_id = p.id
-    JOIN team_seasons ts ON ts.id = ps.team_season_id
-    JOIN seasons s ON s.id = ts.season_id
+    LEFT JOIN team_seasons ts ON ts.id = ps.team_season_id
+    LEFT JOIN seasons s ON s.id = ts.season_id
     JOIN player_season_stats pss ON pss.player_season_id = ps.id
     LEFT JOIN teams t ON t.id = ts.team_id
     LEFT JOIN leagues l ON l.id = s.league_id
     WHERE p.id = $1
-    ORDER BY s.year_start DESC, s.year_end DESC`,
+    ORDER BY s.year_start DESC NULLS LAST, s.year_end DESC NULLS LAST`,
     [playerId]
   );
   return buildTeamAndStatsFromRows(rows);
@@ -344,10 +345,10 @@ function buildTeamAndStatsFromRows(
     ps_id: number;
     jersey_number: number | null;
     games_played: number | null;
-    team_name: string;
-    league_name: string;
-    year_start: number;
-    year_end: number;
+    team_name: string | null;
+    league_name: string | null;
+    year_start: number | null;
+    year_end: number | null;
     stat_games: number | null;
     stat_points: number | null;
     stat_rebounds: number | null;
